@@ -7,6 +7,12 @@ import { getMCPList } from '../../services/api';
 import Editor from '@monaco-editor/react';
 import { configureMonacoYaml } from 'monaco-yaml';
 
+declare global {
+  interface Window {
+    monaco: any;
+  }
+}
+
 interface Gateway {
   name: string;
   config: string;
@@ -151,57 +157,48 @@ export function GatewayManager() {
                 </div>
 
                 {gateway.parsedConfig && (
-                  <Accordion>
-                    <AccordionItem
-                      key="routing"
-                      aria-label="Routing Configuration"
-                      title="Routing Configuration"
-                    >
-                      <div className="space-y-2">
-                        {(gateway.parsedConfig.routers || []).map((router, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <Chip color="primary" variant="flat">{router.prefix}</Chip>
-                            <Icon icon="lucide:arrow-right" />
-                            <span>{router.server}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionItem>
-
-                    {(gateway.parsedConfig.servers || []).map((server) => (
-                      <AccordionItem
-                        key={server.name}
-                        aria-label={server.name}
-                        title={
-                          <div className="flex flex-col">
-                            <span className="font-semibold">{server.name}</span>
-                            <span className="text-sm text-default-500">{server.description}</span>
-                          </div>
-                        }
-                      >
-                        <div className="space-y-4">
+                  <div className="space-y-4">
+                    {(gateway.parsedConfig.servers || []).map((server) => {
+                      const config = gateway.parsedConfig!;
+                      return (
+                        <div key={server.name} className="space-y-4">
                           <div>
-                            <h4 className="text-sm font-semibold mb-2">Enabled Tools:</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {server.allowedTools.map((tool) => (
-                                <Chip
-                                  key={tool}
-                                  variant="flat"
-                                  color="success"
-                                  size="sm"
-                                >
-                                  {tool}
-                                </Chip>
-                              ))}
+                            <h4 className="text-sm font-semibold">{server.name}</h4>
+                            <p className="text-sm text-default-500">{server.description}</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">Routing Configuration</h4>
+                            {(config.routers || []).map((router, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <Chip color="primary" variant="flat">{router.prefix}</Chip>
+                                <Icon icon="lucide:arrow-right" />
+                                <span>{router.server}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-sm font-semibold mb-2">Enabled Tools:</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {server.allowedTools.map((tool) => (
+                                  <Chip
+                                    key={tool}
+                                    variant="flat"
+                                    color="success"
+                                    size="sm"
+                                  >
+                                    {tool}
+                                  </Chip>
+                                ))}
+                              </div>
                             </div>
-                          </div>
 
-                          <div>
-                            <h4 className="text-sm font-semibold mb-2">Available Tools:</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {gateway.parsedConfig?.tools
-                                .filter(tool => !server.allowedTools.includes(tool.name))
-                                .map((tool) => (
+                            <div>
+                              <h4 className="text-sm font-semibold mb-2">All Tools:</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {config.tools.map((tool) => (
                                   <Chip
                                     key={tool.name}
                                     variant="flat"
@@ -211,12 +208,13 @@ export function GatewayManager() {
                                     {tool.name}
                                   </Chip>
                                 ))}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
+                      );
+                    })}
+                  </div>
                 )}
               </CardBody>
             </Card>
