@@ -20,6 +20,23 @@ https://github.com/user-attachments/assets/2a812a14-85cf-45d6-9f37-cc08d8579b33
 - 💡 Transparent pass-through for headers, parameters, body, and response
 - 🧭 Intuitive admin interface
 
+## TODOs
+
+- [x] Convert RESTful API to MCP-Server
+- [ ] Convert gRPC to MCP-Server
+- [x] Request/Response body transformation
+- [x] Management interface
+- [ ] Session persistence
+- [ ] Streamable HTTP support
+- [ ] Migratable and restorable sessions
+- [ ] Pre-request authentication
+- [ ] Configuration versioning
+- [ ] Distributed configuration persistence
+- [ ] Multi-replica service support
+- [ ] Docker support
+- [ ] Kubernetes integration
+- [ ] Helm chart support
+
 ## Quick Start
 
 ### Backend Service
