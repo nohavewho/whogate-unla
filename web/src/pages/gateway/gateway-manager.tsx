@@ -1,8 +1,8 @@
 import React from 'react';
-import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip } from "@heroui/react";
+import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
-import { getMCPServers, createMCPServer } from '../../services/api';
+import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, syncMCPServers } from '../../services/api';
 import Editor from '@monaco-editor/react';
 import { configureMonacoYaml } from 'monaco-yaml';
 import toast from 'react-hot-toast';
@@ -105,15 +105,19 @@ export function GatewayManager() {
     onOpen();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
       // Validate YAML
       yaml.load(editConfig);
 
       if (currentMCPServer) {
-        setMCPServers(mcpservers.map(s =>
-          s.name === currentMCPServer.name ? {...s, config: editConfig} : s
-        ));
+        await updateMCPServer(currentMCPServer.name, editConfig);
+        const servers = await getMCPServers();
+        setMCPServers(servers);
+        toast.success('配置已保存', {
+          duration: 3000,
+          position: 'bottom-right',
+        });
       }
       onOpenChange();
     } catch (e) {
@@ -124,12 +128,41 @@ export function GatewayManager() {
     }
   };
 
+  const handleDelete = async (server: Gateway) => {
+    try {
+      await deleteMCPServer(server.name);
+      const servers = await getMCPServers();
+      setMCPServers(servers);
+      toast.success('配置已删除', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } catch (e) {
+      toast.error('删除失败', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    }
+  };
+
   const handleSync = async () => {
-    // TODO: Implement actual sync logic
-    toast.success("Configuration sync triggered", {
-      duration: 3000,
-      position: 'bottom-right',
-    });
+    try {
+      setIsLoading(true);
+      await syncMCPServers();
+      const servers = await getMCPServers();
+      setMCPServers(servers);
+      toast.success('配置已同步', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } catch (e) {
+      toast.error('同步失败', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCopyToClipboard = async (text: string) => {
@@ -229,15 +262,40 @@ export function GatewayManager() {
               <CardBody className="flex flex-col gap-3 p-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold truncate">{server.name}</h3>
-                  <Button
-                    isIconOnly
-                    color="primary"
-                    variant="light"
-                    size="sm"
-                    onPress={() => handleEdit(server)}
-                  >
-                    <Icon icon="lucide:edit" className="text-lg" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      isIconOnly
+                      color="primary"
+                      variant="light"
+                      size="sm"
+                      onPress={() => handleEdit(server)}
+                    >
+                      <Icon icon="lucide:edit" className="text-lg" />
+                    </Button>
+                    <Dropdown>
+                      <DropdownTrigger>
+                        <Button
+                          isIconOnly
+                          color="danger"
+                          variant="light"
+                          size="sm"
+                        >
+                          <Icon icon="lucide:more-vertical" className="text-lg" />
+                        </Button>
+                      </DropdownTrigger>
+                      <DropdownMenu aria-label="Actions">
+                        <DropdownItem
+                          key="delete"
+                          className="text-danger"
+                          color="danger"
+                          startContent={<Icon icon="lucide:trash-2" />}
+                          onPress={() => handleDelete(server)}
+                        >
+                          删除
+                        </DropdownItem>
+                      </DropdownMenu>
+                    </Dropdown>
+                  </div>
                 </div>
 
                 {server.parsedConfig && (

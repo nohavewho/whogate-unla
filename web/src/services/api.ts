@@ -54,8 +54,7 @@ export const createMCPServer = async (config: string) => {
 
 export const updateMCPServer = async (name: string, config: string) => {
   try {
-    const response = await api.put('/mcp-servers', config, {
-      params: { name },
+    const response = await api.put(`/mcp-servers/${name}`, config, {
       headers: {
         'Content-Type': 'application/yaml',
       },
@@ -69,6 +68,46 @@ export const updateMCPServer = async (name: string, config: string) => {
       });
     } else {
       toast.error('更新 MCP 服务器配置失败', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    }
+    throw error;
+  }
+};
+
+export const deleteMCPServer = async (name: string) => {
+  try {
+    const response = await api.delete(`/mcp-servers/${name}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      toast.error(error.response.data.error, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } else {
+      toast.error('删除 MCP 服务器失败', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    }
+    throw error;
+  }
+};
+
+export const syncMCPServers = async () => {
+  try {
+    const response = await api.post('/mcp-servers/sync');
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      toast.error(error.response.data.error, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } else {
+      toast.error('同步 MCP 服务器失败', {
         duration: 3000,
         position: 'bottom-right',
       });

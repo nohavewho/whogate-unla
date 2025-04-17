@@ -78,9 +78,11 @@ func main() {
 
 	// Configure routes
 	r.POST("/api/mcp-servers", handleMCPServerCreate)
-	r.PUT("/api/mcp-servers", handleMCPServerUpdate)
+	r.PUT("/api/mcp-servers/:name", handleMCPServerUpdate)
 	r.GET("/ws/chat", handleWebSocket)
 	r.GET("/api/mcp-servers", handleGetMCPServers)
+	r.DELETE("/api/mcp-servers/:name", handleMCPServerDelete)
+	r.POST("/api/mcp-servers/sync", handleMCPServerSync)
 
 	// Static file server
 	r.Static("/static", "./static")
@@ -97,8 +99,8 @@ func main() {
 }
 
 func handleMCPServerUpdate(c *gin.Context) {
-	// Get the server name from query parameter
-	name := c.Query("name")
+	// Get the server name from path parameter instead of query parameter
+	name := c.Param("name")
 	if name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "name parameter is required"})
 		return
@@ -264,5 +266,81 @@ func handleMCPServerCreate(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"status": "success",
 		"path":   configFile,
+	})
+}
+
+func handleMCPServerDelete(c *gin.Context) {
+	// Get the server name from path parameter
+	name := c.Param("name")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name parameter is required"})
+		return
+	}
+
+	// Get the config directory
+	configDir := getConfigPath()
+
+	// Create the config file path
+	configFile := filepath.Join(configDir, name+".yaml")
+
+	// Check if the file exists
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "MCP server not found"})
+		return
+	}
+
+	// Delete the file
+	if err := os.Remove(configFile); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to delete MCP server configuration: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+	})
+}
+
+func handleMCPServerSync(c *gin.Context) {
+	// Get the config directory
+	configDir := getConfigPath()
+
+	// Read all YAML files in the config directory
+	files, err := os.ReadDir(configDir)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to read config directory: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate all YAML files
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml") {
+			continue
+		}
+
+		content, err := os.ReadFile(filepath.Join(configDir, file.Name()))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to read config file: " + err.Error(),
+			})
+			return
+		}
+
+		// Validate the YAML content
+		var cfg config.Config
+		if err := yaml.Unmarshal(content, &cfg); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid YAML content in " + file.Name() + ": " + err.Error(),
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"count":  len(files),
 	})
 }
