@@ -1,11 +1,11 @@
 import React from 'react';
-import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/react";
+import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
-import { Accordion, AccordionItem, Chip } from "@heroui/react";
 import { getMCPServers } from '../../services/api';
 import Editor from '@monaco-editor/react';
 import { configureMonacoYaml } from 'monaco-yaml';
+import toast from 'react-hot-toast';
 
 declare global {
   interface Window {
@@ -60,7 +60,6 @@ export function GatewayManager() {
   const [editConfig, setEditConfig] = React.useState('');
   const [parsedMCPServers, setParsedMCPServers] = React.useState<Gateway[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [selectedMCPServer, setSelectedMCPServer] = React.useState<Gateway | null>(null);
 
   // Configure Monaco YAML
   React.useEffect(() => {
@@ -86,7 +85,10 @@ export function GatewayManager() {
         const servers = await getMCPServers();
         setMCPServers(servers);
       } catch (error) {
-        console.error('Failed to fetch MCP servers:', error);
+        toast.error('获取 MCP 服务器列表失败', {
+          duration: 3000,
+          position: 'bottom-right',
+        });
       } finally {
         setIsLoading(false);
       }
@@ -96,7 +98,6 @@ export function GatewayManager() {
   }, []);
 
   const handleEdit = (server: Gateway) => {
-    console.log('Editing MCP server:', server);
     setCurrentMCPServer(server);
     setEditConfig(server.config);
     onOpen();
@@ -114,13 +115,34 @@ export function GatewayManager() {
       }
       onOpenChange();
     } catch (e) {
-      alert('Invalid YAML format');
+      toast.error('Invalid YAML format', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
     }
   };
 
   const handleSync = async () => {
     // TODO: Implement actual sync logic
-    alert("Configuration sync triggered");
+    toast.success("Configuration sync triggered", {
+      duration: 3000,
+      position: 'bottom-right',
+    });
+  };
+
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`已复制: ${text}`, {
+        duration: 2000,
+        position: 'bottom-right',
+      });
+    } catch (err) {
+      toast.error("复制失败，请手动复制", {
+        duration: 2000,
+        position: 'bottom-right',
+      });
+    }
   };
 
   React.useEffect(() => {
@@ -130,7 +152,10 @@ export function GatewayManager() {
           const config = yaml.load(server.config) as Gateway['parsedConfig'];
           return { ...server, parsedConfig: config };
         } catch (e) {
-          console.error(`Failed to parse config for ${server.name}:`, e);
+          toast.error(`解析配置失败: ${server.name}`, {
+            duration: 3000,
+            position: 'bottom-right',
+          });
           return server;
         }
       });
@@ -158,16 +183,17 @@ export function GatewayManager() {
           <Icon icon="lucide:loader-2" className="animate-spin text-2xl" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {(parsedMCPServers || []).map((server) => (
-            <Card key={server.name} className="w-full">
-              <CardBody className="flex flex-col gap-4">
+            <Card key={server.name} className="w-full hover:shadow-lg transition-shadow">
+              <CardBody className="flex flex-col gap-3 p-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">{server.name}</h3>
+                  <h3 className="text-lg font-semibold truncate">{server.name}</h3>
                   <Button
                     isIconOnly
                     color="primary"
                     variant="light"
+                    size="sm"
                     onPress={() => handleEdit(server)}
                   >
                     <Icon icon="lucide:edit" className="text-lg" />
@@ -175,36 +201,55 @@ export function GatewayManager() {
                 </div>
 
                 {server.parsedConfig && (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {(server.parsedConfig.servers || []).map((serverConfig: ServerConfig) => {
                       return (
-                        <div key={serverConfig.name} className="space-y-4">
+                        <div key={serverConfig.name} className="space-y-3">
                           <div>
-                            <h4 className="text-sm font-semibold">{serverConfig.name}</h4>
-                            <p className="text-sm text-default-500">{serverConfig.description}</p>
+                            <h4 className="text-sm font-semibold truncate">{serverConfig.name}</h4>
+                            <p className="text-sm text-default-500 line-clamp-2">{serverConfig.description}</p>
                           </div>
 
                           <div className="space-y-2">
                             <h4 className="text-sm font-semibold">Routing Configuration</h4>
-                            {(server.parsedConfig?.routers ?? []).map((router: RouterConfig, idx: number) => (
-                              <div key={idx} className="flex items-center gap-2">
-                                <Chip color="primary" variant="flat">{router.prefix}</Chip>
-                                <Icon icon="lucide:arrow-right" />
-                                <span>{router.server}</span>
-                              </div>
-                            ))}
+                            <div className="flex flex-col gap-2">
+                              {(server.parsedConfig?.routers ?? []).map((router: RouterConfig, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <Chip
+                                    color="primary"
+                                    variant="flat"
+                                    size="sm"
+                                    className="cursor-pointer hover:opacity-80 select-none"
+                                    onClick={() => handleCopyToClipboard(router.prefix)}
+                                  >
+                                    {router.prefix}
+                                  </Chip>
+                                  <Icon icon="lucide:arrow-right" className="text-sm" />
+                                  <Chip
+                                    variant="flat"
+                                    size="sm"
+                                    className="cursor-pointer hover:opacity-80 select-none"
+                                    onClick={() => handleCopyToClipboard(router.server)}
+                                  >
+                                    {router.server}
+                                  </Chip>
+                                </div>
+                              ))}
+                            </div>
                           </div>
 
-                          <div className="space-y-4">
+                          <div className="space-y-3">
                             <div>
-                              <h4 className="text-sm font-semibold mb-2">Enabled Tools:</h4>
-                              <div className="flex flex-wrap gap-2">
+                              <h4 className="text-sm font-semibold mb-1">Enabled Tools:</h4>
+                              <div className="flex flex-wrap gap-1">
                                 {serverConfig.allowedTools.map((tool: string) => (
                                   <Chip
                                     key={tool}
                                     variant="flat"
                                     color="success"
                                     size="sm"
+                                    className="truncate cursor-pointer hover:opacity-80 select-none"
+                                    onClick={() => handleCopyToClipboard(tool)}
                                   >
                                     {tool}
                                   </Chip>
@@ -213,14 +258,16 @@ export function GatewayManager() {
                             </div>
 
                             <div>
-                              <h4 className="text-sm font-semibold mb-2">All Tools:</h4>
-                              <div className="flex flex-wrap gap-2">
+                              <h4 className="text-sm font-semibold mb-1">All Tools:</h4>
+                              <div className="flex flex-wrap gap-1">
                                 {(server.parsedConfig?.tools ?? []).map((tool: ToolConfig) => (
                                   <Chip
                                     key={tool.name}
                                     variant="flat"
                                     color="default"
                                     size="sm"
+                                    className="truncate cursor-pointer hover:opacity-80 select-none"
+                                    onClick={() => handleCopyToClipboard(tool.name)}
                                   >
                                     {tool.name}
                                   </Chip>

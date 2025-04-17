@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -15,7 +16,10 @@ export const getMCPServers = async () => {
     const response = await api.get('/configs');
     return response.data;
   } catch (error) {
-    console.error('Error fetching MCP servers:', error);
+    toast.error('获取 MCP 服务器列表失败', {
+      duration: 3000,
+      position: 'bottom-right',
+    });
     throw error;
   }
 };
