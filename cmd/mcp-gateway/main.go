@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	configPath = flag.String("config", "configs/all-in-one.yaml", "path to configuration file")
+	configPath = flag.String("conf", "configs", "path to configuration file or directory")
 	dataDir    = flag.String("data-dir", "data", "path to data directory")
 )
 
@@ -31,7 +31,22 @@ func main() {
 
 	// Load configuration
 	cfgLoader := config.NewLoader(logger)
-	cfg, err := cfgLoader.LoadFromFile(*configPath)
+
+	// Check if config path is a directory
+	info, err := os.Stat(*configPath)
+	if err != nil {
+		logger.Fatal("failed to stat config path",
+			zap.String("path", *configPath),
+			zap.Error(err))
+	}
+
+	var cfg *config.Config
+	if info.IsDir() {
+		cfg, err = cfgLoader.LoadFromDir(*configPath)
+	} else {
+		cfg, err = cfgLoader.LoadFromFile(*configPath)
+	}
+
 	if err != nil {
 		logger.Fatal("failed to load configuration",
 			zap.String("path", *configPath),

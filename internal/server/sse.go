@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 
@@ -38,7 +39,12 @@ func (s *sseSession) Initialized() bool {
 	return s.initialized
 }
 
-// handleSSE handles incoming SSE connection requests
+// Close closes the SSE session
+func (s *sseSession) Close() {
+	close(s.done)
+}
+
+// handleSSE handles SSE connections
 func (s *Server) handleSSE(c *gin.Context) {
 	w := c.Writer
 	r := c.Request
@@ -54,6 +60,12 @@ func (s *Server) handleSSE(c *gin.Context) {
 		return
 	}
 
+	// Get the prefix from the request path
+	prefix := strings.TrimSuffix(c.Request.URL.Path, "/sse")
+	if prefix == "" {
+		prefix = "/"
+	}
+
 	sessionID := uuid.New().String()
 	session := &sseSession{
 		writer:              w,
@@ -64,8 +76,12 @@ func (s *Server) handleSSE(c *gin.Context) {
 		notificationChannel: make(chan mcp.JSONRPCNotification, 100),
 	}
 
+	// Store session to prefix mapping
+	s.sessionToPrefix.Store(sessionID, prefix)
+
 	s.sessions.Store(sessionID, session)
 	defer s.sessions.Delete(sessionID)
+	defer s.sessionToPrefix.Delete(sessionID)
 
 	// Start notification handler for this session
 	go func() {
@@ -98,7 +114,7 @@ func (s *Server) handleSSE(c *gin.Context) {
 	for {
 		select {
 		case event := <-session.eventQueue:
-			fmt.Fprint(w, event)
+			_, _ = fmt.Fprint(w, event)
 			flusher.Flush()
 		case <-r.Context().Done():
 			return
@@ -203,16 +219,30 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Initialize the session
 		session.Initialize()
 	case mcp.ToolsList:
-		// Return the precomputed list of available tools
+		// Get the prefix for this session
+		prefixI, ok := s.sessionToPrefix.Load(session.sessionID)
+		if !ok {
+			s.sendErrorResponse(c, session, req, "Session not found")
+			return
+		}
+		prefix := prefixI.(string)
+
+		// Get tools for this prefix
+		tools, ok := s.prefixToTools[prefix]
+		if !ok {
+			tools = []mcp.ToolSchema{} // Return empty list if prefix not found
+		}
+
 		response := mcp.JSONRPCResponse{
 			JSONRPCBaseResult: mcp.JSONRPCBaseResult{
 				JSONRPC: mcp.JSPNRPCVersion,
 				ID:      req.Id,
 			},
 			Result: mcp.ListToolsResult{
-				Tools: s.tools,
+				Tools: tools,
 			},
 		}
+
 		// Send response via SSE
 		eventData, err := json.Marshal(response)
 		if err != nil {

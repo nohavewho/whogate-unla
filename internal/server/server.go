@@ -20,16 +20,21 @@ type Server struct {
 	sessions sync.Map
 	tools    []mcp.ToolSchema
 	toolMap  map[string]*config.ToolConfig
+	// prefixToTools maps prefix to allowed tools
+	prefixToTools map[string][]mcp.ToolSchema
+	// sessionToPrefix maps session ID to prefix
+	sessionToPrefix sync.Map
 }
 
 // NewServer creates a new MCP server
 func NewServer(logger *zap.Logger, store Storage) *Server {
 	return &Server{
-		logger:   logger,
-		store:    store,
-		renderer: template.NewRenderer(),
-		tools:    make([]mcp.ToolSchema, 0),
-		toolMap:  make(map[string]*config.ToolConfig),
+		logger:        logger,
+		store:         store,
+		renderer:      template.NewRenderer(),
+		tools:         make([]mcp.ToolSchema, 0),
+		toolMap:       make(map[string]*config.ToolConfig),
+		prefixToTools: make(map[string][]mcp.ToolSchema),
 	}
 }
 
@@ -45,6 +50,7 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
 		s.tools = append(s.tools, tool.ToToolSchema())
 	}
 
+	// Build prefix to tools mapping
 	prefixMap := make(map[string]string)
 	for _, routerCfg := range cfg.Routers {
 		prefixMap[routerCfg.Server] = routerCfg.Prefix
@@ -55,6 +61,15 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
 		if !exists {
 			return fmt.Errorf("no router prefix found for server: %s", serverCfg.Name)
 		}
+
+		// Filter tools based on server's allowed tools
+		var allowedTools []mcp.ToolSchema
+		for _, toolName := range serverCfg.AllowedTools {
+			if tool, ok := s.toolMap[toolName]; ok {
+				allowedTools = append(allowedTools, tool.ToToolSchema())
+			}
+		}
+		s.prefixToTools[prefix] = allowedTools
 
 		group := router.Group(prefix)
 
