@@ -10,12 +10,12 @@ const api = axios.create({
 });
 
 // API endpoints
-export const getMCPList = async () => {
+export const getMCPServers = async () => {
   try {
     const response = await api.get('/configs');
     return response.data;
   } catch (error) {
-    console.error('Error fetching yaml list:', error);
+    console.error('Error fetching MCP servers:', error);
     throw error;
   }
 };

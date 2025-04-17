@@ -40,7 +40,7 @@ func (l *Loader) LoadFromFile(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// LoadFromDir loads configurations from a directory and merges them
+// LoadFromDir loads MCP server configurations from a directory and merges them
 func (l *Loader) LoadFromDir(dir string) (*Config, error) {
 	// Create a base config
 	baseCfg := &Config{
@@ -60,18 +60,18 @@ func (l *Loader) LoadFromDir(dir string) (*Config, error) {
 			return nil
 		}
 
-		// Load configuration from file
+		// Load MCP server configuration from file
 		cfg, err := l.LoadFromFile(path)
 		if err != nil {
-			l.logger.Error("failed to load configuration file",
+			l.logger.Error("failed to load MCP server configuration file",
 				zap.String("path", path),
 				zap.Error(err))
 			return nil // Continue with other files
 		}
 
-		// Merge configurations
+		// Merge MCP server configurations
 		if err := l.mergeConfig(baseCfg, cfg); err != nil {
-			l.logger.Error("failed to merge configuration",
+			l.logger.Error("failed to merge MCP server configuration",
 				zap.String("path", path),
 				zap.Error(err))
 			return nil // Continue with other files
@@ -84,7 +84,7 @@ func (l *Loader) LoadFromDir(dir string) (*Config, error) {
 		return nil, err
 	}
 
-	// Validate the merged configuration
+	// Validate the merged MCP server configuration
 	if err := l.Validate(baseCfg); err != nil {
 		return nil, err
 	}

@@ -41,7 +41,7 @@ func main() {
 	r.POST("/api/configs", handleConfigUpdate)
 	r.GET("/ws/chat", handleWebSocket)
 	r.GET("/api/configs", func(c *gin.Context) {
-		handleGetConfigs(c, loader)
+		handleGetMCPServers(c, loader)
 	})
 
 	// Static file server
@@ -92,8 +92,8 @@ func handleWebSocket(c *gin.Context) {
 	}
 }
 
-// handleGetConfigs handles the GET /api/configs endpoint
-func handleGetConfigs(c *gin.Context, loader *config.Loader) {
+// handleGetMCPServers handles the GET /api/configs endpoint
+func handleGetMCPServers(c *gin.Context, loader *config.Loader) {
 	// Get the config directory from environment variable or use default
 	configDir := os.Getenv("CONFIG_DIR")
 	if configDir == "" {
@@ -110,7 +110,7 @@ func handleGetConfigs(c *gin.Context, loader *config.Loader) {
 	}
 
 	// Load configurations from each yaml file
-	configs := make([]map[string]string, 0)
+	servers := make([]map[string]string, 0)
 	for _, file := range files {
 		if file.IsDir() || !strings.HasSuffix(strings.ToLower(file.Name()), ".yaml") {
 			continue
@@ -124,12 +124,12 @@ func handleGetConfigs(c *gin.Context, loader *config.Loader) {
 		}
 
 		// Add the YAML content to the response
-		configs = append(configs, map[string]string{
+		servers = append(servers, map[string]string{
 			"name":   strings.TrimSuffix(file.Name(), ".yaml"),
 			"config": string(content),
 		})
 	}
 
-	// Return the list of configurations
-	c.JSON(http.StatusOK, configs)
+	// Return the list of MCP servers
+	c.JSON(http.StatusOK, servers)
 }

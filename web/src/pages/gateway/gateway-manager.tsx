@@ -3,7 +3,7 @@ import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, Mo
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
 import { Accordion, AccordionItem, Chip } from "@heroui/react";
-import { getMCPList } from '../../services/api';
+import { getMCPServers } from '../../services/api';
 import Editor from '@monaco-editor/react';
 import { configureMonacoYaml } from 'monaco-yaml';
 
@@ -35,14 +35,32 @@ interface Gateway {
   };
 }
 
+interface ServerConfig {
+  name: string;
+  namespace: string;
+  description: string;
+  allowedTools: string[];
+}
+
+interface RouterConfig {
+  server: string;
+  prefix: string;
+}
+
+interface ToolConfig {
+  name: string;
+  description: string;
+  method: string;
+}
+
 export function GatewayManager() {
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const [gateways, setGateways] = React.useState<Gateway[]>([]);
-  const [currentGateway, setCurrentGateway] = React.useState<Gateway | null>(null);
+  const [mcpservers, setMCPServers] = React.useState<Gateway[]>([]);
+  const [currentMCPServer, setCurrentMCPServer] = React.useState<Gateway | null>(null);
   const [editConfig, setEditConfig] = React.useState('');
-  const [parsedGateways, setParsedGateways] = React.useState<Gateway[]>([]);
+  const [parsedMCPServers, setParsedMCPServers] = React.useState<Gateway[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [selectedGateway, setSelectedGateway] = React.useState<Gateway | null>(null);
+  const [selectedMCPServer, setSelectedMCPServer] = React.useState<Gateway | null>(null);
 
   // Configure Monaco YAML
   React.useEffect(() => {
@@ -60,27 +78,27 @@ export function GatewayManager() {
     }
   }, []);
 
-  // 获取 yaml 列表
+  // 获取 MCP servers 列表
   React.useEffect(() => {
-    const fetchYamlList = async () => {
+    const fetchMCPServers = async () => {
       try {
         setIsLoading(true);
-        const yamlList = await getMCPList();
-        setGateways(yamlList);
+        const servers = await getMCPServers();
+        setMCPServers(servers);
       } catch (error) {
-        console.error('Failed to fetch yaml list:', error);
+        console.error('Failed to fetch MCP servers:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchYamlList();
+    fetchMCPServers();
   }, []);
 
-  const handleEdit = (gateway: Gateway) => {
-    console.log('Editing gateway:', gateway);
-    setCurrentGateway(gateway);
-    setEditConfig(gateway.config);
+  const handleEdit = (server: Gateway) => {
+    console.log('Editing MCP server:', server);
+    setCurrentMCPServer(server);
+    setEditConfig(server.config);
     onOpen();
   };
 
@@ -89,9 +107,9 @@ export function GatewayManager() {
       // Validate YAML
       yaml.load(editConfig);
 
-      if (currentGateway) {
-        setGateways(gateways.map(g =>
-          g.name === currentGateway.name ? {...g, config: editConfig} : g
+      if (currentMCPServer) {
+        setMCPServers(mcpservers.map(s =>
+          s.name === currentMCPServer.name ? {...s, config: editConfig} : s
         ));
       }
       onOpenChange();
@@ -107,24 +125,24 @@ export function GatewayManager() {
 
   React.useEffect(() => {
     const parseConfigs = () => {
-      const parsed = gateways.map(gateway => {
+      const parsed = mcpservers.map(server => {
         try {
-          const config = yaml.load(gateway.config) as Gateway['parsedConfig'];
-          return { ...gateway, parsedConfig: config };
+          const config = yaml.load(server.config) as Gateway['parsedConfig'];
+          return { ...server, parsedConfig: config };
         } catch (e) {
-          console.error(`Failed to parse config for ${gateway.name}:`, e);
-          return gateway;
+          console.error(`Failed to parse config for ${server.name}:`, e);
+          return server;
         }
       });
-      setParsedGateways(parsed);
+      setParsedMCPServers(parsed);
     };
     parseConfigs();
-  }, [gateways]);
+  }, [mcpservers]);
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gateway Manager</h1>
+        <h1 className="text-2xl font-bold">MCP Servers Manager</h1>
         <Button
           color="primary"
           startContent={<Icon icon="lucide:refresh-cw" />}
@@ -141,35 +159,34 @@ export function GatewayManager() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {(parsedGateways || []).map((gateway) => (
-            <Card key={gateway.name} className="w-full">
+          {(parsedMCPServers || []).map((server) => (
+            <Card key={server.name} className="w-full">
               <CardBody className="flex flex-col gap-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">{gateway.name}</h3>
+                  <h3 className="text-lg font-semibold">{server.name}</h3>
                   <Button
                     isIconOnly
                     color="primary"
                     variant="light"
-                    onPress={() => handleEdit(gateway)}
+                    onPress={() => handleEdit(server)}
                   >
                     <Icon icon="lucide:edit" className="text-lg" />
                   </Button>
                 </div>
 
-                {gateway.parsedConfig && (
+                {server.parsedConfig && (
                   <div className="space-y-4">
-                    {(gateway.parsedConfig.servers || []).map((server) => {
-                      const config = gateway.parsedConfig!;
+                    {(server.parsedConfig.servers || []).map((serverConfig: ServerConfig) => {
                       return (
-                        <div key={server.name} className="space-y-4">
+                        <div key={serverConfig.name} className="space-y-4">
                           <div>
-                            <h4 className="text-sm font-semibold">{server.name}</h4>
-                            <p className="text-sm text-default-500">{server.description}</p>
+                            <h4 className="text-sm font-semibold">{serverConfig.name}</h4>
+                            <p className="text-sm text-default-500">{serverConfig.description}</p>
                           </div>
 
                           <div className="space-y-2">
                             <h4 className="text-sm font-semibold">Routing Configuration</h4>
-                            {(config.routers || []).map((router, idx) => (
+                            {(server.parsedConfig?.routers ?? []).map((router: RouterConfig, idx: number) => (
                               <div key={idx} className="flex items-center gap-2">
                                 <Chip color="primary" variant="flat">{router.prefix}</Chip>
                                 <Icon icon="lucide:arrow-right" />
@@ -182,7 +199,7 @@ export function GatewayManager() {
                             <div>
                               <h4 className="text-sm font-semibold mb-2">Enabled Tools:</h4>
                               <div className="flex flex-wrap gap-2">
-                                {server.allowedTools.map((tool) => (
+                                {serverConfig.allowedTools.map((tool: string) => (
                                   <Chip
                                     key={tool}
                                     variant="flat"
@@ -198,7 +215,7 @@ export function GatewayManager() {
                             <div>
                               <h4 className="text-sm font-semibold mb-2">All Tools:</h4>
                               <div className="flex flex-wrap gap-2">
-                                {config.tools.map((tool) => (
+                                {(server.parsedConfig?.tools ?? []).map((tool: ToolConfig) => (
                                   <Chip
                                     key={tool.name}
                                     variant="flat"
@@ -231,7 +248,7 @@ export function GatewayManager() {
         <ModalContent className="h-[70%]">
           {(onClose) => (
             <>
-              <ModalHeader>Edit Gateway Configuration</ModalHeader>
+              <ModalHeader>Edit MCP Server Configuration</ModalHeader>
               <ModalBody className="flex-1">
                 <Editor
                   height="100%"

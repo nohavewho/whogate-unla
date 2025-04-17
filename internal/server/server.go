@@ -20,9 +20,9 @@ type Server struct {
 	sessions sync.Map
 	tools    []mcp.ToolSchema
 	toolMap  map[string]*config.ToolConfig
-	// prefixToTools maps prefix to allowed tools
+	// prefixToTools maps prefix to allowed tools for each MCP server
 	prefixToTools map[string][]mcp.ToolSchema
-	// sessionToPrefix maps session ID to prefix
+	// sessionToPrefix maps session ID to MCP server prefix
 	sessionToPrefix sync.Map
 }
 
@@ -38,19 +38,19 @@ func NewServer(logger *zap.Logger, store Storage) *Server {
 	}
 }
 
-// RegisterRoutes registers routes with the given router
+// RegisterRoutes registers routes with the given router for MCP servers
 func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
 	router.Use(s.loggerMiddleware())
 	router.Use(s.recoveryMiddleware())
 
-	// Initialize tool map and list
+	// Initialize tool map and list for MCP servers
 	for i := range cfg.Tools {
 		tool := &cfg.Tools[i]
 		s.toolMap[tool.Name] = tool
 		s.tools = append(s.tools, tool.ToToolSchema())
 	}
 
-	// Build prefix to tools mapping
+	// Build prefix to tools mapping for MCP servers
 	prefixMap := make(map[string]string)
 	for _, routerCfg := range cfg.Routers {
 		prefixMap[routerCfg.Server] = routerCfg.Prefix
@@ -59,10 +59,10 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
 	for _, serverCfg := range cfg.Servers {
 		prefix, exists := prefixMap[serverCfg.Name]
 		if !exists {
-			return fmt.Errorf("no router prefix found for server: %s", serverCfg.Name)
+			return fmt.Errorf("no router prefix found for MCP server: %s", serverCfg.Name)
 		}
 
-		// Filter tools based on server's allowed tools
+		// Filter tools based on MCP server's allowed tools
 		var allowedTools []mcp.ToolSchema
 		for _, toolName := range serverCfg.AllowedTools {
 			if tool, ok := s.toolMap[toolName]; ok {
@@ -73,7 +73,7 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
 
 		group := router.Group(prefix)
 
-		// Add SSE and message endpoints
+		// Add SSE and message endpoints for MCP server
 		group.GET("/sse", s.handleSSE)
 		group.POST("/message", s.handleMessage)
 	}
@@ -86,9 +86,9 @@ func (s *Server) Shutdown(_ context.Context) error {
 	return nil
 }
 
-// LoadConfig loads the server configuration
+// LoadConfig loads the MCP server configuration
 func (s *Server) LoadConfig(cfg *config.Config) error {
-	// Initialize tool map and list
+	// Initialize tool map and list for MCP servers
 	for i := range cfg.Tools {
 		tool := &cfg.Tools[i]
 		s.toolMap[tool.Name] = tool
