@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -9,8 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"go.uber.org/zap"
+)
+
+var (
+	configPath = flag.String("conf", "", "path to configuration file or directory")
 )
 
 var upgrader = websocket.Upgrader{
@@ -24,7 +28,32 @@ type Config struct {
 	// Add more fields as needed
 }
 
+func getConfigPath() string {
+	// 1. Check command line flag
+	if *configPath != "" {
+		return *configPath
+	}
+
+	// 2. Check environment variable
+	if envPath := os.Getenv("CONFIG_DIR"); envPath != "" {
+		return envPath
+	}
+
+	// 3. Default to APPDATA/.mcp/gateway
+	appData := os.Getenv("APPDATA")
+	if appData == "" {
+		// For non-Windows systems, use HOME
+		appData = os.Getenv("HOME")
+		if appData == "" {
+			log.Fatal("Neither APPDATA nor HOME environment variable is set")
+		}
+	}
+	return filepath.Join(appData, ".mcp", "gateway")
+}
+
 func main() {
+	flag.Parse()
+
 	// Initialize logger
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -32,17 +61,23 @@ func main() {
 	}
 	defer logger.Sync()
 
-	// Create config loader
-	loader := config.NewLoader(logger)
+	// Get configuration path
+	configDir := getConfigPath()
+	logger.Info("Using configuration directory", zap.String("path", configDir))
+
+	// Create config directory if it doesn't exist
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		logger.Fatal("Failed to create config directory",
+			zap.String("path", configDir),
+			zap.Error(err))
+	}
 
 	r := gin.Default()
 
 	// Configure routes
 	r.POST("/api/configs", handleConfigUpdate)
 	r.GET("/ws/chat", handleWebSocket)
-	r.GET("/api/configs", func(c *gin.Context) {
-		handleGetMCPServers(c, loader)
-	})
+	r.GET("/api/configs", handleGetMCPServers)
 
 	// Static file server
 	r.Static("/static", "./static")
@@ -93,12 +128,9 @@ func handleWebSocket(c *gin.Context) {
 }
 
 // handleGetMCPServers handles the GET /api/configs endpoint
-func handleGetMCPServers(c *gin.Context, loader *config.Loader) {
-	// Get the config directory from environment variable or use default
-	configDir := os.Getenv("CONFIG_DIR")
-	if configDir == "" {
-		configDir = "./configs"
-	}
+func handleGetMCPServers(c *gin.Context) {
+	// Get the config directory
+	configDir := getConfigPath()
 
 	// Get all yaml files in the directory
 	files, err := os.ReadDir(configDir)
