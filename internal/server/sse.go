@@ -142,7 +142,10 @@ func (s *Server) handleMessage(c *gin.Context) {
 		}
 
 		response := mcp.InitializeResult{
-			JSONRPCBaseResult: mcp.NewJSONRPCBaseResult(),
+			JSONRPCBaseResult: mcp.JSONRPCBaseResult{
+				JSONRPC: mcp.JSPNRPCVersion,
+				ID:      req.Id,
+			},
 			Result: mcp.InitializedResult{
 				ProtocolVersion: mcp.LatestProtocolVersion,
 				ServerInfo: mcp.ImplementationSchema{
@@ -171,7 +174,10 @@ func (s *Server) handleMessage(c *gin.Context) {
 	case mcp.ToolsList:
 		// Return the precomputed list of available tools
 		response := mcp.JSONRPCResponse{
-			JSONRPCBaseResult: mcp.NewJSONRPCBaseResult(),
+			JSONRPCBaseResult: mcp.JSONRPCBaseResult{
+				JSONRPC: mcp.JSPNRPCVersion,
+				ID:      req.Id,
+			},
 			Result: mcp.ListToolsResult{
 				Tools: s.tools,
 			},
@@ -221,7 +227,10 @@ func (s *Server) handleMessage(c *gin.Context) {
 
 		// Send the result
 		response := mcp.JSONRPCResponse{
-			JSONRPCBaseResult: mcp.NewJSONRPCBaseResult(),
+			JSONRPCBaseResult: mcp.JSONRPCBaseResult{
+				JSONRPC: mcp.JSPNRPCVersion,
+				ID:      req.Id,
+			},
 			Result: mcp.CallToolResult{
 				Content: []mcp.Content{
 					{

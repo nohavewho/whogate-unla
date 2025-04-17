@@ -70,11 +70,19 @@ type ArgConfig struct {
 func (t *ToolConfig) ToToolSchema() mcp.ToolSchema {
 	// Create properties map for input schema
 	properties := make(map[string]any)
+	required := make([]string, 0)
 	for _, arg := range t.Args {
-		properties[arg.Name] = map[string]any{
+		property := map[string]any{
 			"type":        arg.Type,
 			"description": arg.Description,
 			"required":    arg.Required,
+		}
+		if arg.Description != "" {
+			property["title"] = arg.Description
+		}
+		properties[arg.Name] = property
+		if arg.Required {
+			required = append(required, arg.Name)
 		}
 	}
 
@@ -89,6 +97,9 @@ func (t *ToolConfig) ToToolSchema() mcp.ToolSchema {
 	inputSchema := map[string]any{
 		"type":       "object",
 		"properties": properties,
+	}
+	if len(required) > 0 {
+		inputSchema["required"] = required
 	}
 
 	// Marshal the input schema
