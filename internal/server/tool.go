@@ -103,6 +103,8 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	fmt.Println(tool.ResponseBody)
+	fmt.Println(tool.ResponseBody != "")
 	// Parse response body template if provided
 	if tool.ResponseBody != "" {
 		respTmpl, err := texttemplate.New("response").Parse(tool.ResponseBody)

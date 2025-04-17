@@ -6,7 +6,6 @@ import (
 
 // Config represents the root configuration structure
 type Config struct {
-	Global  GlobalConfig   `yaml:"global"`
 	Routers []RouterConfig `yaml:"routers"`
 	Servers []ServerConfig `yaml:"servers"`
 	Tools   []ToolConfig   `yaml:"tools"`

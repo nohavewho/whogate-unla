@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/errors"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -34,7 +33,7 @@ func (l *Loader) LoadFromFile(path string) (*Config, error) {
 		return nil, err
 	}
 
-	if err := l.validate(&cfg); err != nil {
+	if err := l.Validate(&cfg); err != nil {
 		return nil, err
 	}
 
@@ -45,7 +44,6 @@ func (l *Loader) LoadFromFile(path string) (*Config, error) {
 func (l *Loader) LoadFromDir(dir string) (*Config, error) {
 	// Create a base config
 	baseCfg := &Config{
-		Global:  GlobalConfig{},
 		Routers: make([]RouterConfig, 0),
 		Servers: make([]ServerConfig, 0),
 		Tools:   make([]ToolConfig, 0),
@@ -87,7 +85,7 @@ func (l *Loader) LoadFromDir(dir string) (*Config, error) {
 	}
 
 	// Validate the merged configuration
-	if err := l.validate(baseCfg); err != nil {
+	if err := l.Validate(baseCfg); err != nil {
 		return nil, err
 	}
 
@@ -96,14 +94,6 @@ func (l *Loader) LoadFromDir(dir string) (*Config, error) {
 
 // mergeConfig merges two configurations
 func (l *Loader) mergeConfig(base, override *Config) error {
-	// Merge global config
-	if override.Global.Namespace != "" {
-		base.Global.Namespace = override.Global.Namespace
-	}
-	if override.Global.Prefix != "" {
-		base.Global.Prefix = override.Global.Prefix
-	}
-
 	// Merge routers
 	routerMap := make(map[string]RouterConfig)
 	for _, router := range base.Routers {
@@ -146,13 +136,13 @@ func (l *Loader) mergeConfig(base, override *Config) error {
 	return nil
 }
 
-// validate performs configuration validation
-func (l *Loader) validate(cfg *Config) error {
+// Validate performs configuration validation
+func (l *Loader) Validate(cfg *Config) error {
 	// Validate tool names are unique
 	toolNames := make(map[string]bool)
 	for _, tool := range cfg.Tools {
 		if toolNames[tool.Name] {
-			return errors.ErrDuplicateToolName(tool.Name)
+			return ErrDuplicateToolName
 		}
 		toolNames[tool.Name] = true
 	}
@@ -161,7 +151,7 @@ func (l *Loader) validate(cfg *Config) error {
 	serverNames := make(map[string]bool)
 	for _, server := range cfg.Servers {
 		if serverNames[server.Name] {
-			return errors.ErrDuplicateServerName(server.Name)
+			return ErrDuplicateServerName
 		}
 		serverNames[server.Name] = true
 	}
@@ -170,7 +160,7 @@ func (l *Loader) validate(cfg *Config) error {
 	prefixes := make(map[string]bool)
 	for _, router := range cfg.Routers {
 		if prefixes[router.Prefix] {
-			return errors.ErrDuplicateRouterPrefix(router.Prefix)
+			return ErrDuplicateRouterPrefix
 		}
 		prefixes[router.Prefix] = true
 	}
