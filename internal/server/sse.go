@@ -3,8 +3,9 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 	"net/http"
+
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -105,26 +106,57 @@ func (s *Server) handleSSE(c *gin.Context) {
 	}
 }
 
+// sendErrorResponse sends an error response through SSE channel and returns Accepted status
+func (s *Server) sendErrorResponse(c *gin.Context, session *sseSession, req mcp.JSONRPCRequest, errorMsg string) {
+	response := mcp.JSONRPCResponse{
+		JSONRPCBaseResult: mcp.JSONRPCBaseResult{
+			JSONRPC: mcp.JSPNRPCVersion,
+			ID:      req.Id,
+		},
+		Result: mcp.CallToolResult{
+			IsError: true,
+			Content: []mcp.Content{
+				{
+					Type: "text",
+					Text: errorMsg,
+				},
+			},
+		},
+	}
+	eventData, err := json.Marshal(response)
+	if err != nil {
+		c.String(http.StatusAccepted, mcp.Accepted)
+		return
+	}
+	select {
+	case session.eventQueue <- fmt.Sprintf("event: message\ndata: %s\n\n", eventData):
+		// Event queued successfully
+	case <-session.done:
+		// Session is closed
+	}
+	c.String(http.StatusAccepted, mcp.Accepted)
+}
+
 // handleMessage processes incoming JSON-RPC messages
 func (s *Server) handleMessage(c *gin.Context) {
 	// Parse the JSON-RPC message
 	var req mcp.JSONRPCRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON-RPC message"})
+		c.String(http.StatusAccepted, mcp.Accepted)
 		return
 	}
 
 	// Get the session ID from the query parameter
 	sessionId := c.Query("sessionId")
 	if sessionId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing session ID"})
+		c.String(http.StatusAccepted, mcp.Accepted)
 		return
 	}
 
 	// Get the session from the map
 	sessionI, ok := s.sessions.Load(sessionId)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session ID"})
+		c.String(http.StatusAccepted, mcp.Accepted)
 		return
 	}
 	session := sessionI.(*sseSession)
@@ -136,7 +168,7 @@ func (s *Server) handleMessage(c *gin.Context) {
 	case mcp.Initialize:
 		var params mcp.InitializeRequestParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid initialize parameters"})
+			s.sendErrorResponse(c, session, req, "Invalid initialize parameters")
 			return
 		}
 
@@ -157,7 +189,7 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Send response via SSE
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal response"})
+			s.sendErrorResponse(c, session, req, "Failed to marshal response")
 			return
 		}
 		select {
@@ -184,7 +216,7 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Send response via SSE
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal response"})
+			s.sendErrorResponse(c, session, req, "Failed to marshal response")
 			return
 		}
 		select {
@@ -199,28 +231,28 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Execute the tool and return the result
 		var params mcp.CallToolParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tool call parameters"})
+			s.sendErrorResponse(c, session, req, "Invalid tool call parameters")
 			return
 		}
 
 		// Find the tool in the precomputed map
 		tool, exists := s.toolMap[params.Name]
 		if !exists {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Tool not found"})
+			s.sendErrorResponse(c, session, req, "Tool not found")
 			return
 		}
 
 		// Convert arguments to map[string]any
 		var args map[string]any
 		if err := json.Unmarshal(params.Arguments, &args); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tool arguments"})
+			s.sendErrorResponse(c, session, req, "Invalid tool arguments")
 			return
 		}
 
 		// Execute the tool
 		result, err := s.executeTool(tool, args)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			s.sendErrorResponse(c, session, req, fmt.Sprintf("Error: %s", err.Error()))
 			return
 		}
 
@@ -242,7 +274,7 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Send response via SSE
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal response"})
+			s.sendErrorResponse(c, session, req, "Failed to marshal response")
 			return
 		}
 		select {
@@ -254,6 +286,6 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Also send HTTP response
 		c.String(http.StatusAccepted, mcp.Accepted)
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown method"})
+		s.sendErrorResponse(c, session, req, "Unknown method")
 	}
 }

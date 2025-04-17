@@ -1,10 +1,11 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/auth"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 // loggerMiddleware creates a logging middleware

@@ -185,6 +185,20 @@ type (
 	PingRequest struct {
 		JSONRPCRequest
 	}
+
+	JSONRPCErrorSchema struct {
+		JSONRPCBaseResult
+		Error JSONRPCError `json:"error"`
+	}
+	// JSONRPCError represents an error in a JSON-RPC response
+	JSONRPCError struct {
+		// The error type that occurred
+		Code int `json:"code"`
+		// A short description of the error
+		Message string `json:"message"`
+		// Additional information about the error
+		Data any `json:"data,omitempty"`
+	}
 )
 
 // NewInitializeRequest creates a new initialize request
