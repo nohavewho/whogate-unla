@@ -17,6 +17,7 @@ tools:
     endpoint: "http://localhost:8081/users"
     headers:
       Content-Type: "application/json"
+      Authorization: "{{.Request.Headers.Authorization}}"
     args:
       - name: "username"
         position: "body"

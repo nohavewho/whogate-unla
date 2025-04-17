@@ -280,7 +280,7 @@ func (s *Server) handleMessage(c *gin.Context) {
 		}
 
 		// Execute the tool
-		result, err := s.executeTool(tool, args)
+		result, err := s.executeTool(tool, args, c.Request)
 		if err != nil {
 			s.sendErrorResponse(c, session, req, fmt.Sprintf("Error: %s", err.Error()))
 			return

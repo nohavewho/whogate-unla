@@ -14,13 +14,20 @@ import (
 )
 
 // executeTool executes a tool with the given arguments
-func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any) (string, error) {
+func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, request *http.Request) (string, error) {
 	// Create HTTP client
 	client := &http.Client{}
 
 	// Create template context
 	tmplCtx := template.NewContext()
 	tmplCtx.Args = args
+
+	// Set request headers in template context
+	for k, v := range request.Header {
+		if len(v) > 0 {
+			tmplCtx.Request.Headers[k] = v[0]
+		}
+	}
 
 	// Parse endpoint template
 	endpointTmpl, err := texttemplate.New("endpoint").Parse(tool.Endpoint)
