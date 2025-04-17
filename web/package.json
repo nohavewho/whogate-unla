@@ -12,6 +12,7 @@
   "dependencies": {
     "@heroui/react": "2.7.6",
     "@iconify/react": "latest",
+    "axios": "^1.8.4",
     "framer-motion": "^11.18.2",
     "js-yaml": "^4.1.0",
     "react": "^18.3.1",

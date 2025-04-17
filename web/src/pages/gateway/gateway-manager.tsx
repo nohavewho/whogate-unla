@@ -3,9 +3,9 @@ import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, Mo
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
 import { Accordion, AccordionItem, Chip } from "@heroui/react";
+import { getMCPList } from '../../services/api';
 
 interface Gateway {
-  id: string;
   name: string;
   config: string;
   parsedConfig?: {
@@ -29,15 +29,31 @@ interface Gateway {
 
 export function GatewayManager() {
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const [gateways, setGateways] = React.useState<Gateway[]>([
-    { id: '1', name: 'Gateway-1', config: 'name: gateway-1\nport: 8080' },
-    { id: '2', name: 'Gateway-2', config: 'name: gateway-2\nport: 8081' },
-  ]);
+  const [gateways, setGateways] = React.useState<Gateway[]>([]);
   const [currentGateway, setCurrentGateway] = React.useState<Gateway | null>(null);
   const [editConfig, setEditConfig] = React.useState('');
   const [parsedGateways, setParsedGateways] = React.useState<Gateway[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  // 获取 yaml 列表
+  React.useEffect(() => {
+    const fetchYamlList = async () => {
+      try {
+        setIsLoading(true);
+        const yamlList = await getMCPList();
+        setGateways(yamlList);
+      } catch (error) {
+        console.error('Failed to fetch yaml list:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchYamlList();
+  }, []);
 
   const handleEdit = (gateway: Gateway) => {
+    console.log('Editing gateway:', gateway);
     setCurrentGateway(gateway);
     setEditConfig(gateway.config);
     onOpen();
@@ -47,13 +63,13 @@ export function GatewayManager() {
     try {
       // Validate YAML
       yaml.load(editConfig);
-      
+
       if (currentGateway) {
-        setGateways(gateways.map(g => 
-          g.id === currentGateway.id ? {...g, config: editConfig} : g
+        setGateways(gateways.map(g =>
+          g.name === currentGateway.name ? {...g, config: editConfig} : g
         ));
       }
-      onOpenChange(false);
+      onOpenChange();
     } catch (e) {
       alert('Invalid YAML format');
     }
@@ -88,110 +104,118 @@ export function GatewayManager() {
           color="primary"
           startContent={<Icon icon="lucide:refresh-cw" />}
           onPress={handleSync}
+          isLoading={isLoading}
         >
           Sync Configuration
         </Button>
       </div>
-      
-      <div className="grid grid-cols-1 gap-4">
-        {(parsedGateways || []).map((gateway) => (
-          <Card key={gateway.id} className="w-full">
-            <CardBody className="flex flex-col gap-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">{gateway.name}</h3>
-                <Button
-                  isIconOnly
-                  color="primary"
-                  variant="light"
-                  onPress={() => handleEdit(gateway)}
-                >
-                  <Icon icon="lucide:edit" className="text-lg" />
-                </Button>
-              </div>
-              
-              {gateway.parsedConfig && (
-                <Accordion>
-                  <AccordionItem
-                    key="routing"
-                    aria-label="Routing Configuration"
-                    title="Routing Configuration"
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-32">
+          <Icon icon="lucide:loader-2" className="animate-spin text-2xl" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {(parsedGateways || []).map((gateway) => (
+            <Card key={gateway.name} className="w-full">
+              <CardBody className="flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">{gateway.name}</h3>
+                  <Button
+                    isIconOnly
+                    color="primary"
+                    variant="light"
+                    onPress={() => handleEdit(gateway)}
                   >
-                    <div className="space-y-2">
-                      {(gateway.parsedConfig.routers || []).map((router, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <Chip color="primary" variant="flat">{router.prefix}</Chip>
-                          <Icon icon="lucide:arrow-right" />
-                          <span>{router.server}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionItem>
-                  
-                  {(gateway.parsedConfig.servers || []).map((server) => (
+                    <Icon icon="lucide:edit" className="text-lg" />
+                  </Button>
+                </div>
+
+                {gateway.parsedConfig && (
+                  <Accordion>
                     <AccordionItem
-                      key={server.name}
-                      aria-label={server.name}
-                      title={
-                        <div className="flex flex-col">
-                          <span className="font-semibold">{server.name}</span>
-                          <span className="text-sm text-default-500">{server.description}</span>
-                        </div>
-                      }
+                      key="routing"
+                      aria-label="Routing Configuration"
+                      title="Routing Configuration"
                     >
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2">Enabled Tools:</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {server.allowedTools.map((tool) => (
-                              <Chip
-                                key={tool}
-                                variant="flat"
-                                color="success"
-                                size="sm"
-                              >
-                                {tool}
-                              </Chip>
-                            ))}
+                      <div className="space-y-2">
+                        {(gateway.parsedConfig.routers || []).map((router, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Chip color="primary" variant="flat">{router.prefix}</Chip>
+                            <Icon icon="lucide:arrow-right" />
+                            <span>{router.server}</span>
                           </div>
-                        </div>
-                        
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2">Available Tools:</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {gateway.parsedConfig?.tools
-                              .filter(tool => !server.allowedTools.includes(tool.name))
-                              .map((tool) => (
-                                <Chip
-                                  key={tool.name}
-                                  variant="flat"
-                                  color="default"
-                                  size="sm"
-                                >
-                                  {tool.name}
-                                </Chip>
-                              ))}
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </AccordionItem>
-                  ))}
-                </Accordion>
-              )}
-            </CardBody>
-          </Card>
-        ))}
-      </div>
 
-      <Modal 
-        isOpen={isOpen} 
+                    {(gateway.parsedConfig.servers || []).map((server) => (
+                      <AccordionItem
+                        key={server.name}
+                        aria-label={server.name}
+                        title={
+                          <div className="flex flex-col">
+                            <span className="font-semibold">{server.name}</span>
+                            <span className="text-sm text-default-500">{server.description}</span>
+                          </div>
+                        }
+                      >
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2">Enabled Tools:</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {server.allowedTools.map((tool) => (
+                                <Chip
+                                  key={tool}
+                                  variant="flat"
+                                  color="success"
+                                  size="sm"
+                                >
+                                  {tool}
+                                </Chip>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2">Available Tools:</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {gateway.parsedConfig?.tools
+                                .filter(tool => !server.allowedTools.includes(tool.name))
+                                .map((tool) => (
+                                  <Chip
+                                    key={tool.name}
+                                    variant="flat"
+                                    color="default"
+                                    size="sm"
+                                  >
+                                    {tool.name}
+                                  </Chip>
+                                ))}
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                )}
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Modal
+        isOpen={isOpen}
         onOpenChange={onOpenChange}
-        size="2xl"
+        size="3xl"
+        className="w-[70%] h-[70%]"
       >
-        <ModalContent>
+        <ModalContent className="h-[70%]">
           {(onClose) => (
             <>
               <ModalHeader>Edit Gateway Configuration</ModalHeader>
-              <ModalBody>
+              <ModalBody className="flex-1">
                 <Textarea
                   value={editConfig}
                   onValueChange={setEditConfig}

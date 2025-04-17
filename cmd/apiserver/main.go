@@ -110,20 +110,24 @@ func handleGetConfigs(c *gin.Context, loader *config.Loader) {
 	}
 
 	// Load configurations from each yaml file
-	configs := make([]*config.Config, 0)
+	configs := make([]map[string]string, 0)
 	for _, file := range files {
 		if file.IsDir() || !strings.HasSuffix(strings.ToLower(file.Name()), ".yaml") {
 			continue
 		}
 
-		cfg, err := loader.LoadFromFile(filepath.Join(configDir, file.Name()))
+		// Read the raw YAML content
+		content, err := os.ReadFile(filepath.Join(configDir, file.Name()))
 		if err != nil {
-			// Log error but continue with other files
-			log.Printf("Failed to load config file %s: %v", file.Name(), err)
+			log.Printf("Failed to read config file %s: %v", file.Name(), err)
 			continue
 		}
 
-		configs = append(configs, cfg)
+		// Add the YAML content to the response
+		configs = append(configs, map[string]string{
+			"name":   strings.TrimSuffix(file.Name(), ".yaml"),
+			"config": string(content),
+		})
 	}
 
 	// Return the list of configurations
