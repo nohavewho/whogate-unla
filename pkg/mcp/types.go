@@ -53,7 +53,14 @@ type (
 		// A human-readable description of the tool
 		Description string `json:"description"`
 		// A JSON Schema object defining the expected parameters for the tool
-		InputSchema json.RawMessage `json:"inputSchema"`
+		InputSchema ToolInputSchema `json:"inputSchema"`
+	}
+
+	ToolInputSchema struct {
+		Type       string         `json:"type"`
+		Properties map[string]any `json:"properties"`
+		Required   []string       `json:"required,omitempty"`
+		Title      string         `json:"title"`
 	}
 
 	// ListToolsResult represents the result of a tools/list request
@@ -72,8 +79,8 @@ type (
 
 	// Content represents a content item in a tool call result
 	Content struct {
-		Type string          `json:"type"`
-		Data json.RawMessage `json:"data"`
+		Type string `json:"type"`
+		Text string `json:"text"`
 	}
 
 	// TextContent represents a text content item

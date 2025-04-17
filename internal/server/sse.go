@@ -3,9 +3,8 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -235,7 +234,7 @@ func (s *Server) handleMessage(c *gin.Context) {
 				Content: []mcp.Content{
 					{
 						Type: "text",
-						Data: json.RawMessage(fmt.Sprintf(`{"text":"%s"}`, result)),
+						Text: result,
 					},
 				},
 			},

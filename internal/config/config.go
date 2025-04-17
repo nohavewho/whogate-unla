@@ -1,8 +1,6 @@
 package config
 
 import (
-	"encoding/json"
-
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 )
 
@@ -93,21 +91,13 @@ func (t *ToolConfig) ToToolSchema() mcp.ToolSchema {
 		}
 	}
 
-	// Create input schema
-	inputSchema := map[string]any{
-		"type":       "object",
-		"properties": properties,
-	}
-	if len(required) > 0 {
-		inputSchema["required"] = required
-	}
-
-	// Marshal the input schema
-	inputSchemaBytes, _ := json.Marshal(inputSchema)
-
 	return mcp.ToolSchema{
 		Name:        t.Name,
 		Description: t.Description,
-		InputSchema: inputSchemaBytes,
+		InputSchema: mcp.ToolInputSchema{
+			Type:       "object",
+			Properties: properties,
+			Required:   required,
+		},
 	}
 }
