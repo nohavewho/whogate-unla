@@ -46,7 +46,7 @@ tools:
   - name: "user_email"
     description: "Get user by email"
     method: "GET"
-    endpoint: "http://localhost:8081/users/email/{{args.email}}"
+    endpoint: "http://localhost:8081/users/email/{{.Args.email}}"
     args:
       - name: "email"
         position: "path"
