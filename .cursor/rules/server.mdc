@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can read [SOP.server.zh-CN.md](mdc:docs/.ai/SOP.server.zh-CN.md) for server when the task starts.

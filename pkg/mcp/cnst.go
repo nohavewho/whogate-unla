@@ -1,0 +1,38 @@
+package mcp
+
+const (
+	// Protocol versions
+	LatestProtocolVersion = "2024-11-05"
+	JSPNRPCVersion        = "2.0"
+
+	// Methods
+	Initialize              = "initialize"
+	NotificationInitialized = "notifications/initialized"
+	Ping                    = "ping"
+	ToolsList               = "tools/list"
+	ToolsCall               = "tools/call"
+
+	// Response
+	Accepted = "Accepted"
+
+	ProtocolVersion20241105 = "2024-11-05"
+	ProtocolVersion20250326 = "2025-03-26"
+
+	NotificationRootsListChanged    = "notifications/roots/list_changed"
+	NotificationCancelled           = "notifications/cancelled"
+	NotificationProgress            = "notifications/progress"
+	NotificationMessage             = "notifications/message"
+	NotificationResourceUpdated     = "notifications/resources/updated"
+	NotificationResourceListChanged = "notifications/resources/list_changed"
+	NotificationToolListChanged     = "notifications/tools/list_changed"
+	NotificationPromptListChanged   = "notifications/prompts/list_changed"
+
+	SamplingCreateMessage = "sampling/createMessage"
+	LoggingSetLevel       = "logging/setLevel"
+
+	PromptsGet             = "prompts/get"
+	PromptsList            = "prompts/list"
+	ResourcesList          = "resources/list"
+	ResourcesTemplatesList = "resources/templates/list"
+	ResourcesRead          = "resources/read"
+)

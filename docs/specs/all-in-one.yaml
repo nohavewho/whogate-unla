@@ -1,0 +1,146 @@
+routers:
+  - server: "restapi-user"                                                    # 对应服务名
+    prefix: "/api/v1/user"                                                    # 映射的 URL 前缀
+  - server: "restapi-map"
+    prefix: "/api/v1/map"
+
+servers:
+  - name: "restapi-user"                                                      # 服务唯一标识
+    namespace: "user-service"                                                 # 服务逻辑命名空间
+    description: "用户服务"                                                    # 服务描述
+    auth:
+      mode: "bearer"                                                          # 认证方式：bearer / apikey / none
+      header: "Authorization"                                                 # 从哪个 Header 提取认证字段
+      argKey: "accessToken"                                                   # 参数中认证字段的逻辑名（如：params 中字段名）
+    allowedTools:
+      - "user_register"                                                       # 当前服务允许暴露的工具
+      - "user_email"
+    allowedOrigins:
+      - "https://security.example.com"                                        # 跨域允许的 origin（用于 CORS）
+
+  - name: "restapi-map"
+    namespace: "map-service"
+    description: "地图服务"
+    auth:
+      mode: "apikey"
+      header: "X-API-Key"
+      argKey: "apiKey"
+    allowedTools:
+      - "user_location_get"
+      - "user_location_bind"
+
+tools:
+  - name: "user_register"                                                     # 工具名称
+    description: "注册一个用户"                                                 # 工具描述
+    method: "POST"                                                            # 请求方法
+    endpoint: "https://api.example.com/users"                                 # 请求地址（支持模板）
+    headers:
+      Content-Type:      "application/json"                                   # 固定请求头
+      Authorization:     "{{args.accessToken}}"                               # 从 LLM 参数注入
+      X-Trace-Id:        "{{request.headers.X-Trace-Id}}"                     # 原始 header 映射注入
+    args:
+      - name: "username"
+        position: "body"
+        required: true
+        type: "string"
+        description: "用户名"
+        default: ""
+      - name: "email"
+        position: "body"
+        required: true
+        type: "string"
+        description: "邮箱"
+        default: ""
+      - name: "accessToken"
+        position: "header"
+        required: true
+        type: "string"
+        description: "身份认证 token"
+        default: ""
+    requestBody: |-
+      {
+        "username": "{{args.username}}",
+        "email": "{{args.email}}",
+        "ua": "{{request.headers.User-Agent}}"
+      }
+    responseBody: |-
+      注册成功 🎉
+      - 用户名：{{response.data.username}}
+      - 邮箱：{{response.data.email}}
+
+  - name: "user_location_get"
+    description: "获取用户最近一次位置"
+    method: "GET"
+    endpoint: "https://api.map.com/location/{{args.userId}}/last?region={{args.region}}"
+    headers:
+      X-API-Key:          "{{args.apiKey}}"                                   # LLM 提供的密钥
+      X-Forwarded-For:    "{{request.headers.X-Forwarded-For}}"               # 从 header 直接透传
+    args:
+      - name: "userId"
+        position: "path"
+        required: true
+        type: "string"
+        description: "用户 ID"
+        default: ""
+      - name: "region"
+        position: "query"
+        required: false
+        type: "string"
+        description: "区域代码"
+        default: ""
+      - name: "apiKey"
+        position: "header"
+        required: true
+        type: "string"
+        description: "认证用的 API Key"
+        default: ""
+    responseBody: |-
+      📍 最近位置：
+      - 纬度：{{response.data.lat}}
+      - 经度：{{response.data.lng}}
+      - 时间：{{response.data.timestamp}}
+
+  - name: "user_location_bind"
+    description: "绑定用户到指定位置"
+    method: "POST"
+    endpoint: "https://api.map.com/location/bind"
+    headers:
+      Content-Type:     "application/json"
+      X-API-Key:        "{{args.apiKey}}"
+      X-Client-IP:      "{{request.headers.X-Client-IP}}"
+    args:
+      - name: "userId"
+        position: "body"
+        required: true
+        type: "string"
+        description: "用户 ID"
+        default: ""
+      - name: "lat"
+        position: "body"
+        required: true
+        type: "float"
+        description: "纬度"
+        default: "0"
+      - name: "lng"
+        position: "body"
+        required: true
+        type: "float"
+        description: "经度"
+        default: "0"
+      - name: "apiKey"
+        position: "header"
+        required: true
+        type: "string"
+        description: "认证用的 API Key"
+        default: ""
+    requestBody: |-
+      {
+        "userId": "{{args.userId}}",
+        "lat": {{args.lat}},
+        "lng": {{args.lng}},
+        "ip": "{{request.headers.X-Client-IP}}"
+      }
+    responseBody: |-
+      ✅ 已为用户 {{args.userId}} 绑定坐标：
+      - 纬度：{{response.data.lat}}
+      - 经度：{{response.data.lng}}
