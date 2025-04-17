@@ -1,9 +1,11 @@
 import React from 'react';
-import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Textarea, useDisclosure } from "@heroui/react";
+import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
 import { Accordion, AccordionItem, Chip } from "@heroui/react";
 import { getMCPList } from '../../services/api';
+import Editor from '@monaco-editor/react';
+import { configureMonacoYaml } from 'monaco-yaml';
 
 interface Gateway {
   name: string;
@@ -34,6 +36,23 @@ export function GatewayManager() {
   const [editConfig, setEditConfig] = React.useState('');
   const [parsedGateways, setParsedGateways] = React.useState<Gateway[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [selectedGateway, setSelectedGateway] = React.useState<Gateway | null>(null);
+
+  // Configure Monaco YAML
+  React.useEffect(() => {
+    const monaco = window.monaco;
+    if (monaco) {
+      configureMonacoYaml(monaco, {
+        enableSchemaRequest: true,
+        schemas: [
+          {
+            uri: 'https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/main/schema/gateway.json',
+            fileMatch: ['*.yml', '*.yaml'],
+          },
+        ],
+      });
+    }
+  }, []);
 
   // 获取 yaml 列表
   React.useEffect(() => {
@@ -216,12 +235,29 @@ export function GatewayManager() {
             <>
               <ModalHeader>Edit Gateway Configuration</ModalHeader>
               <ModalBody className="flex-1">
-                <Textarea
+                <Editor
+                  height="100%"
+                  defaultLanguage="yaml"
                   value={editConfig}
-                  onValueChange={setEditConfig}
-                  placeholder="Enter YAML configuration"
-                  minRows={10}
-                  variant="bordered"
+                  onChange={(value) => setEditConfig(value || '')}
+                  theme="vs"
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineNumbers: 'on',
+                    roundedSelection: false,
+                    scrollBeyondLastLine: false,
+                    readOnly: false,
+                    automaticLayout: true,
+                    'editor.background': '#F8F9FA',
+                    'editor.foreground': '#0B0F1A',
+                    'editor.lineHighlightBackground': '#F1F3F5',
+                    'editor.selectionBackground': '#4C6BCF40',
+                    'editor.inactiveSelectionBackground': '#4C6BCF20',
+                    'editor.lineHighlightBorder': '#E5E7EB',
+                    'editorCursor.foreground': '#4C6BCF',
+                    'editorWhitespace.foreground': '#A6B6E8',
+                  }}
                 />
               </ModalBody>
               <ModalFooter>
