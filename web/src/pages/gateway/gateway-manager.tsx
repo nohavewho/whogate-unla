@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
-import { getMCPServers } from '../../services/api';
+import { getMCPServers, createMCPServer } from '../../services/api';
 import Editor from '@monaco-editor/react';
 import { configureMonacoYaml } from 'monaco-yaml';
 import toast from 'react-hot-toast';
@@ -55,9 +55,11 @@ interface ToolConfig {
 
 export function GatewayManager() {
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
+  const {isOpen: isCreateOpen, onOpen: onCreateOpen, onOpenChange: onCreateOpenChange} = useDisclosure();
   const [mcpservers, setMCPServers] = React.useState<Gateway[]>([]);
   const [currentMCPServer, setCurrentMCPServer] = React.useState<Gateway | null>(null);
   const [editConfig, setEditConfig] = React.useState('');
+  const [newConfig, setNewConfig] = React.useState('');
   const [parsedMCPServers, setParsedMCPServers] = React.useState<Gateway[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -145,6 +147,35 @@ export function GatewayManager() {
     }
   };
 
+  const handleCreate = async () => {
+    try {
+      // Validate YAML format first
+      try {
+        yaml.load(newConfig);
+      } catch (e) {
+        toast.error('Invalid YAML format', {
+          duration: 3000,
+          position: 'bottom-right',
+        });
+        return;
+      }
+
+      // If YAML is valid, proceed with creation
+      await createMCPServer(newConfig);
+      const servers = await getMCPServers();
+      setMCPServers(servers);
+      onCreateOpenChange();
+      setNewConfig('');
+      toast.success('创建成功', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } catch (e) {
+      // Error is already handled by the API service
+      console.error(e);
+    }
+  };
+
   React.useEffect(() => {
     const parseConfigs = () => {
       const parsed = mcpservers.map(server => {
@@ -168,14 +199,23 @@ export function GatewayManager() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">MCP Servers Manager</h1>
-        <Button
-          color="primary"
-          startContent={<Icon icon="lucide:refresh-cw" />}
-          onPress={handleSync}
-          isLoading={isLoading}
-        >
-          Sync Configuration
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            color="primary"
+            startContent={<Icon icon="lucide:plus" />}
+            onPress={onCreateOpen}
+          >
+            Add MCP Server
+          </Button>
+          <Button
+            color="primary"
+            startContent={<Icon icon="lucide:refresh-cw" />}
+            onPress={handleSync}
+            isLoading={isLoading}
+          >
+            Sync Configuration
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -328,6 +368,55 @@ export function GatewayManager() {
                 </Button>
                 <Button color="primary" onPress={handleSave}>
                   Save Changes
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isCreateOpen}
+        onOpenChange={onCreateOpenChange}
+        size="3xl"
+        className="w-[70%] h-[70%]"
+      >
+        <ModalContent className="h-[70%]">
+          {(onClose) => (
+            <>
+              <ModalHeader>Add New MCP Server Configuration</ModalHeader>
+              <ModalBody className="flex-1">
+                <Editor
+                  height="100%"
+                  defaultLanguage="yaml"
+                  value={newConfig}
+                  onChange={(value) => setNewConfig(value || '')}
+                  theme="vs"
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineNumbers: 'on',
+                    roundedSelection: false,
+                    scrollBeyondLastLine: false,
+                    readOnly: false,
+                    automaticLayout: true,
+                    'editor.background': '#F8F9FA',
+                    'editor.foreground': '#0B0F1A',
+                    'editor.lineHighlightBackground': '#F1F3F5',
+                    'editor.selectionBackground': '#4C6BCF40',
+                    'editor.inactiveSelectionBackground': '#4C6BCF20',
+                    'editor.lineHighlightBorder': '#E5E7EB',
+                    'editorCursor.foreground': '#4C6BCF',
+                    'editorWhitespace.foreground': '#A6B6E8',
+                  }}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button color="primary" onPress={handleCreate}>
+                  Create
                 </Button>
               </ModalFooter>
             </>
