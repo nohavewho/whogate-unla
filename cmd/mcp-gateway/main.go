@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
@@ -15,9 +16,32 @@ import (
 )
 
 var (
-	configPath = flag.String("conf", "configs", "path to configuration file or directory")
+	configPath = flag.String("conf", "", "path to configuration file or directory")
 	dataDir    = flag.String("data-dir", "data", "path to data directory")
 )
+
+func getConfigPath() string {
+	// 1. Check command line flag
+	if *configPath != "" {
+		return *configPath
+	}
+
+	// 2. Check environment variable
+	if envPath := os.Getenv("CONFIG_DIR"); envPath != "" {
+		return envPath
+	}
+
+	// 3. Default to APPDATA/.mcp/gateway
+	appData := os.Getenv("APPDATA")
+	if appData == "" {
+		// For non-Windows systems, use HOME
+		appData = os.Getenv("HOME")
+		if appData == "" {
+			panic("Neither APPDATA nor HOME environment variable is set")
+		}
+	}
+	return filepath.Join(appData, ".mcp", "gateway")
+}
 
 func main() {
 	flag.Parse()
@@ -29,27 +53,38 @@ func main() {
 	}
 	defer logger.Sync()
 
+	// Get configuration path
+	configDir := getConfigPath()
+	logger.Info("Using configuration directory", zap.String("path", configDir))
+
+	// Create config directory if it doesn't exist
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		logger.Fatal("Failed to create config directory",
+			zap.String("path", configDir),
+			zap.Error(err))
+	}
+
 	// Load configuration
 	cfgLoader := config.NewLoader(logger)
 
 	// Check if config path is a directory
-	info, err := os.Stat(*configPath)
+	info, err := os.Stat(configDir)
 	if err != nil {
 		logger.Fatal("failed to stat config path",
-			zap.String("path", *configPath),
+			zap.String("path", configDir),
 			zap.Error(err))
 	}
 
 	var cfg *config.Config
 	if info.IsDir() {
-		cfg, err = cfgLoader.LoadFromDir(*configPath)
+		cfg, err = cfgLoader.LoadFromDir(configDir)
 	} else {
-		cfg, err = cfgLoader.LoadFromFile(*configPath)
+		cfg, err = cfgLoader.LoadFromFile(configDir)
 	}
 
 	if err != nil {
 		logger.Fatal("failed to load configuration",
-			zap.String("path", *configPath),
+			zap.String("path", configDir),
 			zap.Error(err))
 	}
 
@@ -75,7 +110,7 @@ func main() {
 
 	// Start server
 	go func() {
-		if err := router.Run(":5234"); err != nil {
+		if err := router.Run(":8080"); err != nil {
 			logger.Fatal("failed to start server",
 				zap.Error(err))
 		}
