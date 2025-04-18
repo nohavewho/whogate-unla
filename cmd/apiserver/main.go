@@ -263,6 +263,22 @@ func handleWebSocket(c *gin.Context) {
 			log.Printf("[WS] Failed to save message - SessionID: %s, Error: %v", sessionId, err)
 		}
 
+		// If this is the first message, update the session title
+		messages, err := db.GetMessages(c.Request.Context(), sessionId)
+		if err != nil {
+			log.Printf("[WS] Failed to get messages - SessionID: %s, Error: %v", sessionId, err)
+		} else if len(messages) == 1 {
+			// Extract title from the first message (first 20 UTF-8 characters)
+			title := message.Content
+			runes := []rune(title)
+			if len(runes) > 20 {
+				title = string(runes[:20])
+			}
+			if err := db.UpdateSessionTitle(c.Request.Context(), sessionId, title); err != nil {
+				log.Printf("[WS] Failed to update session title - SessionID: %s, Error: %v", sessionId, err)
+			}
+		}
+
 		// Log received message
 		log.Printf("[WS] Message received - SessionID: %s, Type: %s, Content: %s",
 			sessionId, message.Type, message.Content)

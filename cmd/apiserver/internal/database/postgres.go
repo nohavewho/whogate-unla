@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -40,7 +39,8 @@ func (db *PostgresDB) Init(ctx context.Context) error {
 	_, err = pool.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS sessions (
 			id VARCHAR(36) PRIMARY KEY,
-			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			title VARCHAR(20) DEFAULT ''
 		);
 
 		CREATE TABLE IF NOT EXISTS messages (
@@ -133,9 +133,19 @@ func (db *PostgresDB) GetMessagesWithPagination(ctx context.Context, sessionID s
 // CreateSession creates a new session with the given sessionId
 func (db *PostgresDB) CreateSession(ctx context.Context, sessionId string) error {
 	_, err := db.pool.Exec(ctx, `
-		INSERT INTO sessions (id)
-		VALUES ($1)
+		INSERT INTO sessions (id, title)
+		VALUES ($1, '')
 	`, sessionId)
+	return err
+}
+
+// UpdateSessionTitle updates the title of a session
+func (db *PostgresDB) UpdateSessionTitle(ctx context.Context, sessionID string, title string) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE sessions
+		SET title = $1
+		WHERE id = $2
+	`, title, sessionID)
 	return err
 }
 
@@ -154,22 +164,11 @@ func (db *PostgresDB) SessionExists(ctx context.Context, sessionID string) (bool
 func (db *PostgresDB) GetSessions(ctx context.Context) ([]*Session, error) {
 	rows, err := db.pool.Query(ctx, `
 		SELECT 
-			s.id,
-			s.created_at,
-			COALESCE(m.content, '') as title,
-			m.id as message_id,
-			m.content as message_content,
-			m.sender as message_sender,
-			m.timestamp as message_timestamp
-		FROM sessions s
-		LEFT JOIN LATERAL (
-			SELECT id, content, sender, timestamp
-			FROM messages
-			WHERE session_id = s.id
-			ORDER BY timestamp DESC
-			LIMIT 1
-		) m ON true
-		ORDER BY s.created_at DESC
+			id,
+			created_at,
+			title
+		FROM sessions
+		ORDER BY created_at DESC
 	`)
 	if err != nil {
 		return nil, err
@@ -179,32 +178,14 @@ func (db *PostgresDB) GetSessions(ctx context.Context) ([]*Session, error) {
 	var sessions []*Session
 	for rows.Next() {
 		var session Session
-		var messageID, messageContent, messageSender sql.NullString
-		var messageTimestamp sql.NullTime
-
 		err := rows.Scan(
 			&session.ID,
 			&session.CreatedAt,
 			&session.Title,
-			&messageID,
-			&messageContent,
-			&messageSender,
-			&messageTimestamp,
 		)
 		if err != nil {
 			return nil, err
 		}
-
-		if messageID.Valid {
-			session.LastMessage = &Message{
-				ID:        messageID.String,
-				SessionID: session.ID,
-				Content:   messageContent.String,
-				Sender:    messageSender.String,
-				Timestamp: messageTimestamp.Time,
-			}
-		}
-
 		sessions = append(sessions, &session)
 	}
 

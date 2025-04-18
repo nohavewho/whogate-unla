@@ -118,11 +118,11 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
                 }`}
                 onPress={() => handleSessionSelect(session.id)}
               >
-                <div className="flex flex-col items-start">
-                  <span className="text-sm truncate w-full">
-                    {session.lastMessage?.content || session.title || 'New Chat'}
+                <div className="flex flex-col items-start w-full">
+                  <span className="text-sm truncate w-full text-left">
+                    {session.title || 'New Chat'}
                   </span>
-                  <span className="text-xs text-default-500">
+                  <span className="text-xs text-default-500 text-left">
                     {formatDate(session.createdAt)}
                   </span>
                 </div>

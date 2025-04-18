@@ -39,6 +39,9 @@ type Database interface {
 
 	// Get all chat sessions with their latest message
 	GetSessions(ctx context.Context) ([]*Session, error)
+
+	// Update the title of a session
+	UpdateSessionTitle(ctx context.Context, sessionID string, title string) error
 }
 
 // Session represents a chat session
