@@ -28,9 +28,23 @@ type Database interface {
 	// Get messages for a specific session
 	GetMessages(ctx context.Context, sessionID string) ([]*Message, error)
 
+	// Get messages for a specific session with pagination
+	GetMessagesWithPagination(ctx context.Context, sessionID string, page, pageSize int) ([]*Message, error)
+
 	// Create a new session with the given sessionId
 	CreateSession(ctx context.Context, sessionId string) error
 
 	// Check if a session exists
 	SessionExists(ctx context.Context, sessionID string) (bool, error)
+
+	// Get all chat sessions with their latest message
+	GetSessions(ctx context.Context) ([]*Session, error)
+}
+
+// Session represents a chat session
+type Session struct {
+	ID          string    `json:"id"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Title       string    `json:"title"`
+	LastMessage *Message  `json:"lastMessage,omitempty"`
 }

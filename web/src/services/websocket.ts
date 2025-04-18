@@ -22,13 +22,30 @@ export class WebSocketService {
     this.newChat();
   }
 
+  clearMessageHandlers() {
+    this.messageHandlers = [];
+  }
+
   newChat() {
     // Clear existing connection if any
     this.disconnect();
+    // Clear message handlers
+    this.clearMessageHandlers();
     // Generate new session ID
     this.sessionId = uuidv4();
     // Show welcome message
     this.messageHandlers.forEach(handler => handler(this.welcomeMessage));
+  }
+
+  switchChat(sessionId: string) {
+    // Clear existing connection
+    this.disconnect();
+    // Clear message handlers
+    this.clearMessageHandlers();
+    // Set new session ID
+    this.sessionId = sessionId;
+    // Connect to new session
+    return this.connect();
   }
 
   connect() {
@@ -37,7 +54,7 @@ export class WebSocketService {
     }
 
     return new Promise<void>((resolve) => {
-      this.ws = new WebSocket(`ws://localhost:5234/ws/chat?sessionId=${this.sessionId}`);
+      this.ws = new WebSocket(`ws://${window.location.host}/ws/chat?sessionId=${this.sessionId}`);
 
       this.ws.onopen = () => {
         resolve();

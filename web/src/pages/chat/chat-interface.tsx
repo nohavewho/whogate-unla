@@ -1,11 +1,12 @@
 import React from 'react';
-import { Card, CardBody, Input, Button, Avatar, Divider } from "@heroui/react";
+import { Card, CardBody, Input, Button, Divider } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import { ChatHistory } from './components/chat-history';
 import { ChatMessage } from './components/chat-message';
 import { Select, SelectItem } from "@heroui/react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { wsService, WebSocketMessage } from '../../services/websocket';
+import { getChatMessages } from '../../services/api';
 
 interface Message {
   id: string;
@@ -24,12 +25,58 @@ export function ChatInterface() {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const [isNearBottom, setIsNearBottom] = React.useState(true);
+  const [page, setPage] = React.useState(1);
+  const [hasMore, setHasMore] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
 
   const availableServices = [
     { id: "user-svc", name: "User Service" },
     { id: "auth-svc", name: "Auth Service" },
     { id: "payment-svc", name: "Payment Service" },
   ];
+
+  const loadMessages = async (sessionId: string, pageNum: number = 1) => {
+    if (loading || !hasMore) return;
+    
+    setLoading(true);
+    try {
+      const data = await getChatMessages(sessionId, pageNum);
+      
+      // Check if data exists
+      if (!data) {
+        console.error('Invalid response format:', data);
+        return;
+      }
+
+      // Convert backend message format to frontend format
+      const newMessages = data.map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        sender: msg.sender as 'user' | 'bot',
+        timestamp: new Date(msg.timestamp),
+      }));
+
+      // Sort messages by timestamp in ascending order
+      newMessages.sort((a: Message, b: Message) => a.timestamp.getTime() - b.timestamp.getTime());
+
+      if (pageNum === 1) {
+        setMessages(newMessages);
+      } else {
+        setMessages(prev => [...newMessages, ...prev]);
+      }
+
+      // Since we don't have hasMore in the response, we'll assume there are more messages
+      // if we got a full page of messages
+      setHasMore(newMessages.length === 20);
+      setPage(pageNum);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setMessages([]);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!sessionId) {
@@ -38,36 +85,42 @@ export function ChatInterface() {
       const newSessionId = wsService.getSessionId();
       navigate(`/chat/${newSessionId}`);
     } else {
-      // Show welcome message
-      const welcomeMessage = wsService.getWelcomeMessage();
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        content: welcomeMessage.content,
-        sender: 'bot',
-        timestamp: new Date(welcomeMessage.timestamp),
-      };
-      setMessages([newMessage]);
+      // Clear old messages first
+      setMessages([]);
+      setPage(1);
+      setHasMore(true);
+      setSelectedChat(sessionId);
 
-      // Set up message handler
-      const unsubscribe = wsService.onMessage((message: WebSocketMessage) => {
-        const newMessage: Message = {
-          id: Date.now().toString(),
-          content: message.content,
-          sender: message.sender as 'user' | 'bot',
-          timestamp: new Date(message.timestamp),
+      // Switch WebSocket connection to new session
+      wsService.switchChat(sessionId).then(() => {
+        // Set up message handler
+        const unsubscribe = wsService.onMessage((message: WebSocketMessage & { id?: string }) => {
+          setMessages(prev => {
+            // Check if message already exists to prevent duplicates
+            if (prev.some(m => m.id === message.id)) {
+              return prev;
+            }
+            const newMessage: Message = {
+              id: message.id || Date.now().toString(),
+              content: message.content,
+              sender: message.sender as 'user' | 'bot',
+              timestamp: new Date(message.timestamp),
+            };
+            return [...prev, newMessage];
+          });
+        });
+
+        // Cleanup on unmount or session change
+        return () => {
+          unsubscribe();
+          wsService.disconnect();
+          wsService.clearMessageHandlers();
         };
-        setMessages(prev => [...prev, newMessage]);
       });
-
-      // Cleanup on unmount
-      return () => {
-        unsubscribe();
-        wsService.disconnect();
-      };
     }
   }, [sessionId, navigate]);
 
-  // Add scroll position check
+  // Add scroll position check and load more messages when scrolling up
   React.useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -76,11 +129,16 @@ export function ChatInterface() {
       const { scrollTop, scrollHeight, clientHeight } = container;
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setIsNearBottom(isNearBottom);
+
+      // Load more messages when scrolling to top
+      if (scrollTop < 100 && hasMore && !loading && sessionId) {
+        loadMessages(sessionId, page + 1);
+      }
     };
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [sessionId, page, hasMore, loading]);
 
   // Modify auto-scroll effect to only scroll when appropriate
   React.useEffect(() => {
@@ -99,7 +157,7 @@ export function ChatInterface() {
       timestamp: new Date(),
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages(prev => [...prev, newMessage]);
     wsService.sendMessage(input);
     setInput('');
   };
@@ -108,16 +166,24 @@ export function ChatInterface() {
     <div className="flex h-[calc(100vh-8rem)]">
       <ChatHistory
         selectedChat={selectedChat}
-        onSelectChat={setSelectedChat}
+        onSelectChat={(id) => {
+          setSelectedChat(id);
+          navigate(`/chat/${id}`);
+        }}
       />
 
       <div className="flex-1 ml-4">
         <Card className="h-full">
           <CardBody className="p-0 h-full flex flex-col">
-            <div 
+            <div
               ref={messagesContainerRef}
               className="flex-1 overflow-auto p-4"
             >
+              {loading && page > 1 && (
+                <div className="text-center text-default-500 py-2">
+                  Loading more messages...
+                </div>
+              )}
               {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}

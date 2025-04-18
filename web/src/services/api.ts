@@ -116,4 +116,29 @@ export const syncMCPServers = async () => {
   }
 };
 
+export const getChatMessages = async (sessionId: string, page: number = 1, pageSize: number = 20) => {
+  try {
+    const response = await api.get(`/chat/sessions/${sessionId}/messages`, {
+      params: {
+        page,
+        pageSize,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      toast.error(error.response.data.error, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } else {
+      toast.error('获取聊天消息失败', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    }
+    throw error;
+  }
+};
+
 export default api;
