@@ -109,7 +109,7 @@ func (db *PostgresDB) GetMessagesWithPagination(ctx context.Context, sessionID s
 		SELECT id, session_id, content, sender, timestamp
 		FROM messages
 		WHERE session_id = $1
-		ORDER BY timestamp ASC
+		ORDER BY timestamp DESC
 		LIMIT $2 OFFSET $3
 	`, sessionID, pageSize, offset)
 	if err != nil {
@@ -125,6 +125,11 @@ func (db *PostgresDB) GetMessagesWithPagination(ctx context.Context, sessionID s
 			return nil, err
 		}
 		messages = append(messages, &msg)
+	}
+
+	// Reverse the order of messages to maintain chronological order
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
 	}
 
 	return messages, nil

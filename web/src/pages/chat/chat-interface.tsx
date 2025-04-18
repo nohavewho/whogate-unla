@@ -64,9 +64,6 @@ export function ChatInterface() {
         timestamp: new Date(msg.timestamp),
       }));
 
-      // Sort messages by timestamp in ascending order
-      newMessages.sort((a: Message, b: Message) => a.timestamp.getTime() - b.timestamp.getTime());
-
       if (pageNum === 1) {
         setMessages(newMessages);
       } else {
