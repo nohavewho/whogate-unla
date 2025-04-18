@@ -7,3 +7,4 @@ alwaysApply: true
 # Your rule content
 
 - You can read [SOP.server.zh-CN.md](mdc:docs/.ai/SOP.server.zh-CN.md) for server when the task starts.
+- You can read [SOP.client.zh-CN.md](mdc:docs/.ai/SOP.client.zh-CN.md) for web when the task starts.

@@ -220,26 +220,6 @@ func handleWebSocket(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	// Load existing messages
-	messages, err := db.GetMessages(c.Request.Context(), sessionId)
-	if err != nil {
-		log.Printf("[WS] Failed to load messages - SessionID: %s, Error: %v", sessionId, err)
-	}
-
-	// Send existing messages to client
-	for _, msg := range messages {
-		response := WebSocketMessage{
-			Type:      "message",
-			Content:   msg.Content,
-			Sender:    msg.Sender,
-			Timestamp: msg.Timestamp.UnixMilli(),
-		}
-		if err := conn.WriteJSON(response); err != nil {
-			log.Printf("[WS] Error sending existing message - SessionID: %s, Error: %v", sessionId, err)
-			return
-		}
-	}
-
 	// Log successful connection
 	log.Printf("[WS] Connection established - SessionID: %s, RemoteAddr: %s", sessionId, c.Request.RemoteAddr)
 
@@ -305,33 +285,47 @@ func handleWebSocket(c *gin.Context) {
 				}
 			}
 
-			// Get response from OpenAI
-			chatCompletion, err := openaiClient.ChatCompletion(c.Request.Context(), openaiMessages)
+			// Get streaming response from OpenAI
+			stream, err := openaiClient.ChatCompletionStream(c.Request.Context(), openaiMessages)
 			if err != nil {
 				log.Printf("[WS] Failed to get OpenAI response - SessionID: %s, Error: %v", sessionId, err)
 				continue
 			}
 
-			// Create response message
-			response := WebSocketMessage{
-				Type:      "message",
-				Content:   chatCompletion.Choices[0].Message.Content,
-				Sender:    "bot",
-				Timestamp: time.Now().UnixMilli(),
+			// Initialize response content
+			responseContent := ""
+
+			// Process stream chunks
+			for stream.Next() {
+				chunk := stream.Current()
+				if chunk.Choices[0].Delta.Content != "" {
+					responseContent += chunk.Choices[0].Delta.Content
+
+					// Send chunk to client
+					response := WebSocketMessage{
+						Type:      "stream",
+						Content:   chunk.Choices[0].Delta.Content,
+						Sender:    "bot",
+						Timestamp: time.Now().UnixMilli(),
+					}
+					if err := conn.WriteJSON(response); err != nil {
+						log.Printf("[WS] Error writing message chunk - SessionID: %s, Error: %v", sessionId, err)
+						break
+					}
+				}
 			}
 
-			// Send response
-			if err := conn.WriteJSON(response); err != nil {
-				log.Printf("[WS] Error writing message - SessionID: %s, Error: %v", sessionId, err)
-				break
+			if err := stream.Err(); err != nil {
+				log.Printf("[WS] Error in stream - SessionID: %s, Error: %v", sessionId, err)
+				continue
 			}
 
-			// Save bot response to database
+			// Save complete bot response to database
 			dbMessage := &database.Message{
-				ID:        "bot-" + time.Now().Format(time.RFC3339Nano),
+				ID:        uuid.New().String(),
 				SessionID: sessionId,
-				Content:   response.Content,
-				Sender:    response.Sender,
+				Content:   responseContent,
+				Sender:    "bot",
 				Timestamp: time.Now(),
 			}
 			if err := db.SaveMessage(c.Request.Context(), dbMessage); err != nil {
@@ -340,7 +334,7 @@ func handleWebSocket(c *gin.Context) {
 
 			// Log sent message
 			log.Printf("[WS] Message sent - SessionID: %s, Type: %s, Content: %s",
-				sessionId, response.Type, response.Content)
+				sessionId, "message", responseContent)
 		case "system":
 			// Handle system messages if needed
 			log.Printf("Received system message: %s", message.Content)

@@ -2,11 +2,10 @@ package openai
 
 import (
 	"context"
-	"os"
-
 	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/packages/ssestream"
 )
 
 // Client wraps the OpenAI client with our configuration
@@ -44,7 +43,16 @@ func (c *Client) ChatCompletion(ctx context.Context, messages []openai.ChatCompl
 	return chatCompletion, nil
 }
 
-// GetAPIKey returns the OpenAI API key from environment variable
-func GetAPIKey() string {
-	return os.Getenv("OPENAI_API_KEY")
+// ChatCompletionStream handles streaming chat completion requests
+func (c *Client) ChatCompletionStream(ctx context.Context, messages []openai.ChatCompletionMessageParamUnion) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
+	// Create streaming chat completion request
+	stream := c.client.Chat.Completions.NewStreaming(
+		ctx,
+		openai.ChatCompletionNewParams{
+			Messages: messages,
+			Model:    c.model,
+		},
+	)
+
+	return stream, nil
 }

@@ -7,12 +7,14 @@ import { Select, SelectItem } from "@heroui/react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { wsService, WebSocketMessage } from '../../services/websocket';
 import { getChatMessages } from '../../services/api';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Message {
   id: string;
   content: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  isStreaming?: boolean;
 }
 
 export function ChatInterface() {
@@ -37,14 +39,20 @@ export function ChatInterface() {
 
   const loadMessages = async (sessionId: string, pageNum: number = 1) => {
     if (loading || !hasMore) return;
-    
+
     setLoading(true);
     try {
       const data = await getChatMessages(sessionId, pageNum);
-      
+
       // Check if data exists
       if (!data) {
-        console.error('Invalid response format:', data);
+        const welcomeMessage: Message = {
+          id: uuidv4(),
+          content: '你好，欢迎使用MCP Gateway！',
+          sender: 'bot',
+          timestamp: new Date(),
+        };
+        setMessages([welcomeMessage]);
         return;
       }
 
@@ -81,43 +89,74 @@ export function ChatInterface() {
   React.useEffect(() => {
     if (!sessionId) {
       // If no session ID in URL, create a new one and redirect
-      wsService.newChat();
+      wsService.cleanup();
       const newSessionId = wsService.getSessionId();
       navigate(`/chat/${newSessionId}`);
-    } else {
+      return
+    }
+
       // Clear old messages first
       setMessages([]);
       setPage(1);
       setHasMore(true);
       setSelectedChat(sessionId);
 
-      // Switch WebSocket connection to new session
-      wsService.switchChat(sessionId).then(() => {
-        // Set up message handler
-        const unsubscribe = wsService.onMessage((message: WebSocketMessage & { id?: string }) => {
-          setMessages(prev => {
-            // Check if message already exists to prevent duplicates
-            if (prev.some(m => m.id === message.id)) {
-              return prev;
-            }
-            const newMessage: Message = {
-              id: message.id || Date.now().toString(),
-              content: message.content,
-              sender: message.sender as 'user' | 'bot',
-              timestamp: new Date(message.timestamp),
-            };
-            return [...prev, newMessage];
-          });
-        });
+      // Set up message handler for regular messages
+      const unsubscribe = wsService.onMessage((message: WebSocketMessage) => {
+        // Skip streaming messages as they are handled by stream handler
+        if (message.type === 'stream') return;
 
-        // Cleanup on unmount or session change
-        return () => {
-          unsubscribe();
-          wsService.disconnect();
-          wsService.clearMessageHandlers();
-        };
+        setMessages(prev => {
+          // Check if message already exists to prevent duplicates
+          if (prev.some(m => m.id === message.id)) {
+            return prev;
+          }
+          const newMessage: Message = {
+            id: message.id,
+            content: message.content,
+            sender: message.sender,
+            timestamp: new Date(message.timestamp),
+          };
+          return [...prev, newMessage];
+        });
       });
-    }
+
+      // Set up stream handler
+      const unsubscribeStream = wsService.onStream((chunk: string) => {
+        setMessages(prev => {
+          const lastMessage = prev[prev.length - 1];
+          // If the last message is from bot and is streaming, append to it
+          if (lastMessage && lastMessage.sender === 'bot' && lastMessage.isStreaming) {
+            const updatedMessages = [...prev];
+            updatedMessages[prev.length - 1] = {
+              ...lastMessage,
+              content: lastMessage.content + chunk,
+              isStreaming: true
+            };
+            return updatedMessages;
+          }
+          // If no bot message exists or last message is from user, create new one
+          return [...prev, {
+            id: uuidv4(),
+            content: chunk,
+            sender: 'bot',
+            timestamp: new Date(),
+            isStreaming: true
+          }];
+        });
+      });
+
+      // Switch to new session and load history
+      wsService.switchChat(sessionId).then(async () => {
+        // Load chat history
+        await loadMessages(sessionId);
+      });
+
+      // Cleanup on unmount or session change
+      return () => {
+        unsubscribe();
+        unsubscribeStream();
+      };
   }, [sessionId, navigate]);
 
   // Add scroll position check and load more messages when scrolling up
@@ -147,18 +186,18 @@ export function ChatInterface() {
     }
   }, [messages, isNearBottom]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       content: input,
       sender: 'user',
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, newMessage]);
-    wsService.sendMessage(input);
+    await wsService.sendMessage(input);
     setInput('');
   };
 

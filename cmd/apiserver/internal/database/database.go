@@ -7,8 +7,8 @@ import (
 
 // Message represents a chat message
 type Message struct {
-	ID        string    `json:"id"`
-	SessionID string    `json:"sessionId"`
+	ID        string    `json:"id"`        // UUID format
+	SessionID string    `json:"sessionId"` // UUID format
 	Content   string    `json:"content"`
 	Sender    string    `json:"sender"`
 	Timestamp time.Time `json:"timestamp"`

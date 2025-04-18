@@ -38,16 +38,26 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
         throw new Error('Failed to fetch sessions');
       }
       const data = await response.json();
-      setSessions(data);
+      // Ensure data is an array and each session has required properties
+      const validSessions = Array.isArray(data) 
+        ? data.filter(session => 
+            session && 
+            typeof session.id === 'string' && 
+            typeof session.createdAt === 'string' &&
+            typeof session.title === 'string'
+          )
+        : [];
+      setSessions(validSessions);
     } catch (error) {
       console.error('Error fetching sessions:', error);
+      setSessions([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
   };
 
   const handleNewChat = () => {
-    wsService.newChat();
+    wsService.cleanup();
     const newSessionId = wsService.getSessionId();
     navigate(`/chat/${newSessionId}`);
   };
@@ -106,7 +116,7 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
         <div className="space-y-1 px-4">
           {loading ? (
             <div className="p-4 text-center text-default-500">Loading...</div>
-          ) : sessions.length === 0 ? (
+          ) : !sessions || sessions.length === 0 ? (
             <div className="p-4 text-center text-default-500">No chat history</div>
           ) : (
             sessions.map((session) => (
@@ -118,11 +128,16 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
                 }`}
                 onPress={() => handleSessionSelect(session.id)}
               >
-                <div className="flex flex-col items-start w-full">
-                  <span className="text-sm truncate w-full text-left">
-                    {session.title || 'New Chat'}
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium truncate max-w-full">
+                    {session.title || 'Untitled Chat'}
                   </span>
-                  <span className="text-xs text-default-500 text-left">
+                  {session.lastMessage && (
+                    <span className="text-xs text-default-500 truncate max-w-full">
+                      {session.lastMessage.content}
+                    </span>
+                  )}
+                  <span className="text-xs text-default-400">
                     {formatDate(session.createdAt)}
                   </span>
                 </div>

@@ -1,51 +1,47 @@
 import { v4 as uuidv4 } from 'uuid';
 
 export interface WebSocketMessage {
-  type: 'message' | 'system';
+  type: 'system' | 'message' | 'stream';
   content: string;
-  sender: string;
+  sender: 'user' | 'bot';
   timestamp: number;
+  id: string;
 }
 
 export class WebSocketService {
   private ws: WebSocket | null = null;
   private messageHandlers: ((message: WebSocketMessage) => void)[] = [];
+  private streamHandlers: ((chunk: string) => void)[] = [];
   private sessionId: string = '';
-  private welcomeMessage: WebSocketMessage = {
-    type: 'system',
-    content: '你好，欢迎使用MCP Gateway！',
-    sender: 'bot',
-    timestamp: Date.now(),
-  };
+
 
   constructor() {
-    this.newChat();
+    this.cleanup();
   }
 
   clearMessageHandlers() {
     this.messageHandlers = [];
+    this.streamHandlers = [];
   }
 
-  newChat() {
+  cleanup() {
     // Clear existing connection if any
     this.disconnect();
     // Clear message handlers
     this.clearMessageHandlers();
     // Generate new session ID
     this.sessionId = uuidv4();
-    // Show welcome message
-    this.messageHandlers.forEach(handler => handler(this.welcomeMessage));
   }
 
   switchChat(sessionId: string) {
     // Clear existing connection
     this.disconnect();
-    // Clear message handlers
-    this.clearMessageHandlers();
+    // Don't clear message handlers here
+    // this.clearMessageHandlers();
     // Set new session ID
     this.sessionId = sessionId;
-    // Connect to new session
-    return this.connect();
+    // Don't connect immediately, wait for first message
+    return Promise.resolve();
   }
 
   connect() {
@@ -54,19 +50,33 @@ export class WebSocketService {
     }
 
     return new Promise<void>((resolve) => {
-      this.ws = new WebSocket(`ws://${window.location.host}/ws/chat?sessionId=${this.sessionId}`);
+      console.log('Connecting to WebSocket...');
+      this.ws = new WebSocket(`/ws/chat?sessionId=${this.sessionId}`);
 
       this.ws.onopen = () => {
+        console.log('WebSocket connected');
         resolve();
       };
 
       this.ws.onmessage = (event) => {
         const message = JSON.parse(event.data) as WebSocketMessage;
-        this.messageHandlers.forEach(handler => handler(message));
+        console.log('WebSocket message received:', message);
+        if (message.type === 'stream') {
+          console.log('Stream chunk received:', message.content);
+          this.streamHandlers.forEach(handler => handler(message.content));
+        } else {
+          console.log('Regular message received:', message);
+          this.messageHandlers.forEach(handler => handler(message));
+        }
       };
 
       this.ws.onclose = () => {
+        console.log('WebSocket disconnected');
         this.ws = null;
+      };
+
+      this.ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
       };
     });
   }
@@ -79,6 +89,7 @@ export class WebSocketService {
   }
 
   async sendMessage(content: string) {
+    // Connect to WebSocket if not already connected
     if (!this.ws) {
       await this.connect();
     }
@@ -86,8 +97,9 @@ export class WebSocketService {
     const message: WebSocketMessage = {
       type: 'message',
       content,
-      sender: 'user123', // This should be replaced with actual user ID
+      sender: 'user',
       timestamp: Date.now(),
+      id: uuidv4(),
     };
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -102,14 +114,17 @@ export class WebSocketService {
     };
   }
 
-  getSessionId(): string {
-    return this.sessionId;
+  onStream(handler: (chunk: string) => void) {
+    this.streamHandlers.push(handler);
+    return () => {
+      this.streamHandlers = this.streamHandlers.filter(h => h !== handler);
+    };
   }
 
-  getWelcomeMessage(): WebSocketMessage {
-    return this.welcomeMessage;
+  getSessionId(): string {
+    return this.sessionId;
   }
 }
 
 // Create a singleton instance
-export const wsService = new WebSocketService(); 
+export const wsService = new WebSocketService();

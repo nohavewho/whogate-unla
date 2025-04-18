@@ -1,4 +1,3 @@
-import React from 'react';
 import { Avatar } from "@heroui/react";
 
 interface Message {
@@ -6,6 +5,7 @@ interface Message {
   content: string;
   sender: 'user' | 'bot';
   timestamp: Date;
+  isStreaming?: boolean;
 }
 
 interface ChatMessageProps {
@@ -14,7 +14,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isBot = message.sender === 'bot';
-  
+
   return (
     <div className={`flex gap-3 mb-4 ${isBot ? 'flex-row' : 'flex-row-reverse'}`}>
       <Avatar
@@ -28,6 +28,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }`}
       >
         {message.content}
+        {message.isStreaming && (
+          <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
+        )}
       </div>
     </div>
   );
