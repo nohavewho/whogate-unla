@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/mcp-ecosystem/mcp-gateway/cmd/apiserver/internal/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -18,17 +20,13 @@ import (
 
 var (
 	configPath = flag.String("conf", "", "path to configuration file or directory")
+	db         database.Database
 )
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Should set stricter checks in production
 	},
-}
-
-type Config struct {
-	// Configuration structure
-	// Add more fields as needed
 }
 
 type WebSocketMessage struct {
@@ -70,6 +68,25 @@ func main() {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
 	defer logger.Sync()
+
+	// Load configuration
+	cfg, err := config.LoadConfig("configs/apiserver.yaml")
+	if err != nil {
+		logger.Fatal("Failed to load configuration", zap.Error(err))
+	}
+
+	// Initialize database based on configuration
+	switch cfg.Database.Type {
+	case "postgres":
+		db = database.NewPostgresDB(&cfg.Database)
+	default:
+		logger.Fatal("Unsupported database type", zap.String("type", cfg.Database.Type))
+	}
+
+	if err := db.Init(context.Background()); err != nil {
+		logger.Fatal("Failed to initialize database", zap.Error(err))
+	}
+	defer db.Close()
 
 	// Get configuration path
 	configDir := getConfigPath()
@@ -168,6 +185,20 @@ func handleWebSocket(c *gin.Context) {
 		return
 	}
 
+	// Check if session exists, if not create it
+	exists, err := db.SessionExists(c.Request.Context(), sessionId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check session"})
+		return
+	}
+	if !exists {
+		// Create new session with the provided sessionId
+		if err := db.CreateSession(c.Request.Context(), sessionId); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create session"})
+			return
+		}
+	}
+
 	// Log connection attempt
 	log.Printf("[WS] New connection attempt - SessionID: %s, RemoteAddr: %s", sessionId, c.Request.RemoteAddr)
 
@@ -178,6 +209,26 @@ func handleWebSocket(c *gin.Context) {
 	}
 	defer conn.Close()
 
+	// Load existing messages
+	messages, err := db.GetMessages(c.Request.Context(), sessionId)
+	if err != nil {
+		log.Printf("[WS] Failed to load messages - SessionID: %s, Error: %v", sessionId, err)
+	}
+
+	// Send existing messages to client
+	for _, msg := range messages {
+		response := WebSocketMessage{
+			Type:      "message",
+			Content:   msg.Content,
+			Sender:    msg.Sender,
+			Timestamp: msg.Timestamp.UnixMilli(),
+		}
+		if err := conn.WriteJSON(response); err != nil {
+			log.Printf("[WS] Error sending existing message - SessionID: %s, Error: %v", sessionId, err)
+			return
+		}
+	}
+
 	// Log successful connection
 	log.Printf("[WS] Connection established - SessionID: %s, RemoteAddr: %s", sessionId, c.Request.RemoteAddr)
 
@@ -187,6 +238,18 @@ func handleWebSocket(c *gin.Context) {
 		if err != nil {
 			log.Printf("[WS] Error reading message - SessionID: %s, Error: %v", sessionId, err)
 			break
+		}
+
+		// Save all incoming messages to database
+		dbMessage := &database.Message{
+			ID:        message.Type + "-" + time.Now().Format(time.RFC3339Nano),
+			SessionID: sessionId,
+			Content:   message.Content,
+			Sender:    message.Sender,
+			Timestamp: time.Now(),
+		}
+		if err := db.SaveMessage(c.Request.Context(), dbMessage); err != nil {
+			log.Printf("[WS] Failed to save message - SessionID: %s, Error: %v", sessionId, err)
 		}
 
 		// Log received message
@@ -207,6 +270,19 @@ func handleWebSocket(c *gin.Context) {
 				log.Printf("[WS] Error writing message - SessionID: %s, Error: %v", sessionId, err)
 				break
 			}
+
+			// Save bot response to database
+			dbMessage := &database.Message{
+				ID:        "bot-" + time.Now().Format(time.RFC3339Nano),
+				SessionID: sessionId,
+				Content:   response.Content,
+				Sender:    response.Sender,
+				Timestamp: time.Now(),
+			}
+			if err := db.SaveMessage(c.Request.Context(), dbMessage); err != nil {
+				log.Printf("[WS] Failed to save bot message - SessionID: %s, Error: %v", sessionId, err)
+			}
+
 			// Log sent message
 			log.Printf("[WS] Message sent - SessionID: %s, Type: %s, Content: %s",
 				sessionId, response.Type, response.Content)

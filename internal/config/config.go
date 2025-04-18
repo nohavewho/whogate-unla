@@ -1,14 +1,19 @@
 package config
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"gopkg.in/yaml.v3"
 )
 
 // Config represents the root configuration structure
 type Config struct {
-	Routers []RouterConfig `yaml:"routers"`
-	Servers []ServerConfig `yaml:"servers"`
-	Tools   []ToolConfig   `yaml:"tools"`
+	Routers  []RouterConfig `yaml:"routers"`
+	Servers  []ServerConfig `yaml:"servers"`
+	Tools    []ToolConfig   `yaml:"tools"`
+	Database DatabaseConfig `yaml:"database"`
 }
 
 // GlobalConfig represents the global configuration
@@ -99,4 +104,52 @@ func (t *ToolConfig) ToToolSchema() mcp.ToolSchema {
 			Required:   required,
 		},
 	}
+}
+
+// Server represents a single server configuration
+type Server struct {
+	Name string `yaml:"name"`
+	// Add other server fields as needed
+}
+
+// DatabaseConfig represents database configuration
+type DatabaseConfig struct {
+	Type     string `yaml:"type"`     // postgres, mysql, etc.
+	Host     string `yaml:"host"`     // localhost
+	Port     int    `yaml:"port"`     // 5432
+	User     string `yaml:"user"`     // postgres
+	Password string `yaml:"password"` // postgres
+	DBName   string `yaml:"dbname"`   // mcp_gateway
+	SSLMode  string `yaml:"sslmode"`  // disable
+}
+
+// GetDSN returns the database connection string
+func (c *DatabaseConfig) GetDSN() string {
+	switch c.Type {
+	case "postgres":
+		return c.getPostgresDSN()
+	default:
+		return ""
+	}
+}
+
+// getPostgresDSN returns PostgreSQL connection string
+func (c *DatabaseConfig) getPostgresDSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		c.User, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
+}
+
+// LoadConfig loads configuration from a YAML file
+func LoadConfig(path string) (*Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
 }
