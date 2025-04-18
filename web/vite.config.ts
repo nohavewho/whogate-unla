@@ -8,13 +8,9 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5234',
+        target: 'http://localhost:8080',
         changeOrigin: true,
-      },
-      '/ws': {
-        target: 'http://localhost:5234',
-        changeOrigin: true,
-        ws: true
+        ws: true,
       }
     },
   },

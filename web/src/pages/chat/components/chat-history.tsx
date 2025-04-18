@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, CardBody, Button } from "@heroui/react";
 import { Icon } from '@iconify/react';
+import { useNavigate } from 'react-router-dom';
+import { wsService } from '../../../services/websocket';
 
 interface ChatHistoryProps {
   selectedChat: string | null;
@@ -8,25 +10,33 @@ interface ChatHistoryProps {
 }
 
 export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
+  const navigate = useNavigate();
   const chats = [
     { id: '1', title: 'MCP Discussion 1', date: '2024-03-10' },
     { id: '2', title: 'Gateway Config Help', date: '2024-03-09' },
     { id: '3', title: 'Deployment Issues', date: '2024-03-08' },
   ];
 
+  const handleNewChat = () => {
+    wsService.newChat();
+    const newSessionId = wsService.getSessionId();
+    navigate(`/chat/${newSessionId}`);
+  };
+
   return (
     <Card className="w-64 relative group">
       <div 
         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 transition-colors"
-        onMouseDown={(e) => {
+        onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
           const startX = e.pageX;
           const startWidth = e.currentTarget.parentElement?.offsetWidth || 0;
           
           const handleMouseMove = (e: MouseEvent) => {
             const delta = e.pageX - startX;
             const newWidth = Math.max(200, Math.min(400, startWidth + delta));
-            if (e.currentTarget?.parentElement) {
-              e.currentTarget.parentElement.style.width = `${newWidth}px`;
+            const parent = (e.target as HTMLElement).parentElement;
+            if (parent) {
+              parent.style.width = `${newWidth}px`;
             }
           };
           
@@ -45,6 +55,7 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
             color="primary"
             className="w-full"
             startContent={<Icon icon="lucide:plus" />}
+            onPress={handleNewChat}
           >
             New Chat
           </Button>

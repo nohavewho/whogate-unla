@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Link, useParams } from 'react-router-dom';
 import { 
   Navbar, 
   NavbarBrand, 
@@ -14,6 +14,7 @@ import {
 import { Icon } from '@iconify/react';
 import { GatewayManager } from './pages/gateway/gateway-manager';
 import { ChatInterface } from './pages/chat/chat-interface';
+import { wsService } from './services/websocket';
 
 function Navigation() {
   const location = useLocation();
@@ -111,6 +112,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<GatewayManager />} />
           <Route path="/chat" element={<ChatInterface />} />
+          <Route path="/chat/:sessionId" element={<ChatInterface />} />
         </Routes>
       </main>
     </div>

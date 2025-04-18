@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -28,6 +29,13 @@ var upgrader = websocket.Upgrader{
 type Config struct {
 	// Configuration structure
 	// Add more fields as needed
+}
+
+type WebSocketMessage struct {
+	Type      string `json:"type"`
+	Content   string `json:"content"`
+	Sender    string `json:"sender"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 func getConfigPath() string {
@@ -153,25 +161,58 @@ func handleMCPServerUpdate(c *gin.Context) {
 }
 
 func handleWebSocket(c *gin.Context) {
+	// Get sessionId from query parameter
+	sessionId := c.Query("sessionId")
+	if sessionId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sessionId is required"})
+		return
+	}
+
+	// Log connection attempt
+	log.Printf("[WS] New connection attempt - SessionID: %s, RemoteAddr: %s", sessionId, c.Request.RemoteAddr)
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		log.Printf("Failed to upgrade connection: %v", err)
+		log.Printf("[WS] Failed to upgrade connection - SessionID: %s, Error: %v", sessionId, err)
 		return
 	}
 	defer conn.Close()
 
+	// Log successful connection
+	log.Printf("[WS] Connection established - SessionID: %s, RemoteAddr: %s", sessionId, c.Request.RemoteAddr)
+
 	for {
-		messageType, message, err := conn.ReadMessage()
+		var message WebSocketMessage
+		err := conn.ReadJSON(&message)
 		if err != nil {
-			log.Printf("Error reading message: %v", err)
+			log.Printf("[WS] Error reading message - SessionID: %s, Error: %v", sessionId, err)
 			break
 		}
 
-		// Process message
-		response := "Received: " + string(message)
-		if err := conn.WriteMessage(messageType, []byte(response)); err != nil {
-			log.Printf("Error writing message: %v", err)
-			break
+		// Log received message
+		log.Printf("[WS] Message received - SessionID: %s, Type: %s, Content: %s",
+			sessionId, message.Type, message.Content)
+
+		// Process message based on type
+		switch message.Type {
+		case "message":
+			// Echo the message back for now
+			response := WebSocketMessage{
+				Type:      "message",
+				Content:   "Echo: " + message.Content,
+				Sender:    "bot",
+				Timestamp: time.Now().UnixMilli(),
+			}
+			if err := conn.WriteJSON(response); err != nil {
+				log.Printf("[WS] Error writing message - SessionID: %s, Error: %v", sessionId, err)
+				break
+			}
+			// Log sent message
+			log.Printf("[WS] Message sent - SessionID: %s, Type: %s, Content: %s",
+				sessionId, response.Type, response.Content)
+		case "system":
+			// Handle system messages if needed
+			log.Printf("Received system message: %s", message.Content)
 		}
 	}
 }
