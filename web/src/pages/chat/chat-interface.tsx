@@ -30,6 +30,7 @@ export function ChatInterface() {
   const [page, setPage] = React.useState(1);
   const [hasMore, setHasMore] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
+  const [lastScrollTop, setLastScrollTop] = React.useState(0);
 
   const availableServices = [
     { id: "user-svc", name: "User Service" },
@@ -166,15 +167,16 @@ export function ChatInterface() {
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setIsNearBottom(isNearBottom);
 
-      // Load more messages when scrolling to top
-      if (scrollTop < 100 && hasMore && !loading && sessionId) {
+      // Only load more messages when user actively scrolls up
+      if (scrollTop < lastScrollTop && scrollTop < 100 && hasMore && !loading && sessionId) {
         loadMessages(sessionId, page + 1);
       }
+      setLastScrollTop(scrollTop);
     };
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [sessionId, page, hasMore, loading]);
+  }, [sessionId, page, hasMore, loading, lastScrollTop]);
 
   // Modify auto-scroll effect to only scroll when appropriate
   React.useEffect(() => {
