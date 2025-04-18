@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"os"
@@ -14,13 +15,16 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/mcp-ecosystem/mcp-gateway/cmd/apiserver/internal/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/openai"
+	openaiGo "github.com/openai/openai-go"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
 var (
-	configPath = flag.String("conf", "", "path to configuration file or directory")
-	db         database.Database
+	configPath   = flag.String("conf", "", "path to configuration file or directory")
+	db           database.Database
+	openaiClient *openai.Client
 )
 
 var upgrader = websocket.Upgrader{
@@ -74,6 +78,9 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to load configuration", zap.Error(err))
 	}
+
+	// Initialize OpenAI client
+	openaiClient = openai.NewClient(cfg)
 
 	// Initialize database based on configuration
 	switch cfg.Database.Type {
@@ -242,7 +249,7 @@ func handleWebSocket(c *gin.Context) {
 
 		// Save all incoming messages to database
 		dbMessage := &database.Message{
-			ID:        message.Type + "-" + time.Now().Format(time.RFC3339Nano),
+			ID:        uuid.New().String(),
 			SessionID: sessionId,
 			Content:   message.Content,
 			Sender:    message.Sender,
@@ -259,13 +266,41 @@ func handleWebSocket(c *gin.Context) {
 		// Process message based on type
 		switch message.Type {
 		case "message":
-			// Echo the message back for now
+			// Get conversation history from database
+			messages, err := db.GetMessages(c.Request.Context(), sessionId)
+			if err != nil {
+				log.Printf("[WS] Failed to get conversation history - SessionID: %s, Error: %v", sessionId, err)
+				continue
+			}
+
+			// Convert messages to OpenAI format
+			openaiMessages := make([]openaiGo.ChatCompletionMessageParamUnion, len(messages))
+			for i, msg := range messages {
+				openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+					OfUser: &openaiGo.ChatCompletionUserMessageParam{
+						Content: openaiGo.ChatCompletionUserMessageParamContentUnion{
+							OfString: openaiGo.String(msg.Content),
+						},
+					},
+				}
+			}
+
+			// Get response from OpenAI
+			chatCompletion, err := openaiClient.ChatCompletion(c.Request.Context(), openaiMessages)
+			if err != nil {
+				log.Printf("[WS] Failed to get OpenAI response - SessionID: %s, Error: %v", sessionId, err)
+				continue
+			}
+
+			// Create response message
 			response := WebSocketMessage{
 				Type:      "message",
-				Content:   "Echo: " + message.Content,
+				Content:   chatCompletion.Choices[0].Message.Content,
 				Sender:    "bot",
 				Timestamp: time.Now().UnixMilli(),
 			}
+
+			// Send response
 			if err := conn.WriteJSON(response); err != nil {
 				log.Printf("[WS] Error writing message - SessionID: %s, Error: %v", sessionId, err)
 				break

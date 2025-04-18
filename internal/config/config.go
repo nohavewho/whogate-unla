@@ -16,6 +16,10 @@ type Config struct {
 	Servers  []ServerConfig `yaml:"servers"`
 	Tools    []ToolConfig   `yaml:"tools"`
 	Database DatabaseConfig `yaml:"database"`
+	OpenAI   struct {
+		APIKey string `yaml:"api_key" env:"OPENAI_API_KEY"`
+		Model  string `yaml:"model" env:"OPENAI_MODEL" env-default:"gpt-3.5-turbo"`
+	} `yaml:"openai"`
 }
 
 // GlobalConfig represents the global configuration
