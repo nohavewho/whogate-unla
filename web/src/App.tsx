@@ -1,20 +1,19 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Link, useParams } from 'react-router-dom';
-import { 
-  Navbar, 
-  NavbarBrand, 
-  NavbarContent, 
-  NavbarItem, 
+import {
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
   NavbarMenuToggle,
   NavbarMenu,
   NavbarMenuItem,
-  Button,
   Link as HeroLink
 } from "@heroui/react";
 import { Icon } from '@iconify/react';
-import { GatewayManager } from './pages/gateway/gateway-manager';
-import { ChatInterface } from './pages/chat/chat-interface';
-import { wsService } from './services/websocket';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
+
+import { ChatInterface } from "./pages/chat/chat-interface";
+import { GatewayManager } from "./pages/gateway/gateway-manager";
 
 function Navigation() {
   const location = useLocation();
@@ -47,12 +46,12 @@ function Navigation() {
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
         {menuItems.map((item) => (
           <NavbarItem key={item.to} isActive={
-            item.to === "/" 
+            item.to === "/"
               ? location.pathname === "/"
               : location.pathname.startsWith(item.to)
           }>
-            <Link 
-              to={item.to} 
+            <Link
+              to={item.to}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
                 (item.to === "/" 
                   ? location.pathname === "/"
@@ -73,9 +72,9 @@ function Navigation() {
           <HeroLink
             href="https://github.com/mcp-ecosystem/mcp-gateway"
             target="_blank"
-            className="relative tap-highlight-transparent outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2 text-medium no-underline hover:opacity-90 active:opacity-disabled transition-opacity flex items-center h-8 px-2 bg-zinc-800 text-white rounded-full"
+            className="relative tap-highlight-transparent outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2 text-medium no-underline hover:opacity-90 active:opacity-disabled transition-opacity"
           >
-            <Icon icon="lucide:github" className="text-lg" />
+            <Icon icon="ri:github-fill" className="text-4xl text-black" />
           </HeroLink>
         </NavbarItem>
       </NavbarContent>
@@ -83,7 +82,7 @@ function Navigation() {
       <NavbarMenu>
         {menuItems.map((item) => (
           <NavbarMenuItem key={item.to}>
-            <Link 
+            <Link
               to={item.to}
               className={`flex items-center gap-2 w-full ${
                 (item.to === "/" 
@@ -104,7 +103,7 @@ function Navigation() {
             target="_blank"
             className="flex items-center gap-2 w-full"
           >
-            <Icon icon="lucide:github" className="text-xl" />
+            <Icon icon="ri:github-fill" className="text-xl" />
             GitHub
           </HeroLink>
         </NavbarMenuItem>

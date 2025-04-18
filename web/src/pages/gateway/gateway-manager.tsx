@@ -1,15 +1,24 @@
-import React from 'react';
 import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { Icon } from '@iconify/react';
-import yaml from 'js-yaml';
-import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, syncMCPServers } from '../../services/api';
 import Editor from '@monaco-editor/react';
+import yaml from 'js-yaml';
 import { configureMonacoYaml } from 'monaco-yaml';
+import React from 'react';
 import toast from 'react-hot-toast';
+
+import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, syncMCPServers } from '../../services/api';
 
 declare global {
   interface Window {
-    monaco: any;
+    monaco: {
+      languages: {
+        yaml: {
+          yamlDefaults: {
+            setDiagnosticsOptions: (options: { enableSchemaRequest: boolean; schemas: Array<{ uri: string; fileMatch: string[] }> }) => void;
+          };
+        };
+      };
+    };
   }
 }
 
@@ -86,7 +95,7 @@ export function GatewayManager() {
         setIsLoading(true);
         const servers = await getMCPServers();
         setMCPServers(servers);
-      } catch (error) {
+      } catch {
         toast.error('获取 MCP 服务器列表失败', {
           duration: 3000,
           position: 'bottom-right',
@@ -120,7 +129,7 @@ export function GatewayManager() {
         });
       }
       onOpenChange();
-    } catch (e) {
+    } catch {
       toast.error('Invalid YAML format', {
         duration: 3000,
         position: 'bottom-right',
@@ -137,7 +146,7 @@ export function GatewayManager() {
         duration: 3000,
         position: 'bottom-right',
       });
-    } catch (e) {
+    } catch {
       toast.error('删除失败', {
         duration: 3000,
         position: 'bottom-right',
@@ -155,7 +164,7 @@ export function GatewayManager() {
         duration: 3000,
         position: 'bottom-right',
       });
-    } catch (e) {
+    } catch {
       toast.error('同步失败', {
         duration: 3000,
         position: 'bottom-right',
@@ -172,7 +181,7 @@ export function GatewayManager() {
         duration: 2000,
         position: 'bottom-right',
       });
-    } catch (err) {
+    } catch {
       toast.error("复制失败，请手动复制", {
         duration: 2000,
         position: 'bottom-right',
@@ -185,7 +194,7 @@ export function GatewayManager() {
       // Validate YAML format first
       try {
         yaml.load(newConfig);
-      } catch (e) {
+      } catch {
         toast.error('Invalid YAML format', {
           duration: 3000,
           position: 'bottom-right',
@@ -203,9 +212,9 @@ export function GatewayManager() {
         duration: 3000,
         position: 'bottom-right',
       });
-    } catch (e) {
+    } catch {
       // Error is already handled by the API service
-      console.error(e);
+      console.error('Failed to create MCP server');
     }
   };
 
@@ -215,7 +224,7 @@ export function GatewayManager() {
         try {
           const config = yaml.load(server.config) as Gateway['parsedConfig'];
           return { ...server, parsedConfig: config };
-        } catch (e) {
+        } catch {
           toast.error(`解析配置失败: ${server.name}`, {
             duration: 3000,
             position: 'bottom-right',

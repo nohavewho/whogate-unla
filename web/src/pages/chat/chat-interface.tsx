@@ -1,13 +1,15 @@
-import React from 'react';
-import { Card, CardBody, Input, Button, Divider } from "@heroui/react";
+import { Card, CardBody, Button, Input, Select, SelectItem, Divider } from '@heroui/react';
+import type { Selection } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
+
+import { getChatMessages } from '../../services/api';
+import { wsService, WebSocketMessage } from '../../services/websocket';
+
 import { ChatHistory } from './components/chat-history';
 import { ChatMessage } from './components/chat-message';
-import { Select, SelectItem } from "@heroui/react";
-import { useParams, useNavigate } from 'react-router-dom';
-import { wsService, WebSocketMessage } from '../../services/websocket';
-import { getChatMessages } from '../../services/api';
-import { v4 as uuidv4 } from 'uuid';
 
 interface Message {
   id: string;
@@ -17,15 +19,22 @@ interface Message {
   isStreaming?: boolean;
 }
 
+interface BackendMessage {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp: string;
+}
+
 export function ChatInterface() {
-  const { sessionId } = useParams();
   const navigate = useNavigate();
+  const { sessionId } = useParams();
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState('');
   const [selectedChat, setSelectedChat] = React.useState<string | null>(null);
   const [activeServices, setActiveServices] = React.useState<string[]>([]);
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const [isNearBottom, setIsNearBottom] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [hasMore, setHasMore] = React.useState(true);
@@ -39,7 +48,7 @@ export function ChatInterface() {
     { id: "payment-svc", name: "Payment Service" },
   ];
 
-  const loadMessages = async (sessionId: string, pageNum: number = 1) => {
+  const loadMessages = React.useCallback(async (sessionId: string, pageNum: number = 1) => {
     if (loading || !hasMore) return;
 
     setLoading(true);
@@ -59,7 +68,7 @@ export function ChatInterface() {
       }
 
       // Convert backend message format to frontend format
-      const newMessages = data.map((msg: any) => ({
+      const newMessages = data.map((msg: BackendMessage) => ({
         id: msg.id,
         content: msg.content,
         sender: msg.sender as 'user' | 'bot',
@@ -83,7 +92,7 @@ export function ChatInterface() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading, hasMore]);
 
   React.useEffect(() => {
     if (!sessionId) {
@@ -162,7 +171,7 @@ export function ChatInterface() {
       unsubscribe();
       unsubscribeStream();
     };
-  }, [sessionId, navigate]);
+  }, [sessionId, navigate, loadMessages]);
 
   // Add scroll position check and load more messages when scrolling up
   React.useEffect(() => {
@@ -183,7 +192,7 @@ export function ChatInterface() {
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [sessionId, page, hasMore, loading, lastScrollTop]);
+  }, [sessionId, page, hasMore, loading, lastScrollTop, loadMessages]);
 
   // Modify auto-scroll effect to only scroll when appropriate
   React.useEffect(() => {
@@ -241,7 +250,9 @@ export function ChatInterface() {
                 selectionMode="multiple"
                 placeholder="Select active services"
                 selectedKeys={activeServices}
-                onSelectionChange={setActiveServices as any}
+                onSelectionChange={(keys: Selection) => {
+                  setActiveServices(Array.from(keys) as string[]);
+                }}
                 className="max-w-xs"
               >
                 {availableServices.map((service) => (

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardBody, Button } from "@heroui/react";
+import { Card, CardBody, Button } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { wsService } from '../../../services/websocket';
 
 interface ChatHistoryProps {
@@ -24,11 +25,11 @@ interface Session {
 
 export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
   const navigate = useNavigate();
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = React.useState<Session[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const loadedRef = React.useRef(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Skip if we've already loaded sessions
     if (loadedRef.current) {
       return;
@@ -85,9 +86,11 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
 
   return (
     <Card className="w-64 relative group">
-      <div
+      <button
+        type="button"
+        aria-label="Resize chat history"
         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 transition-colors"
-        onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
+        onMouseDown={(e: React.MouseEvent) => {
           const startX = e.pageX;
           const startWidth = e.currentTarget.parentElement?.offsetWidth || 0;
 
@@ -107,6 +110,18 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
 
           document.addEventListener('mousemove', handleMouseMove);
           document.addEventListener('mouseup', handleMouseUp);
+        }}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            const parent = e.currentTarget.parentElement;
+            if (parent) {
+              const currentWidth = parent.offsetWidth;
+              const delta = e.key === 'ArrowLeft' ? -10 : 10;
+              const newWidth = Math.max(200, Math.min(400, currentWidth + delta));
+              parent.style.width = `${newWidth}px`;
+            }
+          }
         }}
       />
       <CardBody className="p-0">
