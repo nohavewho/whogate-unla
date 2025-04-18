@@ -11,7 +11,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <HeroUIProvider>
       <ToastProvider />
-      <main className="text-foreground bg-background">
+      <main className="text-foreground bg-background h-screen overflow-hidden">
         <App />
       </main>
       <Toaster position="bottom-right" />

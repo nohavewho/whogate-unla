@@ -46,11 +46,17 @@ function Navigation() {
 
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
         {menuItems.map((item) => (
-          <NavbarItem key={item.to} isActive={location.pathname === item.to}>
+          <NavbarItem key={item.to} isActive={
+            item.to === "/" 
+              ? location.pathname === "/"
+              : location.pathname.startsWith(item.to)
+          }>
             <Link 
               to={item.to} 
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
-                location.pathname === item.to 
+                (item.to === "/" 
+                  ? location.pathname === "/"
+                  : location.pathname.startsWith(item.to))
                   ? 'bg-primary/10 text-primary' 
                   : 'hover:bg-default-100'
               }`}
@@ -80,7 +86,10 @@ function Navigation() {
             <Link 
               to={item.to}
               className={`flex items-center gap-2 w-full ${
-                location.pathname === item.to ? 'text-primary' : ''
+                (item.to === "/" 
+                  ? location.pathname === "/"
+                  : location.pathname.startsWith(item.to)) 
+                  ? 'text-primary' : ''
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -108,7 +117,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="container mx-auto px-4 sm:px-6 py-8">
+      <main className="container mx-auto px-4 sm:px-6 py-8 h-[calc(100vh-4rem)] overflow-auto scrollbar-hide">
         <Routes>
           <Route path="/" element={<GatewayManager />} />
           <Route path="/chat" element={<ChatInterface />} />

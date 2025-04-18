@@ -222,7 +222,7 @@ export function ChatInterface() {
           <CardBody className="p-0 h-full flex flex-col">
             <div
               ref={messagesContainerRef}
-              className="flex-1 overflow-auto p-4"
+              className="flex-1 overflow-auto p-4 scrollbar-hide"
             >
               {loading && page > 1 && (
                 <div className="text-center text-default-500 py-2">
