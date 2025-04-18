@@ -31,6 +31,7 @@ export function ChatInterface() {
   const [hasMore, setHasMore] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
   const [lastScrollTop, setLastScrollTop] = React.useState(0);
+  const loadedSessionRef = React.useRef<string | null>(null);
 
   const availableServices = [
     { id: "user-svc", name: "User Service" },
@@ -93,68 +94,74 @@ export function ChatInterface() {
       return
     }
 
-      // Clear old messages first
-      setMessages([]);
-      setPage(1);
-      setHasMore(true);
-      setSelectedChat(sessionId);
+    // Skip if we've already loaded messages for this session
+    if (loadedSessionRef.current === sessionId) {
+      return;
+    }
 
-      // Set up message handler for regular messages
-      const unsubscribe = wsService.onMessage((message: WebSocketMessage) => {
-        // Skip streaming messages as they are handled by stream handler
-        if (message.type === 'stream') return;
+    // Clear old messages first
+    setMessages([]);
+    setPage(1);
+    setHasMore(true);
+    setSelectedChat(sessionId);
+    loadedSessionRef.current = sessionId;
 
-        setMessages(prev => {
-          // Check if message already exists to prevent duplicates
-          if (prev.some(m => m.id === message.id)) {
-            return prev;
-          }
-          const newMessage: Message = {
-            id: message.id,
-            content: message.content,
-            sender: message.sender,
-            timestamp: new Date(message.timestamp),
-          };
-          return [...prev, newMessage];
-        });
+    // Set up message handler for regular messages
+    const unsubscribe = wsService.onMessage((message: WebSocketMessage) => {
+      // Skip streaming messages as they are handled by stream handler
+      if (message.type === 'stream') return;
+
+      setMessages(prev => {
+        // Check if message already exists to prevent duplicates
+        if (prev.some(m => m.id === message.id)) {
+          return prev;
+        }
+        const newMessage: Message = {
+          id: message.id,
+          content: message.content,
+          sender: message.sender,
+          timestamp: new Date(message.timestamp),
+        };
+        return [...prev, newMessage];
       });
+    });
 
-      // Set up stream handler
-      const unsubscribeStream = wsService.onStream((chunk: string) => {
-        setMessages(prev => {
-          const lastMessage = prev[prev.length - 1];
-          // If the last message is from bot and is streaming, append to it
-          if (lastMessage && lastMessage.sender === 'bot' && lastMessage.isStreaming) {
-            const updatedMessages = [...prev];
-            updatedMessages[prev.length - 1] = {
-              ...lastMessage,
-              content: lastMessage.content + chunk,
-              isStreaming: true
-            };
-            return updatedMessages;
-          }
-          // If no bot message exists or last message is from user, create new one
-          return [...prev, {
-            id: uuidv4(),
-            content: chunk,
-            sender: 'bot',
-            timestamp: new Date(),
+    // Set up stream handler
+    const unsubscribeStream = wsService.onStream((chunk: string) => {
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        // If the last message is from bot and is streaming, append to it
+        if (lastMessage && lastMessage.sender === 'bot' && lastMessage.isStreaming) {
+          const updatedMessages = [...prev];
+          updatedMessages[prev.length - 1] = {
+            ...lastMessage,
+            content: lastMessage.content + chunk,
             isStreaming: true
-          }];
-        });
+          };
+          return updatedMessages;
+        }
+        // If no bot message exists or last message is from user, create new one
+        return [...prev, {
+          id: uuidv4(),
+          content: chunk,
+          sender: 'bot',
+          timestamp: new Date(),
+          isStreaming: true
+        }];
       });
+    });
 
-      // Switch to new session and load history
-      wsService.switchChat(sessionId).then(async () => {
-        // Load chat history
-        await loadMessages(sessionId);
-      });
+    // Switch to new session and load history
+    wsService.switchChat(sessionId).then(async () => {
+      // Load chat history
+      await loadMessages(sessionId);
+    });
 
-      // Cleanup on unmount or session change
-      return () => {
-        unsubscribe();
-        unsubscribeStream();
-      };
+    // Cleanup on unmount or session change
+    return () => {
+      unsubscribe();
+      unsubscribeStream();
+    };
   }, [sessionId, navigate]);
 
   // Add scroll position check and load more messages when scrolling up

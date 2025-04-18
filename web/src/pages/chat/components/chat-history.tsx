@@ -26,9 +26,16 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const loadedRef = React.useRef(false);
 
   useEffect(() => {
+    // Skip if we've already loaded sessions
+    if (loadedRef.current) {
+      return;
+    }
+
     fetchSessions();
+    loadedRef.current = true;
   }, []);
 
   const fetchSessions = async () => {
