@@ -1,8 +1,39 @@
 {
   "name": "mcp-admin-dashboard",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
+  "description": "MCP Gateway Admin Dashboard - A modern web interface for managing MCP Gateway services",
+  "keywords": [
+    "mcp",
+    "gateway",
+    "admin",
+    "dashboard",
+    "react",
+    "typescript"
+  ],
+  "homepage": "https://github.com/mcp-ecosystem/mcp-gateway#readme",
+  "bugs": {
+    "url": "https://github.com/mcp-ecosystem/mcp-gateway/issues"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "author": {
+    "name": "Leo",
+    "url": "https://github.com/ifuryst"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mcp-ecosystem/mcp-gateway.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
