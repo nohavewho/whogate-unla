@@ -73,9 +73,10 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
 
 		group := router.Group(prefix)
 
-		// Add SSE and message endpoints for MCP server
+		// Add both old SSE endpoints and new MCP endpoint
 		group.GET("/sse", s.handleSSE)
 		group.POST("/message", s.handleMessage)
+		group.Any("/mcp", s.handleMCP)
 	}
 
 	return nil
