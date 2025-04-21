@@ -28,6 +28,26 @@ export const getMCPServers = async () => {
   }
 };
 
+export const getMCPServer = async (name: string) => {
+  try {
+    const response = await api.get(`/mcp-servers/${name}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      toast.error(error.response.data.error, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } else {
+      toast.error('获取 MCP 服务器失败', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    }
+    throw error;
+  }
+};
+
 export const createMCPServer = async (config: string) => {
   try {
     const response = await api.post('/mcp-servers', config, {

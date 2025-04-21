@@ -1,12 +1,15 @@
 import { Card, CardBody, Button, Input, Select, SelectItem, Divider } from '@heroui/react';
-import type { Selection } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'react-hot-toast';
+import yaml from 'js-yaml';
 
-import { getChatMessages } from '../../services/api';
+import { getChatMessages, getMCPServers } from '../../services/api';
 import { wsService, WebSocketMessage } from '../../services/websocket';
+import { mcpService } from '../../services/mcp';
+import { Tool } from '../../types/mcp';
 
 import { ChatHistory } from './components/chat-history';
 import { ChatMessage } from './components/chat-message';
@@ -26,6 +29,28 @@ interface BackendMessage {
   timestamp: string;
 }
 
+interface Gateway {
+  name: string;
+  config: string;
+  parsedConfig?: {
+    routers: Array<{
+      server: string;
+      prefix: string;
+    }>;
+    servers: Array<{
+      name: string;
+      namespace: string;
+      description: string;
+      allowedTools: string[];
+    }>;
+    tools: Array<{
+      name: string;
+      description: string;
+      method: string;
+    }>;
+  };
+}
+
 export function ChatInterface() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
@@ -35,6 +60,8 @@ export function ChatInterface() {
   const [input, setInput] = React.useState('');
   const [selectedChat, setSelectedChat] = React.useState<string | null>(null);
   const [activeServices, setActiveServices] = React.useState<string[]>([]);
+  const [mcpServers, setMcpServers] = React.useState<Gateway[]>([]);
+  const [tools, setTools] = React.useState<Record<string, Tool[]>>({});
   const [isNearBottom, setIsNearBottom] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [hasMore, setHasMore] = React.useState(true);
@@ -42,11 +69,83 @@ export function ChatInterface() {
   const [lastScrollTop, setLastScrollTop] = React.useState(0);
   const loadedSessionRef = React.useRef<string | null>(null);
 
-  const availableServices = [
-    { id: "user-svc", name: "User Service" },
-    { id: "auth-svc", name: "Auth Service" },
-    { id: "payment-svc", name: "Payment Service" },
-  ];
+  // 解析配置
+  const parseConfig = (config: string) => {
+    try {
+      return yaml.load(config) as Gateway['parsedConfig'];
+    } catch (error) {
+      console.error('Failed to parse config:', error);
+      return undefined;
+    }
+  };
+
+  // 获取 MCP servers 列表并解析配置
+  React.useEffect(() => {
+    const fetchMCPServers = async () => {
+      try {
+        const servers = await getMCPServers();
+        const parsedServers = servers.map(server => ({
+          ...server,
+          parsedConfig: parseConfig(server.config)
+        }));
+        setMcpServers(parsedServers);
+      } catch {
+        toast.error('获取 MCP 服务器列表失败', {
+          duration: 3000,
+          position: 'bottom-right',
+        });
+      }
+    };
+
+    void fetchMCPServers();
+  }, []);
+
+  // 当选中服务器变化时，重新加载工具列表
+  React.useEffect(() => {
+    const loadToolsForActiveServers = async () => {
+      for (const serverName of activeServices) {
+        const server = mcpServers.find((s: Gateway) => s.name === serverName);
+        if (!server?.parsedConfig) continue;
+
+        for (const router of server.parsedConfig.routers) {
+          try {
+            // 先建立连接
+            await mcpService.connect({
+              name: serverName,
+              prefix: router.prefix,
+              onError: (error) => {
+                console.error(`MCP client error for ${serverName}:`, error);
+                toast.error(`MCP 服务器 ${serverName} 发生错误: ${error.message}`, {
+                  duration: 3000,
+                  position: 'bottom-right',
+                });
+              },
+              onNotification: (notification) => {
+                console.log(`Notification from ${serverName}:`, notification);
+              }
+            });
+
+            // 然后获取工具列表
+            const toolsList = await mcpService.getTools(serverName);
+            setTools(prev => ({
+              ...prev,
+              [serverName]: toolsList
+            }));
+          } catch (error) {
+            console.error(`Failed to get tools for ${serverName}:`, error);
+            toast.error(`获取工具列表失败: ${serverName}`, {
+              duration: 3000,
+              position: 'bottom-right',
+            });
+          }
+        }
+      }
+    };
+
+    if (activeServices.length > 0) {
+      void loadToolsForActiveServers();
+    }
+  }, [activeServices, mcpServers]);
 
   const loadMessages = React.useCallback(async (sessionId: string, pageNum: number = 1) => {
     if (loading || !hasMore) return;
@@ -246,21 +345,39 @@ export function ChatInterface() {
             <Divider />
             <div className="p-4 flex flex-col gap-4">
               <Select
-                label="Active Services"
+                label="MCP Servers"
                 selectionMode="multiple"
-                placeholder="Select active services"
                 selectedKeys={activeServices}
-                onSelectionChange={(keys: Selection) => {
-                  setActiveServices(Array.from(keys) as string[]);
-                }}
-                className="max-w-xs"
+                onSelectionChange={(keys) => setActiveServices(Array.from(keys) as string[])}
               >
-                {availableServices.map((service) => (
-                  <SelectItem key={service.id}>
-                    {service.name}
+                {mcpServers.map((server) => (
+                  <SelectItem key={server.name}>
+                    {server.name}
                   </SelectItem>
                 ))}
               </Select>
+
+              {activeServices.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-lg font-semibold">Available Tools</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {activeServices.map(serverName => {
+                      const serverTools = tools[serverName] || [];
+                      return (
+                        <div key={serverName} className="flex flex-col gap-2">
+                          <h4 className="text-md font-medium">{serverName}</h4>
+                          {serverTools.map(tool => (
+                            <div key={tool.name} className="p-2 border rounded">
+                              <div className="font-medium">{tool.name}</div>
+                              <div className="text-sm text-default-500">{tool.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <Input
                 value={input}
