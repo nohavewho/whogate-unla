@@ -1,0 +1,16 @@
+services:
+  mcp-gateway:
+    image: ${REGISTRY:-docker.io}/${PROJECT_NAME:-mcp-gateway}/allinone:${VERSION:-latest}
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      - ENV=production
+    volumes:
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    restart: unless-stopped
+    command: /sbin/init 
