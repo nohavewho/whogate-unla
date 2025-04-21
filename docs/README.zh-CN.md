@@ -27,7 +27,7 @@ https://github.com/user-attachments/assets/2a812a14-85cf-45d6-9f37-cc08d8579b33
 - [x] 请求/响应体转换
 - [x] 管理界面
 - [ ] 会话持久化
-- [ ] Streamable HTTP
+- [x] Streamable HTTP
 - [ ] 可迁移可恢复会话
 - [ ] 前置认证
 - [ ] 配置版本控制

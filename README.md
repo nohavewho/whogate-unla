@@ -27,7 +27,7 @@ https://github.com/user-attachments/assets/2a812a14-85cf-45d6-9f37-cc08d8579b33
 - [x] Request/Response body transformation
 - [x] Management interface
 - [ ] Session persistence
-- [ ] Streamable HTTP support
+- [x] Streamable HTTP support
 - [ ] Migratable and restorable sessions
 - [ ] Pre-request authentication
 - [ ] Configuration versioning
