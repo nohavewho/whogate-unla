@@ -1,14 +1,14 @@
 import { Card, CardBody, Button, Input, Select, SelectItem, Divider } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import yaml from 'js-yaml';
 import React from 'react';
+import { toast } from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { toast } from 'react-hot-toast';
-import yaml from 'js-yaml';
 
 import { getChatMessages, getMCPServers } from '../../services/api';
-import { wsService, WebSocketMessage } from '../../services/websocket';
 import { mcpService } from '../../services/mcp';
+import { wsService, WebSocketMessage } from '../../services/websocket';
 import { Tool } from '../../types/mcp';
 
 import { ChatHistory } from './components/chat-history';
@@ -84,7 +84,7 @@ export function ChatInterface() {
     const fetchMCPServers = async () => {
       try {
         const servers = await getMCPServers();
-        const parsedServers = servers.map(server => ({
+        const parsedServers = servers.map((server: { config: string; }) => ({
           ...server,
           parsedConfig: parseConfig(server.config)
         }));

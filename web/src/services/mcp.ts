@@ -1,13 +1,16 @@
+import { URL } from 'url';
+
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { Tool } from '../types/mcp';
-import toast from 'react-hot-toast';
 import {
   LoggingMessageNotificationSchema,
   type LoggingMessageNotification,
   type CallToolRequest,
   CallToolResultSchema
 } from '@modelcontextprotocol/sdk/types.js';
+import toast from 'react-hot-toast';
+
+import { Tool } from '../types/mcp';
 
 // Declare global constant injected by Vite
 declare const __APP_VERSION__: string;
@@ -150,14 +153,11 @@ class MCPService {
       const result = await client.request(
         request,
         CallToolResultSchema,
-        // TODO: Fix type issue when SDK types are updated
-        this.lastEventIds.get(serverName) ? {
-          params: {
-            _meta: {
-              resumptionToken: this.lastEventIds.get(serverName)
-            }
+        this.lastEventIds.get(serverName)
+          ? {
+            resumptionToken: this.lastEventIds.get(serverName),
           }
-        } as any : undefined
+          : undefined
       ) as CallToolResult;
 
       // Update last event ID if callback provided
