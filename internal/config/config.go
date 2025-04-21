@@ -30,18 +30,17 @@ type GlobalConfig struct {
 
 // RouterConfig represents the router configuration
 type RouterConfig struct {
-	Server string `yaml:"server"`
-	Prefix string `yaml:"prefix"`
+	Server string      `yaml:"server"`
+	Prefix string      `yaml:"prefix"`
+	CORS   *CORSConfig `yaml:"cors,omitempty"`
 }
 
 // ServerConfig represents the server configuration
 type ServerConfig struct {
-	Name           string     `yaml:"name"`
-	Namespace      string     `yaml:"namespace"`
-	Description    string     `yaml:"description"`
-	Auth           AuthConfig `yaml:"auth"`
-	AllowedTools   []string   `yaml:"allowedTools"`
-	AllowedOrigins []string   `yaml:"allowedOrigins"`
+	Name         string   `yaml:"name"`
+	Namespace    string   `yaml:"namespace"`
+	Description  string   `yaml:"description"`
+	AllowedTools []string `yaml:"allowedTools"`
 }
 
 // AuthConfig represents the authentication configuration
@@ -51,7 +50,7 @@ type AuthConfig struct {
 	ArgKey string `yaml:"argKey"` // parameter key for auth
 }
 
-// ToolConfig represents a tool configuration
+// ToolConfig represents the tool configuration
 type ToolConfig struct {
 	Name         string            `yaml:"name"`
 	Description  string            `yaml:"description,omitempty"`
@@ -72,6 +71,15 @@ type ArgConfig struct {
 	Type        string `yaml:"type"`
 	Description string `yaml:"description"`
 	Default     string `yaml:"default"`
+}
+
+// CORSConfig represents CORS configuration
+type CORSConfig struct {
+	AllowOrigins     []string `yaml:"allowOrigins"`
+	AllowMethods     []string `yaml:"allowMethods"`
+	AllowHeaders     []string `yaml:"allowHeaders"`
+	ExposeHeaders    []string `yaml:"exposeHeaders"`
+	AllowCredentials bool     `yaml:"allowCredentials"`
 }
 
 // ToToolSchema converts a ToolConfig to a ToolSchema

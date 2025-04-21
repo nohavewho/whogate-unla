@@ -1,6 +1,20 @@
 routers:
   - server: "mock-user-svc"
     prefix: "/api/v1/user"
+    cors:
+      allowOrigins:
+        - "*"
+      allowMethods:
+        - "GET"
+        - "POST"
+        - "OPTIONS"
+      allowHeaders:
+        - "Content-Type"
+        - "Authorization"
+        - "Mcp-Session-Id"
+      exposeHeaders:
+        - "Mcp-Session-Id"
+      allowCredentials: true
 
 servers:
   - name: "mock-user-svc"

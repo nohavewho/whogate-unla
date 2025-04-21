@@ -2,13 +2,15 @@ package server
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/auth"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"go.uber.org/zap"
 )
 
-// loggerMiddleware creates a logging middleware
+// loggerMiddleware logs incoming requests and outgoing responses
 func (s *Server) loggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		s.logger.Info("incoming request",
@@ -26,7 +28,7 @@ func (s *Server) loggerMiddleware() gin.HandlerFunc {
 	}
 }
 
-// recoveryMiddleware creates a recovery middleware
+// recoveryMiddleware recovers from panics and returns 500 error
 func (s *Server) recoveryMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -44,7 +46,7 @@ func (s *Server) recoveryMiddleware() gin.HandlerFunc {
 	}
 }
 
-// authMiddleware creates an authentication middleware
+// authMiddleware authenticates incoming requests
 func (s *Server) authMiddleware(authenticator auth.Authenticator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := authenticator.Authenticate(c.Request.Context(), c.Request); err != nil {
@@ -58,8 +60,8 @@ func (s *Server) authMiddleware(authenticator auth.Authenticator) gin.HandlerFun
 	}
 }
 
-// corsMiddleware creates a CORS middleware
-func (s *Server) corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
+// corsMiddleware handles CORS configuration
+func (s *Server) corsMiddleware(cors *config.CORSConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 		if origin == "" {
@@ -67,14 +69,34 @@ func (s *Server) corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 			return
 		}
 
-		for _, allowed := range allowedOrigins {
-			if origin == allowed {
-				c.Header("Access-Control-Allow-Origin", origin)
-				c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-				c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-				c.Header("Access-Control-Allow-Credentials", "true")
+		allowed := false
+		for _, allowedOrigin := range cors.AllowOrigins {
+			if allowedOrigin == "*" || origin == allowedOrigin {
+				allowed = true
+				c.Header("Access-Control-Allow-Origin", allowedOrigin)
 				break
 			}
+		}
+
+		if !allowed {
+			c.Next()
+			return
+		}
+
+		if len(cors.AllowMethods) > 0 {
+			c.Header("Access-Control-Allow-Methods", strings.Join(cors.AllowMethods, ", "))
+		}
+
+		if len(cors.AllowHeaders) > 0 {
+			c.Header("Access-Control-Allow-Headers", strings.Join(cors.AllowHeaders, ", "))
+		}
+
+		if len(cors.ExposeHeaders) > 0 {
+			c.Header("Access-Control-Expose-Headers", strings.Join(cors.ExposeHeaders, ", "))
+		}
+
+		if cors.AllowCredentials {
+			c.Header("Access-Control-Allow-Credentials", "true")
 		}
 
 		if c.Request.Method == "OPTIONS" {

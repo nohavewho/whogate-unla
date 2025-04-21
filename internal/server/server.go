@@ -52,8 +52,10 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
 
 	// Build prefix to tools mapping for MCP servers
 	prefixMap := make(map[string]string)
+	routerConfigs := make(map[string]*config.RouterConfig)
 	for _, routerCfg := range cfg.Routers {
 		prefixMap[routerCfg.Server] = routerCfg.Prefix
+		routerConfigs[routerCfg.Prefix] = &routerCfg
 	}
 
 	for _, serverCfg := range cfg.Servers {
@@ -72,6 +74,11 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
 		s.prefixToTools[prefix] = allowedTools
 
 		group := router.Group(prefix)
+
+		// Add CORS middleware if configured in router
+		if routerCfg, ok := routerConfigs[prefix]; ok && routerCfg.CORS != nil {
+			group.Use(s.corsMiddleware(routerCfg.CORS))
+		}
 
 		// Add both old SSE endpoints and new MCP endpoint
 		group.GET("/sse", s.handleSSE)
