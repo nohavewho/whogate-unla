@@ -39,7 +39,8 @@ export default [
         HTMLDivElement: 'readonly',
         MouseEvent: 'readonly',
         navigator: 'readonly',
-        __dirname: 'readonly'
+        __dirname: 'readonly',
+        URL: 'readonly'
       }
     },
     plugins: {
