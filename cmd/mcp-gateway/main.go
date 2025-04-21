@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -12,18 +12,43 @@ import (
 	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/server"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/server/storage"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
+	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
 var (
-	configPath = flag.String("conf", "", "path to configuration file or directory")
-	dataDir    = flag.String("data-dir", "data", "path to data directory")
+	configPath string
+	dataDir    string
 )
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number of mcp-gateway",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("mcp-gateway version %s\n", version.Get())
+	},
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "mcp-gateway",
+	Short: "MCP Gateway service",
+	Long:  `MCP Gateway is a service that provides API gateway functionality for MCP ecosystem`,
+	Run: func(cmd *cobra.Command, args []string) {
+		run()
+	},
+}
+
+func init() {
+	rootCmd.PersistentFlags().StringVar(&configPath, "conf", "", "path to configuration file or directory")
+	rootCmd.PersistentFlags().StringVar(&dataDir, "data-dir", "data", "path to data directory")
+	rootCmd.AddCommand(versionCmd)
+}
 
 func getConfigPath() string {
 	// 1. Check command line flag
-	if *configPath != "" {
-		return *configPath
+	if configPath != "" {
+		return configPath
 	}
 
 	// 2. Check environment variable
@@ -43,15 +68,15 @@ func getConfigPath() string {
 	return filepath.Join(appData, ".mcp", "gateway")
 }
 
-func main() {
-	flag.Parse()
-
+func run() {
 	// Initialize logger
 	logger, err := zap.NewProduction()
 	if err != nil {
 		panic(err)
 	}
 	defer logger.Sync()
+
+	logger.Info("Starting mcp-gateway", zap.String("version", version.Get()))
 
 	// Get configuration path
 	configDir := getConfigPath()
@@ -89,10 +114,10 @@ func main() {
 	}
 
 	// Initialize storage
-	store, err := storage.NewDiskStorage(logger, *dataDir)
+	store, err := storage.NewDiskStorage(logger, dataDir)
 	if err != nil {
 		logger.Fatal("failed to initialize storage",
-			zap.String("path", *dataDir),
+			zap.String("path", dataDir),
 			zap.Error(err))
 	}
 
@@ -128,5 +153,11 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("failed to shutdown server",
 			zap.Error(err))
+	}
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
 	}
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,23 +11,46 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/mcp-ecosystem/mcp-gateway/cmd/apiserver/internal/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/openai"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 	openaiGo "github.com/openai/openai-go"
+	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
 var (
-	configPath   = flag.String("conf", "", "path to configuration file or directory")
+	configPath   string
 	db           database.Database
 	openaiClient *openai.Client
 )
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number of apiserver",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("apiserver version %s\n", version.Get())
+	},
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "apiserver",
+	Short: "MCP API Server",
+	Long:  `MCP API Server provides API endpoints for MCP ecosystem`,
+	Run: func(cmd *cobra.Command, args []string) {
+		run()
+	},
+}
+
+func init() {
+	rootCmd.PersistentFlags().StringVar(&configPath, "conf", "", "path to configuration file or directory")
+	rootCmd.AddCommand(versionCmd)
+}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -44,8 +67,8 @@ type WebSocketMessage struct {
 
 func getConfigPath() string {
 	// 1. Check command line flag
-	if *configPath != "" {
-		return *configPath
+	if configPath != "" {
+		return configPath
 	}
 
 	// 2. Check environment variable
@@ -65,9 +88,7 @@ func getConfigPath() string {
 	return filepath.Join(appData, ".mcp", "gateway")
 }
 
-func main() {
-	flag.Parse()
-
+func run() {
 	// Initialize logger
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -108,6 +129,8 @@ func main() {
 			zap.Error(err))
 	}
 
+	logger.Info("Starting apiserver", zap.String("version", version.Get()))
+
 	r := gin.Default()
 
 	// Configure routes
@@ -131,6 +154,12 @@ func main() {
 	log.Printf("Server starting on port %s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
 	}
 }
 

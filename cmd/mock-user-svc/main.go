@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
+	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +25,28 @@ type User struct {
 
 var users = make(map[string]*User)
 
-func main() {
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number of mock-user-svc",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("mock-user-svc version %s\n", version.Get())
+	},
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "mock-user-svc",
+	Short: "Mock User Service",
+	Long:  `Mock User Service provides mock user management functionality`,
+	Run: func(cmd *cobra.Command, args []string) {
+		run()
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
+}
+
+func run() {
 	// Initialize logger
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -30,7 +54,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("Starting mock user service...")
+	logger.Info("Starting mock-user-svc", zap.String("version", version.Get()))
 
 	// Initialize router
 	router := gin.Default()
@@ -89,5 +113,11 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("failed to shutdown server", zap.Error(err))
+	}
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
 	}
 }
