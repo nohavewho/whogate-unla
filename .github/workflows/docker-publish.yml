@@ -1,0 +1,113 @@
+name: Docker Build and Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'deploy/docker/**'
+      - 'go.mod'
+      - 'go.sum'
+  workflow_dispatch:
+
+env:
+  DOCKER_HUB_USERNAME: ifuryst
+  ALIYUN_REGISTRY: registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Aliyun Container Registry
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ALIYUN_REGISTRY }}
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+
+      - name: Build and push allinone image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/docker/allinone/Dockerfile
+          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: |
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-allinone:latest
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-allinone:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/allinone:latest
+            ghcr.io/${{ github.repository }}/allinone:${{ github.sha }}
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-allinone:latest
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-allinone:${{ github.sha }}
+
+      - name: Build and push apiserver image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/docker/multi/apiserver/Dockerfile
+          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: |
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-apiserver:latest
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-apiserver:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/apiserver:latest
+            ghcr.io/${{ github.repository }}/apiserver:${{ github.sha }}
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-apiserver:latest
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-apiserver:${{ github.sha }}
+
+      - name: Build and push mcp-gateway image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/docker/multi/mcp-gateway/Dockerfile
+          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: |
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mcp-gateway:latest
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mcp-gateway:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/mcp-gateway:latest
+            ghcr.io/${{ github.repository }}/mcp-gateway:${{ github.sha }}
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mcp-gateway:latest
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mcp-gateway:${{ github.sha }}
+
+      - name: Build and push mock-user-svc image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/docker/multi/mock-user-svc/Dockerfile
+          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: |
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mock-user-svc:latest
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mock-user-svc:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/mock-user-svc:latest
+            ghcr.io/${{ github.repository }}/mock-user-svc:${{ github.sha }}
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mock-user-svc:latest
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mock-user-svc:${{ github.sha }} 
