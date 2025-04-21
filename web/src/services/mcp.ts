@@ -9,6 +9,9 @@ import {
   CallToolResultSchema
 } from '@modelcontextprotocol/sdk/types.js';
 
+// Declare global constant injected by Vite
+declare const __APP_VERSION__: string;
+
 interface CallToolResult {
   content: Array<{
     type: string;
@@ -56,7 +59,7 @@ class MCPService {
 
       const client = new Client({
         name: 'mcp-gateway-web',
-        version: '1.0.0'
+        version: __APP_VERSION__
       });
 
       // Set up error handler
