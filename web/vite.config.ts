@@ -1,28 +1,34 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import pkg from './package.json';
 
-export default defineConfig({
-  plugins: [react()],
-  define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
-  },
-  resolve: {
-    alias: {
-      '@': '/src',
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
+    plugins: [react()],
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
     },
-  },
-  server: {
-    allowedHosts: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5234',
-        changeOrigin: true,
-      },
-      '/ws': {
-        target: 'ws://localhost:5234',
-        ws: true,
+    resolve: {
+      alias: {
+        '@': '/src',
       },
     },
-  },
+    server: {
+      allowedHosts: true,
+      proxy: {
+        '/api': {
+          target: env.VITE_API_URL || '/api',
+          changeOrigin: true,
+        },
+        '/ws': {
+          target: env.VITE_WS_URL || '/ws',
+          ws: true,
+        },
+      },
+    },
+  };
 });

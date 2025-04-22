@@ -90,12 +90,12 @@ func run() {
 
 	// Start server
 	srv := &http.Server{
-		Addr:    ":8081",
+		Addr:    ":5236",
 		Handler: router,
 	}
 
 	go func() {
-		logger.Info("Server is running on :8081")
+		logger.Info("Server is running on :5236")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("failed to start server", zap.Error(err))
 		}

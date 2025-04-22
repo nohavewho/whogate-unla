@@ -25,6 +25,7 @@ go.work.sum
 .env
 .env.allinone
 .env.multi
+.env.development
 temp
 
 .DS_STORE

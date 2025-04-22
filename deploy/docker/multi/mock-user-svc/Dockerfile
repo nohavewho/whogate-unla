@@ -7,5 +7,6 @@ FROM ubuntu:22.04
 WORKDIR /app
 COPY --from=builder /app/mock-user-svc .
 
-EXPOSE 8082
+EXPOSE 5236
+
 CMD ["./mock-user-svc"]

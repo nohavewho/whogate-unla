@@ -28,7 +28,7 @@ COPY --from=builder /app/configs /app/configs
 RUN mkdir -p /app/data
 
 # Expose port
-EXPOSE 8081
+EXPOSE 5234
 
 # Run the service
 CMD ["./apiserver"]

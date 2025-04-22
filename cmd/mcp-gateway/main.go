@@ -135,7 +135,7 @@ func run() {
 
 	// Start server
 	go func() {
-		if err := router.Run(":8080"); err != nil {
+		if err := router.Run(":5235"); err != nil {
 			logger.Fatal("failed to start server",
 				zap.Error(err))
 		}

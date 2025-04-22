@@ -11,6 +11,8 @@ services:
 
   web:
     image: ${WEB_IMAGE:-ghcr.io/mcp-ecosystem/mcp-gateway/web:latest}
+    environment:
+      - VITE_MCP_SERVER_URL=${VITE_MCP_SERVER_URL}
     ports:
       - "80:80"
     depends_on:
@@ -22,7 +24,7 @@ services:
   apiserver:
     image: ${APISERVER_IMAGE:-ghcr.io/mcp-ecosystem/mcp-gateway/apiserver:latest}
     ports:
-      - "8080:8080"
+      - "5234:5234"
     environment:
       - ENV=production
     volumes:
@@ -36,7 +38,7 @@ services:
   mcp-gateway:
     image: ${MCP_GATEWAY_IMAGE:-ghcr.io/mcp-ecosystem/mcp-gateway/mcp-gateway:latest}
     ports:
-      - "8081:8081"
+      - "5235:5235"
     environment:
       - ENV=production
     volumes:
@@ -50,7 +52,7 @@ services:
   mock-user-svc:
     image: ${MOCK_USER_SVC_IMAGE:-ghcr.io/mcp-ecosystem/mcp-gateway/mock-user-svc:latest}
     ports:
-      - "8082:8082"
+      - "5236:5236"
     environment:
       - ENV=production
     volumes:

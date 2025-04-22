@@ -13,5 +13,5 @@ COPY --from=builder /app/mcp-gateway .
 COPY --from=builder /app/configs /app/configs
 RUN mkdir -p /app/data
 
-EXPOSE 8080
+EXPOSE 5235
 CMD ["./mcp-gateway"]
