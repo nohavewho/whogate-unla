@@ -18,6 +18,7 @@ on:
 env:
   DOCKER_HUB_USERNAME: ifuryst
   ALIYUN_REGISTRY: registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
 
 jobs:
   build-and-push:
