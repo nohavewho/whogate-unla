@@ -2,15 +2,21 @@ FROM golang:1.24.1 AS builder
 
 WORKDIR /app
 
+# Install SQLite dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY go.mod go.sum ./
 
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/apiserver ./cmd/apiserver
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/mcp-gateway ./cmd/mcp-gateway
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/mock-user-svc ./cmd/mock-user-svc
+RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/apiserver ./cmd/apiserver
+RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/mcp-gateway ./cmd/mcp-gateway
+RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/mock-user-svc ./cmd/mock-user-svc
 
 FROM node:20.18.0 AS web-builder
 
