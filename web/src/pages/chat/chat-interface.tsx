@@ -67,14 +67,13 @@ export function ChatInterface() {
   const [hasMore, setHasMore] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
   const [lastScrollTop, setLastScrollTop] = React.useState(0);
-  const loadedSessionRef = React.useRef<string | null>(null);
 
   // 解析配置
   const parseConfig = (config: string) => {
     try {
       return yaml.load(config) as Gateway['parsedConfig'];
     } catch (error) {
-      console.error('Failed to parse config:', error);
+      toast.error(`Failed to parse config: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return undefined;
     }
   };
@@ -114,14 +113,16 @@ export function ChatInterface() {
               name: serverName,
               prefix: router.prefix,
               onError: (error) => {
-                console.error(`MCP client error for ${serverName}:`, error);
                 toast.error(`MCP 服务器 ${serverName} 发生错误: ${error.message}`, {
                   duration: 3000,
                   position: 'bottom-right',
                 });
               },
               onNotification: (notification) => {
-                console.log(`Notification from ${serverName}:`, notification);
+                toast.success(`收到来自 ${serverName} 的通知: ${notification}`, {
+                  duration: 3000,
+                  position: 'bottom-right',
+                });
               }
             });
 
@@ -132,8 +133,7 @@ export function ChatInterface() {
               [serverName]: toolsList
             }));
           } catch (error) {
-            console.error(`Failed to get tools for ${serverName}:`, error);
-            toast.error(`获取工具列表失败: ${serverName}`, {
+            toast.error(`获取工具列表失败: ${error}`, {
               duration: 3000,
               position: 'bottom-right',
             });
@@ -148,8 +148,6 @@ export function ChatInterface() {
   }, [activeServices, mcpServers]);
 
   const loadMessages = React.useCallback(async (sessionId: string, pageNum: number = 1) => {
-    if (loading || !hasMore) return;
-
     setLoading(true);
     try {
       const data = await getChatMessages(sessionId, pageNum);
@@ -185,13 +183,16 @@ export function ChatInterface() {
       setHasMore(newMessages.length === 20);
       setPage(pageNum);
     } catch (error) {
-      console.error('Error loading messages:', error);
+      toast.error(`加载消息失败: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
       setMessages([]);
       setHasMore(false);
     } finally {
       setLoading(false);
     }
-  }, [loading, hasMore]);
+  }, []);
 
   React.useEffect(() => {
     if (!sessionId) {
@@ -202,17 +203,11 @@ export function ChatInterface() {
       return
     }
 
-    // Skip if we've already loaded messages for this session
-    if (loadedSessionRef.current === sessionId) {
-      return;
-    }
-
     // Clear old messages first
     setMessages([]);
     setPage(1);
     setHasMore(true);
     setSelectedChat(sessionId);
-    loadedSessionRef.current = sessionId;
 
     // Set up message handler for regular messages
     const unsubscribe = wsService.onMessage((message: WebSocketMessage) => {
@@ -282,7 +277,7 @@ export function ChatInterface() {
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setIsNearBottom(isNearBottom);
 
-      // Only load more messages when user actively scrolls up
+      // Only load more messages when user actively scrolls up and not loading
       if (scrollTop < lastScrollTop && scrollTop < 100 && hasMore && !loading && sessionId) {
         loadMessages(sessionId, page + 1);
       }

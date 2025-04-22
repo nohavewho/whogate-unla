@@ -1,6 +1,7 @@
 import { Card, CardBody, Button } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import React from 'react';
+import {toast} from "react-hot-toast";
 import { useNavigate } from 'react-router-dom';
 
 import { wsService } from '../../../services/websocket';
@@ -47,17 +48,20 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
       }
       const data = await response.json();
       // Ensure data is an array and each session has required properties
-      const validSessions = Array.isArray(data) 
-        ? data.filter(session => 
-            session && 
-            typeof session.id === 'string' && 
+      const validSessions = Array.isArray(data)
+        ? data.filter(session =>
+            session &&
+            typeof session.id === 'string' &&
             typeof session.createdAt === 'string' &&
             typeof session.title === 'string'
           )
         : [];
       setSessions(validSessions);
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      toast.error(`Failed to fetch chat history: ${error}`, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
       setSessions([]); // Set empty array on error
     } finally {
       setLoading(false);

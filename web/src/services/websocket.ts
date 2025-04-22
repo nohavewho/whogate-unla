@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface WebSocketMessage {
@@ -50,33 +51,34 @@ export class WebSocketService {
     }
 
     return new Promise<void>((resolve) => {
-      console.log('Connecting to WebSocket...');
       this.ws = new WebSocket(`/ws/chat?sessionId=${this.sessionId}`);
 
       this.ws.onopen = () => {
-        console.log('WebSocket connected');
         resolve();
       };
 
       this.ws.onmessage = (event) => {
         const message = JSON.parse(event.data) as WebSocketMessage;
-        console.log('WebSocket message received:', message);
         if (message.type === 'stream') {
-          console.log('Stream chunk received:', message.content);
           this.streamHandlers.forEach(handler => handler(message.content));
         } else {
-          console.log('Regular message received:', message);
           this.messageHandlers.forEach(handler => handler(message));
         }
       };
 
       this.ws.onclose = () => {
-        console.log('WebSocket disconnected');
+        toast.error('WebSocket 连接已断开', {
+          duration: 3000,
+          position: 'bottom-right',
+        });
         this.ws = null;
       };
 
       this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        toast.error('WebSocket 发生错误' + error, {
+          duration: 3000,
+          position: 'bottom-right',
+        });
       };
     });
   }

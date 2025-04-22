@@ -213,8 +213,10 @@ export function GatewayManager() {
         position: 'bottom-right',
       });
     } catch {
-      // Error is already handled by the API service
-      console.error('Failed to create MCP server');
+      toast.error('创建失败', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
     }
   };
 

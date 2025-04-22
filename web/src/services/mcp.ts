@@ -86,7 +86,6 @@ class MCPService {
       this.transports.set(serverName, transport);
       this.sessionIds.set(serverName, transport.sessionId!);
 
-      console.log(`Connected to MCP server ${serverName} with session ID:`, transport.sessionId);
       return client;
     } catch (error) {
       console.error(`Failed to connect to MCP server ${serverName}:`, error);
@@ -184,7 +183,6 @@ class MCPService {
     try {
       if (transport.sessionId) {
         await transport.terminateSession();
-        console.log(`Session terminated for ${serverName}`);
         this.sessionIds.delete(serverName);
         this.lastEventIds.delete(serverName);
       }
