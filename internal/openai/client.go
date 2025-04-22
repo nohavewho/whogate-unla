@@ -15,14 +15,14 @@ type Client struct {
 }
 
 // NewClient creates a new OpenAI client with the given API key
-func NewClient(cfg *config.Config) *Client {
+func NewClient(cfg *config.OpenAIConfig) *Client {
 	client := openai.NewClient(
-		option.WithAPIKey(cfg.OpenAI.APIKey),
+		option.WithAPIKey(cfg.APIKey),
 	)
 
 	return &Client{
 		client: client,
-		model:  cfg.OpenAI.Model,
+		model:  cfg.Model,
 	}
 }
 

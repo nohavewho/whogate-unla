@@ -39,7 +39,7 @@ func NewServer(logger *zap.Logger, store Storage) *Server {
 }
 
 // RegisterRoutes registers routes with the given router for MCP servers
-func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.Config) error {
+func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.MCPConfig) error {
 	router.Use(s.loggerMiddleware())
 	router.Use(s.recoveryMiddleware())
 
@@ -95,12 +95,51 @@ func (s *Server) Shutdown(_ context.Context) error {
 }
 
 // LoadConfig loads the MCP server configuration
-func (s *Server) LoadConfig(cfg *config.Config) error {
+func (s *Server) LoadConfig(cfg *config.MCPConfig) error {
 	// Initialize tool map and list for MCP servers
 	for i := range cfg.Tools {
 		tool := &cfg.Tools[i]
 		s.toolMap[tool.Name] = tool
 		s.tools = append(s.tools, tool.ToToolSchema())
 	}
+	return nil
+}
+
+// UpdateConfig updates the server configuration
+func (s *Server) UpdateConfig(cfg *config.MCPConfig) error {
+	// Clear existing tools
+	s.tools = make([]mcp.ToolSchema, 0)
+	s.toolMap = make(map[string]*config.ToolConfig)
+	s.prefixToTools = make(map[string][]mcp.ToolSchema)
+
+	// Initialize tool map and list for MCP servers
+	for i := range cfg.Tools {
+		tool := &cfg.Tools[i]
+		s.toolMap[tool.Name] = tool
+		s.tools = append(s.tools, tool.ToToolSchema())
+	}
+
+	// Build prefix to tools mapping for MCP servers
+	prefixMap := make(map[string]string)
+	for _, routerCfg := range cfg.Routers {
+		prefixMap[routerCfg.Server] = routerCfg.Prefix
+	}
+
+	for _, serverCfg := range cfg.Servers {
+		prefix, exists := prefixMap[serverCfg.Name]
+		if !exists {
+			return fmt.Errorf("no router prefix found for MCP server: %s", serverCfg.Name)
+		}
+
+		// Filter tools based on MCP server's allowed tools
+		var allowedTools []mcp.ToolSchema
+		for _, toolName := range serverCfg.AllowedTools {
+			if tool, ok := s.toolMap[toolName]; ok {
+				allowedTools = append(allowedTools, tool.ToToolSchema())
+			}
+		}
+		s.prefixToTools[prefix] = allowedTools
+	}
+
 	return nil
 }

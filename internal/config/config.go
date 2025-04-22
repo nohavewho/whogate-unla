@@ -1,12 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"regexp"
 
 	"github.com/joho/godotenv"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,139 +20,19 @@ type Config struct {
 	} `yaml:"openai"`
 }
 
-// GlobalConfig represents the global configuration
-type GlobalConfig struct {
-	Namespace string `yaml:"namespace"`
-	Prefix    string `yaml:"prefix"`
+type MCPGatewayConfig struct {
+	Port       int    `yaml:"port"`
+	InnerPort  int    `yaml:"inner_port"`
+	ReloadPort int    `yaml:"reload_port"`
+	PID        string `yaml:"pid"`
 }
 
-// RouterConfig represents the router configuration
-type RouterConfig struct {
-	Server string      `yaml:"server"`
-	Prefix string      `yaml:"prefix"`
-	CORS   *CORSConfig `yaml:"cors,omitempty"`
-}
-
-// ServerConfig represents the server configuration
-type ServerConfig struct {
-	Name         string   `yaml:"name"`
-	Namespace    string   `yaml:"namespace"`
-	Description  string   `yaml:"description"`
-	AllowedTools []string `yaml:"allowedTools"`
-}
-
-// AuthConfig represents the authentication configuration
-type AuthConfig struct {
-	Mode   string `yaml:"mode"`   // bearer / apikey / none
-	Header string `yaml:"header"` // header name for auth
-	ArgKey string `yaml:"argKey"` // parameter key for auth
-}
-
-// ToolConfig represents the tool configuration
-type ToolConfig struct {
-	Name         string            `yaml:"name"`
-	Description  string            `yaml:"description,omitempty"`
-	Method       string            `yaml:"method"`
-	Endpoint     string            `yaml:"endpoint"`
-	Headers      map[string]string `yaml:"headers"`
-	Args         []ArgConfig       `yaml:"args"`
-	RequestBody  string            `yaml:"requestBody"`
-	ResponseBody string            `yaml:"responseBody"`
-	InputSchema  map[string]any    `yaml:"inputSchema,omitempty"`
-}
-
-// ArgConfig represents the argument configuration
-type ArgConfig struct {
-	Name        string `yaml:"name"`
-	Position    string `yaml:"position"` // header, query, path, body
-	Required    bool   `yaml:"required"`
-	Type        string `yaml:"type"`
-	Description string `yaml:"description"`
-	Default     string `yaml:"default"`
-}
-
-// CORSConfig represents CORS configuration
-type CORSConfig struct {
-	AllowOrigins     []string `yaml:"allowOrigins"`
-	AllowMethods     []string `yaml:"allowMethods"`
-	AllowHeaders     []string `yaml:"allowHeaders"`
-	ExposeHeaders    []string `yaml:"exposeHeaders"`
-	AllowCredentials bool     `yaml:"allowCredentials"`
-}
-
-// ToToolSchema converts a ToolConfig to a ToolSchema
-func (t *ToolConfig) ToToolSchema() mcp.ToolSchema {
-	// Create properties map for input schema
-	properties := make(map[string]any)
-	required := make([]string, 0)
-	for _, arg := range t.Args {
-		property := map[string]any{
-			"type":        arg.Type,
-			"description": arg.Description,
-			"required":    arg.Required,
-		}
-		if arg.Description != "" {
-			property["title"] = arg.Description
-		}
-		properties[arg.Name] = property
-		if arg.Required {
-			required = append(required, arg.Name)
-		}
-	}
-
-	// Merge with existing input schema if any
-	if t.InputSchema != nil {
-		for k, v := range t.InputSchema {
-			properties[k] = v
-		}
-	}
-
-	return mcp.ToolSchema{
-		Name:        t.Name,
-		Description: t.Description,
-		InputSchema: mcp.ToolInputSchema{
-			Type:       "object",
-			Properties: properties,
-			Required:   required,
-		},
-	}
-}
-
-// Server represents a single server configuration
-type Server struct {
-	Name string `yaml:"name"`
-	// Add other server fields as needed
-}
-
-// DatabaseConfig represents database configuration
-type DatabaseConfig struct {
-	Type     string `yaml:"type"`     // postgres, mysql, etc.
-	Host     string `yaml:"host"`     // localhost
-	Port     int    `yaml:"port"`     // 5432
-	User     string `yaml:"user"`     // postgres
-	Password string `yaml:"password"` // postgres
-	DBName   string `yaml:"dbname"`   // mcp_gateway
-	SSLMode  string `yaml:"sslmode"`  // disable
-}
-
-// GetDSN returns the database connection string
-func (c *DatabaseConfig) GetDSN() string {
-	switch c.Type {
-	case "postgres":
-		return c.getPostgresDSN()
-	default:
-		return ""
-	}
-}
-
-// getPostgresDSN returns PostgreSQL connection string
-func (c *DatabaseConfig) getPostgresDSN() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		c.User, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
+type Type interface {
+	MCPGatewayConfig | APIServerConfig
 }
 
 // LoadConfig loads configuration from a YAML file with environment variable support
-func LoadConfig(path string) (*Config, error) {
+func LoadConfig[T Type](path string) (*T, error) {
 	// Load .env file if exists
 	_ = godotenv.Load()
 
@@ -166,7 +44,7 @@ func LoadConfig(path string) (*Config, error) {
 	// Resolve environment variables
 	data = resolveEnv(data)
 
-	var cfg Config
+	var cfg T
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}

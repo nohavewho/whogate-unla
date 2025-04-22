@@ -97,13 +97,13 @@ func run() {
 	defer logger.Sync()
 
 	// Load configuration
-	cfg, err := config.LoadConfig("configs/apiserver.yaml")
+	cfg, err := config.LoadConfig[config.APIServerConfig]("configs/apiserver.yaml")
 	if err != nil {
 		logger.Fatal("Failed to load configuration", zap.Error(err))
 	}
 
 	// Initialize OpenAI client
-	openaiClient = openai.NewClient(cfg)
+	openaiClient = openai.NewClient(&cfg.OpenAI)
 
 	// Initialize database based on configuration
 	switch cfg.Database.Type {
@@ -179,7 +179,7 @@ func handleMCPServerUpdate(c *gin.Context) {
 	}
 
 	// Validate the YAML content
-	var cfg config.Config
+	var cfg config.MCPConfig
 	if err := yaml.Unmarshal(content, &cfg); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid YAML content: " + err.Error()})
 		return
@@ -419,7 +419,7 @@ func handleMCPServerCreate(c *gin.Context) {
 	}
 
 	// Validate the YAML content and get the server name
-	var cfg config.Config
+	var cfg config.MCPConfig
 	if err := yaml.Unmarshal(content, &cfg); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid YAML content: " + err.Error()})
 		return
@@ -525,7 +525,7 @@ func handleMCPServerSync(c *gin.Context) {
 		}
 
 		// Validate the YAML content
-		var cfg config.Config
+		var cfg config.MCPConfig
 		if err := yaml.Unmarshal(content, &cfg); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "invalid YAML content in " + file.Name() + ": " + err.Error(),

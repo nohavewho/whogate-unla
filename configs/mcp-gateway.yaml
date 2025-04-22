@@ -1,0 +1,3 @@
+port: 5236
+inner_port: 5336
+pid: "${MCP_GATEWAY_PID:/var/run/mcp-gateway.pid}"

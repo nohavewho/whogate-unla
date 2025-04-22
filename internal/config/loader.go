@@ -22,13 +22,13 @@ func NewLoader(logger *zap.Logger) *Loader {
 }
 
 // LoadFromFile loads configuration from a YAML file
-func (l *Loader) LoadFromFile(path string) (*Config, error) {
+func (l *Loader) LoadFromFile(path string) (*MCPConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	var cfg Config
+	var cfg MCPConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
@@ -41,9 +41,9 @@ func (l *Loader) LoadFromFile(path string) (*Config, error) {
 }
 
 // LoadFromDir loads MCP server configurations from a directory and merges them
-func (l *Loader) LoadFromDir(dir string) (*Config, error) {
+func (l *Loader) LoadFromDir(dir string) (*MCPConfig, error) {
 	// Create a base config
-	baseCfg := &Config{
+	baseCfg := &MCPConfig{
 		Routers: make([]RouterConfig, 0),
 		Servers: make([]ServerConfig, 0),
 		Tools:   make([]ToolConfig, 0),
@@ -93,7 +93,7 @@ func (l *Loader) LoadFromDir(dir string) (*Config, error) {
 }
 
 // mergeConfig merges two configurations
-func (l *Loader) mergeConfig(base, override *Config) error {
+func (l *Loader) mergeConfig(base, override *MCPConfig) error {
 	// Merge routers
 	routerMap := make(map[string]RouterConfig)
 	for _, router := range base.Routers {
@@ -137,7 +137,7 @@ func (l *Loader) mergeConfig(base, override *Config) error {
 }
 
 // Validate performs configuration validation
-func (l *Loader) Validate(cfg *Config) error {
+func (l *Loader) Validate(cfg *MCPConfig) error {
 	// Validate tool names are unique
 	toolNames := make(map[string]bool)
 	for _, tool := range cfg.Tools {
