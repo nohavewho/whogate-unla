@@ -1,6 +1,16 @@
 services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-mcp_gateway}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   mcp-gateway:
-    image: ${REGISTRY:-docker.io}/${PROJECT_NAME:-mcp-gateway}/allinone:${VERSION:-latest}
+    image: ${IMAGE:-ghcr.io/mcp-ecosystem/mcp-gateway/allinone:latest}
     ports:
       - "80:80"
       - "8080:8080"
@@ -10,7 +20,10 @@ services:
     volumes:
       - ./configs:/app/configs
       - ./data:/app/data
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
+      - ./.env.allinone:/app/.env
+    depends_on:
+      - postgres
     restart: unless-stopped
-    command: /sbin/init 
+
+volumes:
+  postgres_data:

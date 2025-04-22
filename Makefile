@@ -3,12 +3,18 @@ DOCKER_REGISTRY ?= docker.io
 GHCR_REGISTRY ?= ghcr.io
 ALI_REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
 
+IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/allinone:latest
+APISERVER_IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/apiserver:latest
+MCP_GATEWAY_IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/mcp-gateway:latest
+MOCK_USER_SVC_IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/mock-user-svc:latest
+WEB_IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/web:latest
+
 # Project configurations
 PROJECT_NAME ?= mcp-gateway
 IMAGE_TAG ?= $(shell cat pkg/version/VERSION)
 
 # Service configurations
-SERVICES = apiserver mcp-gateway mock-user-svc
+SERVICES = apiserver mcp-gateway mock-user-svc web
 
 # Build flags
 LDFLAGS = -X main.version=$(VERSION)
@@ -47,12 +53,36 @@ build-allinone:
 # Run multi-container version
 .PHONY: run-multi
 run-multi:
-	docker-compose -f deploy/docker/multi/docker-compose.yml up
+	APISERVER_IMAGE=$(APISERVER_IMAGE) \
+	MCP_GATEWAY_IMAGE=$(MCP_GATEWAY_IMAGE) \
+	MOCK_USER_SVC_IMAGE=$(MOCK_USER_SVC_IMAGE) \
+	WEB_IMAGE=$(WEB_IMAGE) \
+	docker-compose --env-file .env.multi --project-directory . -f deploy/docker/multi/docker-compose.yml up -d
+
+# Stop multi-container version
+.PHONY: stop-multi
+stop-multi:
+	docker-compose --env-file .env.multi --project-directory . -f deploy/docker/multi/docker-compose.yml stop
+
+# Down multi-container version
+.PHONY: down-multi
+down-multi:
+	docker-compose --env-file .env.multi --project-directory . -f deploy/docker/multi/docker-compose.yml down -v
 
 # Run all-in-one version
 .PHONY: run-allinone
 run-allinone:
-	docker-compose -f deploy/docker/allinone/docker-compose.yml up
+	IMAGE=$(IMAGE) docker-compose --env-file .env.allinone --project-directory . -f deploy/docker/allinone/docker-compose.yml up -d
+
+# Stop all-in-one version
+.PHONY: stop-allinone
+stop-allinone:
+	docker-compose --env-file .env.allinone --project-directory . -f deploy/docker/allinone/docker-compose.yml stop
+
+# Down all-in-one version
+.PHONY: down-allinone
+down-allinone:
+	docker-compose --env-file .env.allinone --project-directory . -f deploy/docker/allinone/docker-compose.yml down -v
 
 # Push to Docker Hub
 docker: build
