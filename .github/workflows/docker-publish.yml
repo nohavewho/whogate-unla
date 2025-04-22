@@ -68,11 +68,11 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-allinone:latest
-            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-allinone:${{ github.sha }}
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-allinone:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}/allinone:latest
-            ghcr.io/${{ github.repository }}/allinone:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/allinone:${{ github.ref_name }}
             ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-allinone:latest
-            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-allinone:${{ github.sha }}
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-allinone:${{ github.ref_name }}
 
       - name: Build and push apiserver image
         uses: docker/build-push-action@v5
@@ -83,11 +83,11 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-apiserver:latest
-            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-apiserver:${{ github.sha }}
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-apiserver:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}/apiserver:latest
-            ghcr.io/${{ github.repository }}/apiserver:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/apiserver:${{ github.ref_name }}
             ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-apiserver:latest
-            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-apiserver:${{ github.sha }}
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-apiserver:${{ github.ref_name }}
 
       - name: Build and push mcp-gateway image
         uses: docker/build-push-action@v5
@@ -98,11 +98,11 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mcp-gateway:latest
-            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mcp-gateway:${{ github.sha }}
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mcp-gateway:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}/mcp-gateway:latest
-            ghcr.io/${{ github.repository }}/mcp-gateway:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/mcp-gateway:${{ github.ref_name }}
             ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mcp-gateway:latest
-            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mcp-gateway:${{ github.sha }}
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mcp-gateway:${{ github.ref_name }}
 
       - name: Build and push mock-user-svc image
         uses: docker/build-push-action@v5
@@ -113,8 +113,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mock-user-svc:latest
-            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mock-user-svc:${{ github.sha }}
+            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-mock-user-svc:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}/mock-user-svc:latest
-            ghcr.io/${{ github.repository }}/mock-user-svc:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/mock-user-svc:${{ github.ref_name }}
             ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mock-user-svc:latest
-            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mock-user-svc:${{ github.sha }} 
+            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-mock-user-svc:${{ github.ref_name }} 
