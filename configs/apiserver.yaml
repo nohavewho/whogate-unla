@@ -1,5 +1,5 @@
 database:
-  type: postgres
+  type: "${DB_TYPE:sqlite}"
   host: "${DB_HOST:localhost}"
   port: ${DB_PORT:5432}
   user: "${DB_USER:postgres}"

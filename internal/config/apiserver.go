@@ -10,13 +10,13 @@ type (
 	}
 
 	DatabaseConfig struct {
-		Type     string `yaml:"type"`     // postgres, mysql, etc.
-		Host     string `yaml:"host"`     // localhost
-		Port     int    `yaml:"port"`     // 5432
+		Type     string `yaml:"type"`     // postgres, sqlite, etc.
+		Host     string `yaml:"host"`     // localhost (for postgres)
+		Port     int    `yaml:"port"`     // 5432 (for postgres)
 		User     string `yaml:"user"`     // postgres
 		Password string `yaml:"password"` // postgres
-		DBName   string `yaml:"dbname"`   // mcp_gateway
-		SSLMode  string `yaml:"sslmode"`  // disable
+		DBName   string `yaml:"dbname"`   // mcp_gateway (for postgres) or file path (for sqlite)
+		SSLMode  string `yaml:"sslmode"`  // disable (for postgres)
 	}
 
 	OpenAIConfig struct {
@@ -30,6 +30,8 @@ func (c *DatabaseConfig) GetDSN() string {
 	switch c.Type {
 	case "postgres":
 		return c.getPostgresDSN()
+	case "sqlite":
+		return c.DBName // For SQLite, DBName is the file path
 	default:
 		return ""
 	}

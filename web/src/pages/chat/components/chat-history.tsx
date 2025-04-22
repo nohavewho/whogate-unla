@@ -15,13 +15,6 @@ interface Session {
   id: string;
   createdAt: string;
   title: string;
-  lastMessage?: {
-    id: string;
-    sessionId: string;
-    content: string;
-    sender: string;
-    timestamp: string;
-  };
 }
 
 export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
@@ -158,11 +151,6 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
                   <span className="text-sm font-medium truncate max-w-full">
                     {session.title || 'Untitled Chat'}
                   </span>
-                  {session.lastMessage && (
-                    <span className="text-xs text-default-500 truncate max-w-full">
-                      {session.lastMessage.content}
-                    </span>
-                  )}
                   <span className="text-xs text-default-400">
                     {formatDate(session.createdAt)}
                   </span>

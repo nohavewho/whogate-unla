@@ -46,8 +46,7 @@ type Database interface {
 
 // Session represents a chat session
 type Session struct {
-	ID          string    `json:"id"`
-	CreatedAt   time.Time `json:"createdAt"`
-	Title       string    `json:"title"`
-	LastMessage *Message  `json:"lastMessage,omitempty"`
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	Title     string    `json:"title"`
 }
