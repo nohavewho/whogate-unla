@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -497,6 +498,36 @@ func handleMCPServerDelete(c *gin.Context) {
 	})
 }
 
+func sendReloadSignal() error {
+	// Load configuration
+	cfg, err := config.LoadConfig[config.APIServerConfig]("configs/apiserver.yaml")
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// Read gateway PID file
+	pidBytes, err := os.ReadFile(cfg.GatewayPID)
+	if err != nil {
+		return fmt.Errorf("failed to read PID file: %w", err)
+	}
+
+	pid, err := strconv.Atoi(strings.TrimSpace(string(pidBytes)))
+	if err != nil {
+		return fmt.Errorf("invalid PID in file: %w", err)
+	}
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return fmt.Errorf("failed to find process: %w", err)
+	}
+
+	if err := process.Signal(syscall.SIGHUP); err != nil {
+		return fmt.Errorf("failed to send reload signal: %w", err)
+	}
+
+	return nil
+}
+
 func handleMCPServerSync(c *gin.Context) {
 	// Get the config directory
 	configDir := getConfigPath()
@@ -532,6 +563,14 @@ func handleMCPServerSync(c *gin.Context) {
 			})
 			return
 		}
+	}
+
+	// Send reload signal to gateway
+	if err := sendReloadSignal(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to reload gateway: " + err.Error(),
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

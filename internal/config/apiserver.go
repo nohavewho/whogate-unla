@@ -4,8 +4,9 @@ import "fmt"
 
 type (
 	APIServerConfig struct {
-		Database DatabaseConfig `yaml:"database"`
-		OpenAI   OpenAIConfig   `yaml:"openai"`
+		Database   DatabaseConfig `yaml:"database"`
+		OpenAI     OpenAIConfig   `yaml:"openai"`
+		GatewayPID string         `yaml:"gateway_pid"`
 	}
 
 	DatabaseConfig struct {
