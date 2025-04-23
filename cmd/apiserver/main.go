@@ -214,6 +214,14 @@ func handleMCPServerUpdate(c *gin.Context) {
 		return
 	}
 
+	// Send reload signal to gateway
+	if err := sendReloadSignal(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to reload gateway: " + err.Error(),
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"path":   configFile,
@@ -457,6 +465,14 @@ func handleMCPServerCreate(c *gin.Context) {
 	if err := os.WriteFile(configFile, content, 0644); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to save MCP server configuration: " + err.Error(),
+		})
+		return
+	}
+
+	// Send reload signal to gateway
+	if err := sendReloadSignal(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to reload gateway: " + err.Error(),
 		})
 		return
 	}
