@@ -20,8 +20,9 @@ type (
 	}
 
 	OpenAIConfig struct {
-		APIKey string `yaml:"api_key" env:"OPENAI_API_KEY"`
-		Model  string `yaml:"model" env:"OPENAI_MODEL" env-default:"gpt-3.5-turbo"`
+		APIKey  string `yaml:"api_key"`
+		Model   string `yaml:"model"`
+		BaseURL string `yaml:"base_url"`
 	}
 )
 

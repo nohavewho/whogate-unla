@@ -2,6 +2,7 @@ package openai
 
 import (
 	"context"
+
 	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -18,6 +19,7 @@ type Client struct {
 func NewClient(cfg *config.OpenAIConfig) *Client {
 	client := openai.NewClient(
 		option.WithAPIKey(cfg.APIKey),
+		option.WithBaseURL(cfg.BaseURL),
 	)
 
 	return &Client{

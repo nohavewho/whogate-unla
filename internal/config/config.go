@@ -8,18 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the root configuration structure
-type Config struct {
-	Routers  []RouterConfig `yaml:"routers"`
-	Servers  []ServerConfig `yaml:"servers"`
-	Tools    []ToolConfig   `yaml:"tools"`
-	Database DatabaseConfig `yaml:"database"`
-	OpenAI   struct {
-		APIKey string `yaml:"api_key" env:"OPENAI_API_KEY"`
-		Model  string `yaml:"model" env:"OPENAI_MODEL" env-default:"gpt-3.5-turbo"`
-	} `yaml:"openai"`
-}
-
 type MCPGatewayConfig struct {
 	Port       int    `yaml:"port"`
 	InnerPort  int    `yaml:"inner_port"`
