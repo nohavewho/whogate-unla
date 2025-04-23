@@ -109,7 +109,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     className="px-0"
                   >
                     <pre className="text-sm p-2 bg-content2 rounded overflow-auto">
-                      {JSON.stringify(JSON.parse(toolResult.result), null, 2)}
+                      {(() => {
+                        try {
+                          return JSON.stringify(JSON.parse(toolResult.result), null, 2);
+                        } catch (e) {
+                          return toolResult.result;
+                        }
+                      })()}
                     </pre>
                   </AccordionItem>
                 ) : null}

@@ -238,8 +238,16 @@ func (s *StreamableSession) HandleRequest(c *gin.Context, req mcp.JSONRPCRequest
 			return nil
 		}
 
+		prefixI, ok := s.server.sessionToPrefix.Load(s.sessionID)
+		if !ok {
+			s.sendErrorResponse(req, "Session not found")
+			return nil
+		}
+		prefix := prefixI.(string)
+		serverCfg, ok := s.server.prefixToServerConfig[prefix]
+
 		// Execute the tool
-		result, err := s.server.executeTool(tool, args, c.Request)
+		result, err := s.server.executeTool(tool, args, c.Request, serverCfg.Config)
 		if err != nil {
 			s.sendErrorResponse(req, fmt.Sprintf("Error: %s", err.Error()))
 			return nil

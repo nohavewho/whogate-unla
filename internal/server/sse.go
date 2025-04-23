@@ -279,8 +279,16 @@ func (s *Server) handleMessage(c *gin.Context) {
 			return
 		}
 
+		prefixI, ok := s.sessionToPrefix.Load(session.sessionID)
+		if !ok {
+			s.sendErrorResponse(c, session, req, "Session not found")
+			return
+		}
+		prefix := prefixI.(string)
+		serverCfg, ok := s.prefixToServerConfig[prefix]
+
 		// Execute the tool
-		result, err := s.executeTool(tool, args, c.Request)
+		result, err := s.executeTool(tool, args, c.Request, serverCfg.Config)
 		if err != nil {
 			s.sendErrorResponse(c, session, req, fmt.Sprintf("Error: %s", err.Error()))
 			return

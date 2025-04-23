@@ -23,6 +23,8 @@ servers:
     allowedTools:
       - "user_register"
       - "user_email"
+    config:
+      Cookie: 123
 
 tools:
   - name: "user_register"
@@ -32,6 +34,7 @@ tools:
     headers:
       Content-Type: "application/json"
       Authorization: "{{.Request.Headers.Authorization}}"
+      Cookie: "{{.Config.Cookie}}"
     args:
       - name: "username"
         position: "body"

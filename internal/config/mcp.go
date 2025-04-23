@@ -24,10 +24,11 @@ type (
 	}
 
 	ServerConfig struct {
-		Name         string   `yaml:"name"`
-		Namespace    string   `yaml:"namespace"`
-		Description  string   `yaml:"description"`
-		AllowedTools []string `yaml:"allowedTools"`
+		Name         string            `yaml:"name"`
+		Namespace    string            `yaml:"namespace"`
+		Description  string            `yaml:"description"`
+		AllowedTools []string          `yaml:"allowedTools"`
+		Config       map[string]string `yaml:"config,omitempty"`
 	}
 
 	ToolConfig struct {

@@ -22,6 +22,8 @@ type Server struct {
 	toolMap  map[string]*config.ToolConfig
 	// prefixToTools maps prefix to allowed tools for each MCP server
 	prefixToTools map[string][]mcp.ToolSchema
+	// prefixToServerConfig maps prefix to server config for each MCP server
+	prefixToServerConfig map[string]*config.ServerConfig
 	// sessionToPrefix maps session ID to MCP server prefix
 	sessionToPrefix sync.Map
 }
@@ -29,12 +31,13 @@ type Server struct {
 // NewServer creates a new MCP server
 func NewServer(logger *zap.Logger, store Storage) *Server {
 	return &Server{
-		logger:        logger,
-		store:         store,
-		renderer:      template.NewRenderer(),
-		tools:         make([]mcp.ToolSchema, 0),
-		toolMap:       make(map[string]*config.ToolConfig),
-		prefixToTools: make(map[string][]mcp.ToolSchema),
+		logger:               logger,
+		store:                store,
+		renderer:             template.NewRenderer(),
+		tools:                make([]mcp.ToolSchema, 0),
+		toolMap:              make(map[string]*config.ToolConfig),
+		prefixToTools:        make(map[string][]mcp.ToolSchema),
+		prefixToServerConfig: make(map[string]*config.ServerConfig),
 	}
 }
 
@@ -72,6 +75,7 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.MCPConfig) error
 			}
 		}
 		s.prefixToTools[prefix] = allowedTools
+		s.prefixToServerConfig[prefix] = &serverCfg
 
 		group := router.Group(prefix)
 

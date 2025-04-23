@@ -14,11 +14,13 @@ import (
 )
 
 // executeTool executes a tool with the given arguments
-func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, request *http.Request) (string, error) {
+func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, request *http.Request, serverCfg map[string]string) (string, error) {
 	client := &http.Client{}
 
 	tmplCtx := template.NewContext()
 	tmplCtx.Args = args
+
+	tmplCtx.Config = serverCfg
 
 	for k, v := range request.Header {
 		if len(v) > 0 {

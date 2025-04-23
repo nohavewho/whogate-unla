@@ -3,7 +3,8 @@ package template
 // Context represents the template context
 type (
 	Context struct {
-		Args    map[string]any `json:"args"`
+		Args    map[string]any    `json:"args"`
+		Config  map[string]string `json:"config"`
 		Request struct {
 			Headers map[string]string `json:"headers"`
 			Query   map[string]string `json:"query"`
@@ -20,7 +21,8 @@ type (
 // NewContext creates a new template context
 func NewContext() *Context {
 	return &Context{
-		Args: make(map[string]any),
+		Args:   make(map[string]any),
+		Config: make(map[string]string),
 		Request: struct {
 			Headers map[string]string `json:"headers"`
 			Query   map[string]string `json:"query"`
