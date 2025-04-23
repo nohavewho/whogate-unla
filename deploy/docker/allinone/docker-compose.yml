@@ -8,7 +8,7 @@ services:
       - "5236:5236"
     environment:
       - ENV=production
-      - VITE_MCP_SERVER_URL=${VITE_MCP_SERVER_URL}
+      - VITE_MCP_GATEWAY_URL=${VITE_MCP_GATEWAY_URL}
     volumes:
       - ./configs:/app/configs
       - ./data:/app/data

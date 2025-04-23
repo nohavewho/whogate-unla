@@ -20,6 +20,9 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/mock-user-svc ./cmd/mock-user-
 
 FROM node:20.18.0 AS web-builder
 
+ARG VITE_MCP_GATEWAY_URL=/mcp
+ENV VITE_MCP_GATEWAY_URL=${VITE_MCP_GATEWAY_URL}
+
 WORKDIR /app/web
 
 COPY web/package*.json ./
