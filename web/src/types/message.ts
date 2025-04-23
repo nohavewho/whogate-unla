@@ -6,6 +6,7 @@ export interface Message {
   timestamp: string;
   isStreaming?: boolean;
   toolCalls?: ToolCall[];
+  toolResult?: ToolResult;
 }
 
 export interface ToolCall {
@@ -15,4 +16,10 @@ export interface ToolCall {
     name: string;
     arguments: string;
   };
+}
+
+export interface ToolResult {
+  toolCallId: string;
+  name: string;
+  result: string;
 }

@@ -10,10 +10,11 @@ import { getChatMessages, getMCPServers } from '../../services/api';
 import { mcpService } from '../../services/mcp';
 import { wsService, WebSocketMessage } from '../../services/websocket';
 import { Tool } from '../../types/mcp';
-import { Message as MessageType, ToolCall } from '../../types/message';
+import {Message as MessageType, ToolCall, ToolResult} from '../../types/message';
 
 import { ChatHistory } from './components/chat-history';
 import { ChatMessage } from './components/chat-message';
+import { ChatProvider } from './chat-context';
 
 interface BackendMessage {
   id: string;
@@ -21,6 +22,7 @@ interface BackendMessage {
   sender: string;
   timestamp: string;
   toolCalls?: string;
+  toolResult?: string;
 }
 
 interface Gateway {
@@ -166,7 +168,8 @@ export function ChatInterface() {
         content: msg.content,
         sender: msg.sender as 'user' | 'bot',
         timestamp: msg.timestamp,
-        toolCalls: msg.toolCalls ? JSON.parse(msg.toolCalls) as ToolCall[] : undefined
+        toolCalls: msg.toolCalls ? JSON.parse(msg.toolCalls) as ToolCall[] : undefined,
+        toolResult: msg.toolResult ? JSON.parse(msg.toolResult) as ToolResult : undefined,
       }));
 
       if (pageNum === 1) {
@@ -368,9 +371,13 @@ export function ChatInterface() {
                   Loading more messages...
                 </div>
               )}
-              {messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
-              ))}
+              <ChatProvider messages={messages}>
+                {messages
+                  .filter(message => !(message.sender === 'user' && !message.content && message.toolResult))
+                  .map((message) => (
+                    <ChatMessage key={message.id} message={message} />
+                  ))}
+              </ChatProvider>
               <div ref={messagesEndRef} />
             </div>
             <Divider />
