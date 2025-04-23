@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/mcp-ecosystem/mcp-gateway/cmd/apiserver/internal/database"
+	"github.com/mcp-ecosystem/mcp-gateway/cmd/apiserver/internal/dto"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/openai"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
@@ -29,24 +31,24 @@ var (
 	configPath   string
 	db           database.Database
 	openaiClient *openai.Client
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of apiserver",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("apiserver version %s\n", version.Get())
+		},
+	}
+
+	rootCmd = &cobra.Command{
+		Use:   "apiserver",
+		Short: "MCP API Server",
+		Long:  `MCP API Server provides API endpoints for MCP ecosystem`,
+		Run: func(cmd *cobra.Command, args []string) {
+			run()
+		},
+	}
 )
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the version number of apiserver",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("apiserver version %s\n", version.Get())
-	},
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "apiserver",
-	Short: "MCP API Server",
-	Long:  `MCP API Server provides API endpoints for MCP ecosystem`,
-	Run: func(cmd *cobra.Command, args []string) {
-		run()
-	},
-}
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "conf", "", "path to configuration file or directory")
@@ -57,13 +59,6 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Should set stricter checks in production
 	},
-}
-
-type WebSocketMessage struct {
-	Type      string `json:"type"`
-	Content   string `json:"content"`
-	Sender    string `json:"sender"`
-	Timestamp int64  `json:"timestamp"`
 }
 
 func getConfigPath() string {
@@ -264,7 +259,7 @@ func handleWebSocket(c *gin.Context) {
 	log.Printf("[WS] Connection established - SessionID: %s, RemoteAddr: %s", sessionId, c.Request.RemoteAddr)
 
 	for {
-		var message WebSocketMessage
+		var message dto.WebSocketMessage
 		err := conn.ReadJSON(&message)
 		if err != nil {
 			log.Printf("[WS] Error reading message - SessionID: %s, Error: %v", sessionId, err)
@@ -305,7 +300,7 @@ func handleWebSocket(c *gin.Context) {
 
 		// Process message based on type
 		switch message.Type {
-		case "message":
+		case dto.ResponseTypeMessage:
 			// Get conversation history from database
 			messages, err := db.GetMessages(c.Request.Context(), sessionId)
 			if err != nil {
@@ -325,8 +320,28 @@ func handleWebSocket(c *gin.Context) {
 				}
 			}
 
+			// Convert tools to OpenAI format if provided
+			var openaiTools []openaiGo.ChatCompletionToolParam
+			if len(message.Tools) > 0 {
+				openaiTools = make([]openaiGo.ChatCompletionToolParam, len(message.Tools))
+				for i, tool := range message.Tools {
+					openaiTools[i] = openaiGo.ChatCompletionToolParam{
+						Function: openaiGo.FunctionDefinitionParam{
+							Name:        tool.Name,
+							Description: openaiGo.String(tool.Description),
+							Parameters: openaiGo.FunctionParameters{
+								"type":       "object",
+								"properties": tool.Parameters.Properties,
+								"required":   tool.Parameters.Required,
+							},
+							Strict: openaiGo.Bool(true),
+						},
+					}
+				}
+			}
+
 			// Get streaming response from OpenAI
-			stream, err := openaiClient.ChatCompletionStream(c.Request.Context(), openaiMessages)
+			stream, err := openaiClient.ChatCompletionStream(c.Request.Context(), openaiMessages, openaiTools)
 			if err != nil {
 				log.Printf("[WS] Failed to get OpenAI response - SessionID: %s, Error: %v", sessionId, err)
 				continue
@@ -334,16 +349,75 @@ func handleWebSocket(c *gin.Context) {
 
 			// Initialize response content
 			responseContent := ""
+			var toolCall *dto.ToolCall
+			var toolCallArguments string
 
 			// Process stream chunks
 			for stream.Next() {
 				chunk := stream.Current()
+				// Check if this is a tool call
+				if chunk.Choices[0].Delta.ToolCalls != nil {
+					// Initialize tool call if not exists
+					if toolCall == nil {
+						toolCall = &dto.ToolCall{
+							ID:   chunk.Choices[0].Delta.ToolCalls[0].ID,
+							Type: chunk.Choices[0].Delta.ToolCalls[0].Type,
+							Function: dto.ToolFunction{
+								Name:      chunk.Choices[0].Delta.ToolCalls[0].Function.Name,
+								Arguments: "",
+							},
+						}
+					}
+
+					// Accumulate arguments
+					if chunk.Choices[0].Delta.ToolCalls[0].Function.Arguments != "" {
+						toolCallArguments += chunk.Choices[0].Delta.ToolCalls[0].Function.Arguments
+					}
+					continue
+				}
+
+				// If this is the last chunk of tool call, send the complete tool call to client
+				if chunk.Choices[0].FinishReason == "tool_calls" {
+					toolName := "Unknown"
+					var args map[string]interface{}
+					if toolCall != nil {
+						toolCall.Function.Arguments = toolCallArguments
+						toolName = toolCall.Function.Name
+						// Parse arguments from JSON string
+						if err := json.Unmarshal([]byte(toolCallArguments), &args); err != nil {
+							log.Printf("[WS] Failed to parse tool call arguments - SessionID: %s, Error: %v", sessionId, err)
+							args = make(map[string]interface{})
+						}
+					} else {
+						args = make(map[string]interface{})
+					}
+					response := dto.WebSocketResponse{
+						Type:      dto.ResponseTypeToolCall,
+						Content:   "",
+						Sender:    "bot",
+						Timestamp: time.Now().UnixMilli(),
+						ID:        uuid.New().String(),
+						ToolCalls: []dto.ToolCallResponse{
+							{
+								Name:      toolName,
+								Arguments: args,
+							},
+						},
+					}
+					if err := conn.WriteJSON(response); err != nil {
+						log.Printf("[WS] Error writing tool call message - SessionID: %s, Error: %v", sessionId, err)
+						break
+					}
+					continue
+				}
+
+				// Handle regular content
 				if chunk.Choices[0].Delta.Content != "" {
 					responseContent += chunk.Choices[0].Delta.Content
 
 					// Send chunk to client
-					response := WebSocketMessage{
-						Type:      "stream",
+					response := dto.WebSocketResponse{
+						Type:      dto.ResponseTypeStream,
 						Content:   chunk.Choices[0].Delta.Content,
 						Sender:    "bot",
 						Timestamp: time.Now().UnixMilli(),
@@ -375,9 +449,6 @@ func handleWebSocket(c *gin.Context) {
 			// Log sent message
 			log.Printf("[WS] Message sent - SessionID: %s, Type: %s, Content: %s",
 				sessionId, "message", responseContent)
-		case "system":
-			// Handle system messages if needed
-			log.Printf("Received system message: %s", message.Content)
 		}
 	}
 }

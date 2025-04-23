@@ -46,14 +46,21 @@ func (c *Client) ChatCompletion(ctx context.Context, messages []openai.ChatCompl
 }
 
 // ChatCompletionStream handles streaming chat completion requests
-func (c *Client) ChatCompletionStream(ctx context.Context, messages []openai.ChatCompletionMessageParamUnion) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
+func (c *Client) ChatCompletionStream(ctx context.Context, messages []openai.ChatCompletionMessageParamUnion, tools []openai.ChatCompletionToolParam) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	// Create streaming chat completion request
+	params := openai.ChatCompletionNewParams{
+		Messages: messages,
+		Model:    c.model,
+	}
+
+	// Add tools if provided
+	if len(tools) > 0 {
+		params.Tools = tools
+	}
+
 	stream := c.client.Chat.Completions.NewStreaming(
 		ctx,
-		openai.ChatCompletionNewParams{
-			Messages: messages,
-			Model:    c.model,
-		},
+		params,
 	)
 
 	return stream, nil

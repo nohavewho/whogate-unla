@@ -7,6 +7,14 @@ export interface WebSocketMessage {
   sender: 'user' | 'bot';
   timestamp: number;
   id: string;
+  tools?: Array<{
+    name: string;
+    description: string;
+    parameters: {
+      properties: Record<string, unknown>;
+      required: string[];
+    };
+  }>;
 }
 
 export class WebSocketService {
@@ -90,7 +98,7 @@ export class WebSocketService {
     }
   }
 
-  async sendMessage(content: string) {
+  async sendMessage(content: string, tools?: WebSocketMessage['tools']) {
     // Connect to WebSocket if not already connected
     if (!this.ws) {
       await this.connect();
@@ -102,6 +110,7 @@ export class WebSocketService {
       sender: 'user',
       timestamp: Date.now(),
       id: uuidv4(),
+      tools,
     };
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {

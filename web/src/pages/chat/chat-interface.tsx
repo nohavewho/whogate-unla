@@ -306,7 +306,21 @@ export function ChatInterface() {
     };
 
     setMessages(prev => [...prev, newMessage]);
-    await wsService.sendMessage(input);
+
+    // Convert active tools to the required format
+    const activeTools = Object.entries(tools)
+      .filter(([serverName]) => activeServices.includes(serverName))
+      .flatMap(([, serverTools]) => serverTools)
+      .map(tool => ({
+        name: tool.name,
+        description: tool.description || tool.name, // Fallback to name if description is not provided
+        parameters: {
+          properties: tool.inputSchema.properties || {},
+          required: tool.inputSchema.required as string[] || []
+        }
+      }));
+
+    await wsService.sendMessage(input, activeTools.length > 0 ? activeTools : undefined);
     setInput('');
   };
 
