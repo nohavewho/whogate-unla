@@ -1,7 +1,14 @@
 import { Avatar, Button, Accordion, AccordionItem } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { toast } from "react-hot-toast";
 import { useContext } from "react";
+import { toast } from "react-hot-toast";
+import ReactMarkdown from 'react-markdown';
+import rehypeHighlight from "rehype-highlight";
+import rehypeKatex from 'rehype-katex';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import 'katex/dist/katex.min.css';
+import 'highlight.js/styles/github.css';
 
 import { mcpService } from "../../../services/mcp";
 import { wsService } from "../../../services/websocket";
@@ -83,7 +90,37 @@ export function ChatMessage({ message }: ChatMessageProps) {
           isBot ? 'bg-content2' : 'bg-primary text-primary-foreground'
         }`}
       >
-        {message.content}
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeHighlight, rehypeKatex]}
+            components={{
+              code({className, children, ...props}) {
+                const match = /language-(\w+)/.exec(className || '');
+                return match ? (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                ) : (
+                  <code className="bg-gray-100 dark:bg-gray-800 rounded px-1" {...props}>
+                    {children}
+                  </code>
+                );
+              },
+              p: ({children, ...props}) => <p className="my-2" {...props}>{children}</p>,
+              h1: ({children, ...props}) => <h1 className="text-2xl font-bold my-4" {...props}>{children}</h1>,
+              h2: ({children, ...props}) => <h2 className="text-xl font-bold my-3" {...props}>{children}</h2>,
+              h3: ({children, ...props}) => <h3 className="text-lg font-bold my-2" {...props}>{children}</h3>,
+              ul: ({children, ...props}) => <ul className="list-disc pl-6 my-2" {...props}>{children}</ul>,
+              ol: ({children, ...props}) => <ol className="list-decimal pl-6 my-2" {...props}>{children}</ol>,
+              li: ({children, ...props}) => <li className="my-1" {...props}>{children}</li>,
+              blockquote: ({children, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-2 italic" {...props}>{children}</blockquote>,
+              a: ({children, ...props}) => <a className="text-blue-600 dark:text-blue-400 hover:underline" {...props}>{children}</a>,
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        </div>
         {message.isStreaming && (
           <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
         )}
@@ -112,7 +149,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                       {(() => {
                         try {
                           return JSON.stringify(JSON.parse(toolResult.result), null, 2);
-                        } catch (e) {
+                        } catch {
                           return toolResult.result;
                         }
                       })()}

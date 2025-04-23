@@ -12,9 +12,9 @@ import { wsService, WebSocketMessage } from '../../services/websocket';
 import { Tool } from '../../types/mcp';
 import {Message as MessageType, ToolCall, ToolResult} from '../../types/message';
 
+import { ChatProvider } from './chat-context';
 import { ChatHistory } from './components/chat-history';
 import { ChatMessage } from './components/chat-message';
-import { ChatProvider } from './chat-context';
 
 interface BackendMessage {
   id: string;
