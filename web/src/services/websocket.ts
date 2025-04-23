@@ -1,8 +1,10 @@
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 
+import { ToolCall } from '../types/message';
+
 export interface WebSocketMessage {
-  type: 'system' | 'message' | 'stream' | 'tool_call';
+  type: 'system' | 'message' | 'stream' | 'tool_call' | 'tool_result';
   content: string;
   sender: 'user' | 'bot';
   timestamp: number;
@@ -15,10 +17,12 @@ export interface WebSocketMessage {
       required: string[];
     };
   }>;
-  tool_calls?: Array<{
+  toolCalls?: ToolCall[];
+  toolResult?: {
+    toolCallId: string
     name: string;
-    arguments: Record<string, unknown>;
-  }>;
+    result: string;
+  };
 }
 
 export class WebSocketService {
@@ -114,6 +118,30 @@ export class WebSocketService {
       timestamp: Date.now(),
       id: uuidv4(),
       tools,
+    };
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message));
+    }
+  }
+
+  async sendToolResult(name: string, toolCallId: string, result: string) {
+    // Connect to WebSocket if not already connected
+    if (!this.ws) {
+      await this.connect();
+    }
+
+    const message: WebSocketMessage = {
+      type: 'tool_result',
+      content: '',
+      sender: 'user',
+      timestamp: Date.now(),
+      id: uuidv4(),
+      toolResult: {
+        toolCallId,
+        name,
+        result
+      }
     };
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {

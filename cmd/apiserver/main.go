@@ -266,57 +266,106 @@ func handleWebSocket(c *gin.Context) {
 			break
 		}
 
-		// Save all incoming messages to database
-		dbMessage := &database.Message{
-			ID:        uuid.New().String(),
-			SessionID: sessionId,
-			Content:   message.Content,
-			Sender:    message.Sender,
-			Timestamp: time.Now(),
-		}
-		if err := db.SaveMessage(c.Request.Context(), dbMessage); err != nil {
-			log.Printf("[WS] Failed to save message - SessionID: %s, Error: %v", sessionId, err)
-		}
-
-		// If this is the first message, update the session title
-		messages, err := db.GetMessages(c.Request.Context(), sessionId)
-		if err != nil {
-			log.Printf("[WS] Failed to get messages - SessionID: %s, Error: %v", sessionId, err)
-		} else if len(messages) == 1 {
-			// Extract title from the first message (first 20 UTF-8 characters)
-			title := message.Content
-			runes := []rune(title)
-			if len(runes) > 20 {
-				title = string(runes[:20])
-			}
-			if err := db.UpdateSessionTitle(c.Request.Context(), sessionId, title); err != nil {
-				log.Printf("[WS] Failed to update session title - SessionID: %s, Error: %v", sessionId, err)
-			}
-		}
-
 		// Log received message
 		log.Printf("[WS] Message received - SessionID: %s, Type: %s, Content: %s",
 			sessionId, message.Type, message.Content)
 
 		// Process message based on type
 		switch message.Type {
-		case dto.ResponseTypeMessage:
+		case dto.MsgTypeMessage:
+
+			// Save all incoming messages to database
+			msg := &database.Message{
+				ID:        uuid.New().String(),
+				SessionID: sessionId,
+				Content:   message.Content,
+				Sender:    message.Sender,
+				Timestamp: time.Now(),
+			}
+			if err := db.SaveMessage(c.Request.Context(), msg); err != nil {
+				log.Printf("[WS] Failed to save message - SessionID: %s, Error: %v", sessionId, err)
+			}
+
 			// Get conversation history from database
 			messages, err := db.GetMessages(c.Request.Context(), sessionId)
 			if err != nil {
 				log.Printf("[WS] Failed to get conversation history - SessionID: %s, Error: %v", sessionId, err)
 				continue
+			} else if len(messages) == 1 {
+				// Extract title from the first message (first 20 UTF-8 characters)
+				title := message.Content
+				runes := []rune(title)
+				if len(runes) > 20 {
+					title = string(runes[:20])
+				}
+				if err := db.UpdateSessionTitle(c.Request.Context(), sessionId, title); err != nil {
+					log.Printf("[WS] Failed to update session title - SessionID: %s, Error: %v", sessionId, err)
+				}
 			}
 
 			// Convert messages to OpenAI format
 			openaiMessages := make([]openaiGo.ChatCompletionMessageParamUnion, len(messages))
 			for i, msg := range messages {
-				openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
-					OfUser: &openaiGo.ChatCompletionUserMessageParam{
-						Content: openaiGo.ChatCompletionUserMessageParamContentUnion{
-							OfString: openaiGo.String(msg.Content),
-						},
-					},
+				if msg.Sender == "bot" {
+					if msg.ToolCalls != "" {
+						// For bot messages with tool calls, use OfAssistant type with ToolCalls field
+						var toolCalls []dto.ToolCall
+						if err := json.Unmarshal([]byte(msg.ToolCalls), &toolCalls); err != nil {
+							log.Printf("[WS] Failed to unmarshal tool calls - SessionID: %s, Error: %v", sessionId, err)
+							continue
+						}
+						openaiToolCalls := make([]openaiGo.ChatCompletionMessageToolCallParam, len(toolCalls))
+						for j, tc := range toolCalls {
+							openaiToolCalls[j] = openaiGo.ChatCompletionMessageToolCallParam{
+								ID:   tc.ID,
+								Type: "function",
+								Function: openaiGo.ChatCompletionMessageToolCallFunctionParam{
+									Name:      tc.Function.Name,
+									Arguments: tc.Function.Arguments,
+								},
+							}
+						}
+						openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+							OfAssistant: &openaiGo.ChatCompletionAssistantMessageParam{
+								ToolCalls: openaiToolCalls,
+							},
+						}
+					} else {
+						// For regular bot messages, use OfAssistant type
+						openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+							OfAssistant: &openaiGo.ChatCompletionAssistantMessageParam{
+								Content: openaiGo.ChatCompletionAssistantMessageParamContentUnion{
+									OfString: openaiGo.String(msg.Content),
+								},
+							},
+						}
+					}
+				} else {
+					if msg.ToolResult != "" {
+						// For user messages with tool results, use OfTool type
+						var toolResult dto.ToolResult
+						if err := json.Unmarshal([]byte(msg.ToolResult), &toolResult); err != nil {
+							log.Printf("[WS] Failed to unmarshal tool result - SessionID: %s, Error: %v", sessionId, err)
+							continue
+						}
+						openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+							OfTool: &openaiGo.ChatCompletionToolMessageParam{
+								ToolCallID: toolResult.ToolCallID,
+								Content: openaiGo.ChatCompletionToolMessageParamContentUnion{
+									OfString: openaiGo.String(toolResult.Result),
+								},
+							},
+						}
+					} else {
+						// For regular user messages, use OfUser type
+						openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+							OfUser: &openaiGo.ChatCompletionUserMessageParam{
+								Content: openaiGo.ChatCompletionUserMessageParamContentUnion{
+									OfString: openaiGo.String(msg.Content),
+								},
+							},
+						}
+					}
 				}
 			}
 
@@ -378,35 +427,39 @@ func handleWebSocket(c *gin.Context) {
 
 				// If this is the last chunk of tool call, send the complete tool call to client
 				if chunk.Choices[0].FinishReason == "tool_calls" {
-					toolName := "Unknown"
-					var args map[string]interface{}
+					var toolCalls []dto.ToolCall
 					if toolCall != nil {
 						toolCall.Function.Arguments = toolCallArguments
-						toolName = toolCall.Function.Name
-						// Parse arguments from JSON string
-						if err := json.Unmarshal([]byte(toolCallArguments), &args); err != nil {
-							log.Printf("[WS] Failed to parse tool call arguments - SessionID: %s, Error: %v", sessionId, err)
-							args = make(map[string]interface{})
-						}
-					} else {
-						args = make(map[string]interface{})
+						toolCalls = append(toolCalls, *toolCall)
 					}
 					response := dto.WebSocketResponse{
-						Type:      dto.ResponseTypeToolCall,
+						Type:      dto.MsgTypeToolCall,
 						Content:   "",
 						Sender:    "bot",
 						Timestamp: time.Now().UnixMilli(),
 						ID:        uuid.New().String(),
-						ToolCalls: []dto.ToolCallResponse{
-							{
-								Name:      toolName,
-								Arguments: args,
-							},
-						},
+						ToolCalls: toolCalls,
 					}
 					if err := conn.WriteJSON(response); err != nil {
 						log.Printf("[WS] Error writing tool call message - SessionID: %s, Error: %v", sessionId, err)
 						break
+					}
+
+					s, err := json.Marshal(toolCalls)
+					if err != nil {
+						log.Printf("[WS] Failed to marshal tool calls - SessionID: %s, Error: %v", sessionId, err)
+						continue
+					}
+					msg := &database.Message{
+						ID:        uuid.New().String(),
+						SessionID: sessionId,
+						Content:   "",
+						Sender:    "bot",
+						Timestamp: time.Now(),
+						ToolCalls: string(s),
+					}
+					if err := db.SaveMessage(c.Request.Context(), msg); err != nil {
+						log.Printf("[WS] Failed to save tool call message - SessionID: %s, Error: %v", sessionId, err)
 					}
 					continue
 				}
@@ -414,51 +467,169 @@ func handleWebSocket(c *gin.Context) {
 				// Handle regular content
 				if chunk.Choices[0].Delta.Content != "" {
 					responseContent += chunk.Choices[0].Delta.Content
-
-					// Send chunk to client
 					response := dto.WebSocketResponse{
-						Type:      dto.ResponseTypeStream,
+						Type:      dto.MsgTypeStream,
 						Content:   chunk.Choices[0].Delta.Content,
 						Sender:    "bot",
 						Timestamp: time.Now().UnixMilli(),
+						ID:        uuid.New().String(),
 					}
 					if err := conn.WriteJSON(response); err != nil {
-						log.Printf("[WS] Error writing message chunk - SessionID: %s, Error: %v", sessionId, err)
+						log.Printf("[WS] Error writing stream message - SessionID: %s, Error: %v", sessionId, err)
 						break
+					}
+				}
+
+				// If this is the last chunk, save the complete message
+				if chunk.Choices[0].FinishReason == "stop" {
+					// Save the complete message to database
+					dbMessage := &database.Message{
+						ID:        uuid.New().String(),
+						SessionID: sessionId,
+						Content:   responseContent,
+						Sender:    "bot",
+						Timestamp: time.Now(),
+					}
+					if err := db.SaveMessage(c.Request.Context(), dbMessage); err != nil {
+						log.Printf("[WS] Failed to save bot message - SessionID: %s, Error: %v", sessionId, err)
 					}
 				}
 			}
 
-			if err := stream.Err(); err != nil {
-				log.Printf("[WS] Error in stream - SessionID: %s, Error: %v", sessionId, err)
+		case dto.MsgTypeToolResult:
+			s, err := json.Marshal(message.ToolResult)
+			if err != nil {
+				log.Printf("[WS] Failed to marshal tool result - SessionID: %s, Error: %v", sessionId, err)
+				continue
+			}
+			msg := &database.Message{
+				ID:         uuid.New().String(),
+				SessionID:  sessionId,
+				Content:    "",
+				Sender:     "user",
+				Timestamp:  time.Now(),
+				ToolResult: string(s),
+			}
+			if err := db.SaveMessage(c.Request.Context(), msg); err != nil {
+				log.Printf("[WS] Failed to save tool result message - SessionID: %s, Error: %v", sessionId, err)
+			}
+
+			// Get conversation history from database
+			messages, err := db.GetMessages(c.Request.Context(), sessionId)
+			if err != nil {
+				log.Printf("[WS] Failed to get conversation history - SessionID: %s, Error: %v", sessionId, err)
 				continue
 			}
 
-			// Save complete bot response to database
-			dbMessage := &database.Message{
-				ID:        uuid.New().String(),
-				SessionID: sessionId,
-				Content:   responseContent,
-				Sender:    "bot",
-				Timestamp: time.Now(),
-				ToolCalls: func() string {
-					if toolCall != nil {
-						toolCall.Function.Arguments = toolCallArguments
-						toolCalls := []dto.ToolCall{*toolCall}
-						if jsonBytes, err := json.Marshal(toolCalls); err == nil {
-							return string(jsonBytes)
+			// Convert messages to OpenAI format
+			openaiMessages := make([]openaiGo.ChatCompletionMessageParamUnion, len(messages))
+			for i, msg := range messages {
+				if msg.Sender == "bot" {
+					if msg.ToolCalls != "" {
+						// For bot messages with tool calls, use OfAssistant type with ToolCalls field
+						var toolCalls []dto.ToolCall
+						if err := json.Unmarshal([]byte(msg.ToolCalls), &toolCalls); err != nil {
+							log.Printf("[WS] Failed to unmarshal tool calls - SessionID: %s, Error: %v", sessionId, err)
+							continue
+						}
+						openaiToolCalls := make([]openaiGo.ChatCompletionMessageToolCallParam, len(toolCalls))
+						for j, tc := range toolCalls {
+							openaiToolCalls[j] = openaiGo.ChatCompletionMessageToolCallParam{
+								ID:   tc.ID,
+								Type: "function",
+								Function: openaiGo.ChatCompletionMessageToolCallFunctionParam{
+									Name:      tc.Function.Name,
+									Arguments: tc.Function.Arguments,
+								},
+							}
+						}
+						openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+							OfAssistant: &openaiGo.ChatCompletionAssistantMessageParam{
+								ToolCalls: openaiToolCalls,
+							},
+						}
+					} else {
+						// For regular bot messages, use OfAssistant type
+						openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+							OfAssistant: &openaiGo.ChatCompletionAssistantMessageParam{
+								Content: openaiGo.ChatCompletionAssistantMessageParamContentUnion{
+									OfString: openaiGo.String(msg.Content),
+								},
+							},
 						}
 					}
-					return ""
-				}(),
-			}
-			if err := db.SaveMessage(c.Request.Context(), dbMessage); err != nil {
-				log.Printf("[WS] Failed to save bot message - SessionID: %s, Error: %v", sessionId, err)
+				} else {
+					if msg.ToolResult != "" {
+						// For user messages with tool results, use OfTool type
+						var toolResult dto.ToolResult
+						if err := json.Unmarshal([]byte(msg.ToolResult), &toolResult); err != nil {
+							log.Printf("[WS] Failed to unmarshal tool result - SessionID: %s, Error: %v", sessionId, err)
+							continue
+						}
+						openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+							OfTool: &openaiGo.ChatCompletionToolMessageParam{
+								ToolCallID: toolResult.ToolCallID,
+								Content: openaiGo.ChatCompletionToolMessageParamContentUnion{
+									OfString: openaiGo.String(toolResult.Result),
+								},
+							},
+						}
+					} else {
+						// For regular user messages, use OfUser type
+						openaiMessages[i] = openaiGo.ChatCompletionMessageParamUnion{
+							OfUser: &openaiGo.ChatCompletionUserMessageParam{
+								Content: openaiGo.ChatCompletionUserMessageParamContentUnion{
+									OfString: openaiGo.String(msg.Content),
+								},
+							},
+						}
+					}
+				}
 			}
 
-			// Log sent message
-			log.Printf("[WS] Message sent - SessionID: %s, Type: %s, Content: %s",
-				sessionId, "message", responseContent)
+			// Get streaming response from OpenAI
+			stream, err := openaiClient.ChatCompletionStream(c.Request.Context(), openaiMessages, nil)
+			if err != nil {
+				log.Printf("[WS] Failed to get OpenAI response - SessionID: %s, Error: %v", sessionId, err)
+				continue
+			}
+
+			// Initialize response content
+			responseContent := ""
+
+			// Process stream chunks
+			for stream.Next() {
+				chunk := stream.Current()
+				if chunk.Choices[0].Delta.Content != "" {
+					responseContent += chunk.Choices[0].Delta.Content
+					response := dto.WebSocketResponse{
+						Type:      dto.MsgTypeStream,
+						Content:   chunk.Choices[0].Delta.Content,
+						Sender:    "bot",
+						Timestamp: time.Now().UnixMilli(),
+						ID:        uuid.New().String(),
+					}
+					if err := conn.WriteJSON(response); err != nil {
+						log.Printf("[WS] Error writing stream message - SessionID: %s, Error: %v", sessionId, err)
+						break
+					}
+				}
+
+				// If this is the last chunk, save the complete message
+				if chunk.Choices[0].FinishReason == "stop" {
+					// Save the complete message to database
+					dbMessage := &database.Message{
+						ID:        uuid.New().String(),
+						SessionID: sessionId,
+						Content:   responseContent,
+						Sender:    "bot",
+						Timestamp: time.Now(),
+					}
+					if err := db.SaveMessage(c.Request.Context(), dbMessage); err != nil {
+						log.Printf("[WS] Failed to save bot message - SessionID: %s, Error: %v", sessionId, err)
+					}
+				}
+			}
 		}
 	}
 }

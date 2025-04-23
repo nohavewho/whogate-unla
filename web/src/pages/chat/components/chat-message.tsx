@@ -3,18 +3,8 @@ import { Icon } from "@iconify/react";
 import { toast } from "react-hot-toast";
 
 import { mcpService } from "../../../services/mcp";
-
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-  isStreaming?: boolean;
-  tool_calls?: Array<{
-    name: string;
-    arguments: Record<string, unknown>;
-  }>;
-}
+import { wsService } from "../../../services/websocket";
+import {Message, ToolCall} from "../../../types/message";
 
 interface ChatMessageProps {
   message: Message;
@@ -23,10 +13,18 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   const isBot = message.sender === 'bot';
 
-  const handleRunTool = async (name: string, args: Record<string, unknown>) => {
+  const handleRunTool = async (tool: ToolCall) => {
     try {
+      if (!tool?.function?.name) {
+        toast.error('工具名称格式错误', {
+          duration: 3000,
+          position: 'bottom-right',
+        });
+        return;
+      }
+
       // 解析 serverName:toolName 格式
-      const [serverName, toolName] = name.split(':');
+      const [serverName, toolName] = tool.function.name.split(':');
       if (!serverName || !toolName) {
         toast.error('工具名称格式错误', {
           duration: 3000,
@@ -36,7 +34,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       }
 
       const sessionId = mcpService.getSessionId(serverName);
-      
+
       if (!sessionId) {
         toast.error(`服务器 ${serverName} 未连接`, {
           duration: 3000,
@@ -45,13 +43,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
         return;
       }
 
+      // 解析 arguments 字符串为对象
+      const args = JSON.parse(tool.function.arguments);
       const result = await mcpService.callTool(serverName, toolName, args);
-      
+
       // 显示工具调用结果
       toast.success(`工具调用成功: ${result}`, {
         duration: 3000,
         position: 'bottom-right',
       });
+
+      // 将工具调用结果作为新消息发送
+      await wsService.sendToolResult(tool.function.name, tool.id, result);
     } catch (error) {
       console.error('工具调用失败:', error);
       toast.error(`工具调用失败: ${(error as Error).message}`, {
@@ -77,22 +80,24 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {message.isStreaming && (
           <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
         )}
-        {message.tool_calls && message.tool_calls.map((tool, index) => (
-          <div key={index} className="mt-2 p-2 border rounded bg-content1">
-            <div className="font-medium">{tool.name}</div>
-            <pre className="text-sm mt-1 p-2 bg-content2 rounded overflow-auto">
-              {JSON.stringify(tool.arguments, null, 2)}
-            </pre>
-            <Button
-              size="sm"
-              color="primary"
-              className="mt-2"
-              startContent={<Icon icon="lucide:play" />}
-              onPress={() => handleRunTool(tool.name, tool.arguments)}
-            >
-              运行工具
-            </Button>
-          </div>
+        {message.toolCalls?.map((tool, index) => (
+          tool?.function?.name ? (
+            <div key={index} className="mt-2 p-2 border rounded bg-content1">
+              <div className="font-medium">{tool.function.name}</div>
+              <pre className="text-sm mt-1 p-2 bg-content2 rounded overflow-auto">
+                {JSON.stringify(JSON.parse(tool.function.arguments), null, 2)}
+              </pre>
+              <Button
+                size="sm"
+                color="primary"
+                className="mt-2"
+                startContent={<Icon icon="lucide:play" />}
+                onPress={() => handleRunTool(tool)}
+              >
+                运行工具
+              </Button>
+            </div>
+          ) : null
         ))}
       </div>
     </div>

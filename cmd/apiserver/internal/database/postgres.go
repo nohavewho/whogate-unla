@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
@@ -35,29 +36,32 @@ func (db *PostgresDB) Init(ctx context.Context) error {
 
 	db.pool = pool
 
-	// Create tables if they don't exist
+	// Create sessions table
 	_, err = pool.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS sessions (
-			id VARCHAR(36) PRIMARY KEY,
-			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-			title VARCHAR(20) DEFAULT ''
-		);
-
-		CREATE TABLE IF NOT EXISTS messages (
-			id VARCHAR(36) PRIMARY KEY,
-			session_id VARCHAR(36) REFERENCES sessions(id),
-			content TEXT NOT NULL,
-			sender VARCHAR(50) NOT NULL,
-			timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-			tool_calls TEXT,
-			CONSTRAINT fk_session
-				FOREIGN KEY(session_id)
-				REFERENCES sessions(id)
-				ON DELETE CASCADE
-		);
+			id TEXT PRIMARY KEY,
+			title TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
 	`)
 	if err != nil {
-		return fmt.Errorf("error creating tables: %w", err)
+		return fmt.Errorf("failed to create sessions table: %w", err)
+	}
+
+	// Create messages table
+	_, err = pool.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS messages (
+			id TEXT PRIMARY KEY,
+			session_id TEXT REFERENCES sessions(id) ON DELETE CASCADE,
+			content TEXT,
+			sender TEXT,
+			timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			tool_calls TEXT,
+			tool_result TEXT
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create messages table: %w", err)
 	}
 
 	return nil
@@ -71,19 +75,30 @@ func (db *PostgresDB) Close() error {
 	return nil
 }
 
+// Message represents a chat message
+type Message struct {
+	ID         string    `json:"id"`
+	SessionID  string    `json:"session_id"`
+	Content    string    `json:"content"`
+	Sender     string    `json:"sender"`
+	Timestamp  time.Time `json:"timestamp"`
+	ToolCalls  string    `json:"toolCalls,omitempty"`
+	ToolResult string    `json:"toolResult,omitempty"`
+}
+
 // SaveMessage saves a message to the database
 func (db *PostgresDB) SaveMessage(ctx context.Context, message *Message) error {
 	_, err := db.pool.Exec(ctx, `
-		INSERT INTO messages (id, session_id, content, sender, timestamp, tool_calls)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, message.ID, message.SessionID, message.Content, message.Sender, message.Timestamp, message.ToolCalls)
+		INSERT INTO messages (id, session_id, content, sender, timestamp, tool_calls, tool_result)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, message.ID, message.SessionID, message.Content, message.Sender, message.Timestamp, message.ToolCalls, message.ToolResult)
 	return err
 }
 
-// GetMessages retrieves all messages for a specific session
+// GetMessages retrieves all messages for a session
 func (db *PostgresDB) GetMessages(ctx context.Context, sessionID string) ([]*Message, error) {
 	rows, err := db.pool.Query(ctx, `
-		SELECT id, session_id, content, sender, timestamp, tool_calls
+		SELECT id, session_id, content, sender, timestamp, tool_calls, tool_result
 		FROM messages
 		WHERE session_id = $1
 		ORDER BY timestamp ASC
@@ -96,13 +111,11 @@ func (db *PostgresDB) GetMessages(ctx context.Context, sessionID string) ([]*Mes
 	var messages []*Message
 	for rows.Next() {
 		var msg Message
-		err := rows.Scan(&msg.ID, &msg.SessionID, &msg.Content, &msg.Sender, &msg.Timestamp, &msg.ToolCalls)
-		if err != nil {
+		if err := rows.Scan(&msg.ID, &msg.SessionID, &msg.Content, &msg.Sender, &msg.Timestamp, &msg.ToolCalls, &msg.ToolResult); err != nil {
 			return nil, err
 		}
 		messages = append(messages, &msg)
 	}
-
 	return messages, nil
 }
 

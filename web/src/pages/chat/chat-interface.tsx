@@ -10,18 +10,10 @@ import { getChatMessages, getMCPServers } from '../../services/api';
 import { mcpService } from '../../services/mcp';
 import { wsService, WebSocketMessage } from '../../services/websocket';
 import { Tool } from '../../types/mcp';
+import { Message as MessageType, ToolCall } from '../../types/message';
 
 import { ChatHistory } from './components/chat-history';
 import { ChatMessage } from './components/chat-message';
-
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-  isStreaming?: boolean;
-  tool_calls?: any[];
-}
 
 interface BackendMessage {
   id: string;
@@ -58,7 +50,7 @@ export function ChatInterface() {
   const { sessionId } = useParams();
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = React.useState<Message[]>([]);
+  const [messages, setMessages] = React.useState<MessageType[]>([]);
   const [input, setInput] = React.useState('');
   const [selectedChat, setSelectedChat] = React.useState<string | null>(null);
   const [activeServices, setActiveServices] = React.useState<string[]>([]);
@@ -156,11 +148,12 @@ export function ChatInterface() {
 
       // Check if data exists
       if (!data) {
-        const welcomeMessage: Message = {
+        const welcomeMessage: MessageType = {
           id: uuidv4(),
+          session_id: sessionId,
           content: '你好，欢迎使用MCP Gateway！',
           sender: 'bot',
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
         };
         setMessages([welcomeMessage]);
         return;
@@ -169,13 +162,11 @@ export function ChatInterface() {
       // Convert backend message format to frontend format
       const newMessages = data.map((msg: BackendMessage) => ({
         id: msg.id,
+        session_id: sessionId,
         content: msg.content,
         sender: msg.sender as 'user' | 'bot',
-        timestamp: new Date(msg.timestamp),
-        tool_calls: msg.toolCalls ? JSON.parse(msg.toolCalls).map((tool: any) => ({
-          name: tool.function.name,
-          arguments: JSON.parse(tool.function.arguments)
-        })) : undefined
+        timestamp: msg.timestamp,
+        toolCalls: msg.toolCalls ? JSON.parse(msg.toolCalls) as ToolCall[] : undefined
       }));
 
       if (pageNum === 1) {
@@ -217,23 +208,46 @@ export function ChatInterface() {
 
     // Set up message handler for regular messages
     const unsubscribe = wsService.onMessage((message: WebSocketMessage) => {
-      // Skip streaming messages as they are handled by stream handler
       if (message.type === 'stream') return;
 
-      setMessages(prev => {
-        // Check if message already exists to prevent duplicates
-        if (prev.some(m => m.id === message.id)) {
-          return prev;
-        }
-        const newMessage: Message = {
-          id: message.id,
-          content: message.content,
-          sender: message.sender,
-          timestamp: new Date(message.timestamp),
-          tool_calls: message.tool_calls,
-        };
-        return [...prev, newMessage];
-      });
+      switch (message.type) {
+        case "message":
+          setMessages(prev => {
+            // Check if message already exists to prevent duplicates
+            if (prev.some(m => m.id === message.id)) {
+              return prev;
+            }
+
+            const newMessage = {
+              id: message.id,
+              session_id: sessionId,
+              content: message.content,
+              sender: message.sender,
+              timestamp: new Date(message.timestamp).toISOString(),
+              toolCalls: message.toolCalls
+            };
+            return [...prev, newMessage];
+          });
+          break
+        case "tool_call":
+          setMessages(prev => {
+            // Check if message already exists to prevent duplicates
+            if (prev.some(m => m.id === message.id)) {
+              return prev;
+            }
+
+            const newMessage = {
+              id: message.id,
+              session_id: sessionId,
+              content: '',
+              sender: message.sender,
+              timestamp: new Date(message.timestamp).toISOString(),
+              toolCalls: message.toolCalls
+            };
+            return [...prev, newMessage];
+          });
+          break
+      }
     });
 
     // Set up stream handler
@@ -253,9 +267,10 @@ export function ChatInterface() {
         // If no bot message exists or last message is from user, create new one
         return [...prev, {
           id: uuidv4(),
+          session_id: sessionId,
           content: chunk,
           sender: 'bot',
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
           isStreaming: true
         }];
       });
@@ -305,11 +320,12 @@ export function ChatInterface() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const newMessage: Message = {
+    const newMessage: MessageType = {
       id: uuidv4(),
+      session_id: sessionId!,
       content: input,
       sender: 'user',
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, newMessage]);

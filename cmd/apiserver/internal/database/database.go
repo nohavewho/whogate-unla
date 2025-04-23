@@ -5,16 +5,6 @@ import (
 	"time"
 )
 
-// Message represents a chat message
-type Message struct {
-	ID        string    `json:"id"`        // UUID format
-	SessionID string    `json:"sessionId"` // UUID format
-	Content   string    `json:"content"`
-	Sender    string    `json:"sender"`
-	Timestamp time.Time `json:"timestamp"`
-	ToolCalls string    `json:"toolCalls"` // JSON string of tool calls
-}
-
 // Database interface defines the methods for database operations
 type Database interface {
 	// Initialize the database connection

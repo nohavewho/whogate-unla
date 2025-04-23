@@ -2,22 +2,23 @@ package dto
 
 // WebSocketMessage represents a message sent over WebSocket
 type WebSocketMessage struct {
-	Type      string `json:"type"`
-	Content   string `json:"content"`
-	Sender    string `json:"sender"`
-	Timestamp int64  `json:"timestamp"`
-	ID        string `json:"id"`
-	Tools     []Tool `json:"tools,omitempty"`
+	Type       string      `json:"type"`
+	Content    string      `json:"content"`
+	Sender     string      `json:"sender"`
+	Timestamp  int64       `json:"timestamp"`
+	ID         string      `json:"id"`
+	Tools      []Tool      `json:"tools,omitempty"`
+	ToolResult *ToolResult `json:"toolResult,omitempty"`
 }
 
 // WebSocketResponse represents a response sent over WebSocket
 type WebSocketResponse struct {
-	Type      string             `json:"type"`
-	Content   string             `json:"content"`
-	Sender    string             `json:"sender"`
-	Timestamp int64              `json:"timestamp"`
-	ID        string             `json:"id"`
-	ToolCalls []ToolCallResponse `json:"tool_calls,omitempty"`
+	Type      string     `json:"type"`
+	Content   string     `json:"content"`
+	Sender    string     `json:"sender"`
+	Timestamp int64      `json:"timestamp"`
+	ID        string     `json:"id"`
+	ToolCalls []ToolCall `json:"toolCalls,omitempty"`
 }
 
 // ToolParameters represents the parameters of a tool
@@ -52,9 +53,17 @@ type ToolCallResponse struct {
 	Arguments map[string]interface{} `json:"arguments"`
 }
 
-// ResponseType represents the type of WebSocket response
+// ToolResult represents the result of a tool call
+type ToolResult struct {
+	Name       string `json:"name"`
+	Result     string `json:"result"`
+	ToolCallID string `json:"toolCallId"`
+}
+
+// MsgType represents the type of WebSocket message
 const (
-	ResponseTypeMessage  = "message"
-	ResponseTypeStream   = "stream"
-	ResponseTypeToolCall = "tool_call"
+	MsgTypeMessage    = "message"
+	MsgTypeStream     = "stream"
+	MsgTypeToolCall   = "tool_call"
+	MsgTypeToolResult = "tool_result"
 )
