@@ -27,13 +27,14 @@ https://github.com/user-attachments/assets/2a812a14-85cf-45d6-9f37-cc08d8579b33
 - [x] 请求/响应体转换
 - [x] 管理界面
 - [ ] 会话持久化
-- [x] Streamable HTTP
+- [x] MCP SSE支持
+- [x] MCP Streamable HTTP支持
 - [ ] 可迁移可恢复会话
 - [ ] 前置认证
 - [ ] 配置版本控制
 - [ ] 分布式配置持久化支持
 - [ ] 服务多副本支持
-- [ ] Docker 支持
+- [x] Docker 支持
 - [ ] Kubernetes 集成
 - [ ] Helm 支持
 
