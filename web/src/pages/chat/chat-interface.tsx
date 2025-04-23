@@ -317,15 +317,14 @@ export function ChatInterface() {
     // Convert active tools to the required format
     const activeTools = Object.entries(tools)
       .filter(([serverName]) => activeServices.includes(serverName))
-      .flatMap(([, serverTools]) => serverTools)
-      .map(tool => ({
-        name: tool.name,
+      .flatMap(([serverName, serverTools]) => serverTools.map(tool => ({
+        name: `${serverName}:${tool.name}`,
         description: tool.description || tool.name, // Fallback to name if description is not provided
         parameters: {
           properties: tool.inputSchema.properties || {},
           required: tool.inputSchema.required as string[] || []
         }
-      }));
+      })));
 
     await wsService.sendMessage(input, activeTools.length > 0 ? activeTools : undefined);
     setInput('');

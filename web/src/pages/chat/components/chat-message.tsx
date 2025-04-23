@@ -1,5 +1,8 @@
 import { Avatar, Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
+import { toast } from "react-hot-toast";
+
+import { mcpService } from "../../../services/mcp";
 
 interface Message {
   id: string;
@@ -20,9 +23,42 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   const isBot = message.sender === 'bot';
 
-  const handleRunTool = (toolName: string, args: Record<string, unknown>) => {
-    // TODO: Implement tool execution
-    console.log('Running tool:', toolName, args);
+  const handleRunTool = async (name: string, args: Record<string, unknown>) => {
+    try {
+      // 解析 serverName:toolName 格式
+      const [serverName, toolName] = name.split(':');
+      if (!serverName || !toolName) {
+        toast.error('工具名称格式错误', {
+          duration: 3000,
+          position: 'bottom-right',
+        });
+        return;
+      }
+
+      const sessionId = mcpService.getSessionId(serverName);
+      
+      if (!sessionId) {
+        toast.error(`服务器 ${serverName} 未连接`, {
+          duration: 3000,
+          position: 'bottom-right',
+        });
+        return;
+      }
+
+      const result = await mcpService.callTool(serverName, toolName, args);
+      
+      // 显示工具调用结果
+      toast.success(`工具调用成功: ${result}`, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } catch (error) {
+      console.error('工具调用失败:', error);
+      toast.error(`工具调用失败: ${(error as Error).message}`, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    }
   };
 
   return (
@@ -54,7 +90,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               startContent={<Icon icon="lucide:play" />}
               onPress={() => handleRunTool(tool.name, tool.arguments)}
             >
-              Run Tool
+              运行工具
             </Button>
           </div>
         ))}
