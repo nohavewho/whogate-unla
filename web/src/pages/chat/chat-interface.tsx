@@ -20,6 +20,7 @@ interface Message {
   sender: 'user' | 'bot';
   timestamp: Date;
   isStreaming?: boolean;
+  tool_calls?: any[];
 }
 
 interface BackendMessage {
@@ -27,6 +28,7 @@ interface BackendMessage {
   content: string;
   sender: string;
   timestamp: string;
+  toolCalls?: string;
 }
 
 interface Gateway {
@@ -170,6 +172,10 @@ export function ChatInterface() {
         content: msg.content,
         sender: msg.sender as 'user' | 'bot',
         timestamp: new Date(msg.timestamp),
+        tool_calls: msg.toolCalls ? JSON.parse(msg.toolCalls).map((tool: any) => ({
+          name: tool.function.name,
+          arguments: JSON.parse(tool.function.arguments)
+        })) : undefined
       }));
 
       if (pageNum === 1) {
@@ -224,6 +230,7 @@ export function ChatInterface() {
           content: message.content,
           sender: message.sender,
           timestamp: new Date(message.timestamp),
+          tool_calls: message.tool_calls,
         };
         return [...prev, newMessage];
       });

@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface WebSocketMessage {
-  type: 'system' | 'message' | 'stream';
+  type: 'system' | 'message' | 'stream' | 'tool_call';
   content: string;
   sender: 'user' | 'bot';
   timestamp: number;
@@ -15,14 +15,17 @@ export interface WebSocketMessage {
       required: string[];
     };
   }>;
+  tool_calls?: Array<{
+    name: string;
+    arguments: Record<string, unknown>;
+  }>;
 }
 
 export class WebSocketService {
   private ws: WebSocket | null = null;
-  private messageHandlers: ((message: WebSocketMessage) => void)[] = [];
-  private streamHandlers: ((chunk: string) => void)[] = [];
-  private sessionId: string = '';
-
+  private messageHandlers: Array<(message: WebSocketMessage) => void> = [];
+  private streamHandlers: Array<(chunk: string) => void> = [];
+  private sessionId: string = uuidv4();
 
   constructor() {
     this.cleanup();

@@ -441,6 +441,16 @@ func handleWebSocket(c *gin.Context) {
 				Content:   responseContent,
 				Sender:    "bot",
 				Timestamp: time.Now(),
+				ToolCalls: func() string {
+					if toolCall != nil {
+						toolCall.Function.Arguments = toolCallArguments
+						toolCalls := []dto.ToolCall{*toolCall}
+						if jsonBytes, err := json.Marshal(toolCalls); err == nil {
+							return string(jsonBytes)
+						}
+					}
+					return ""
+				}(),
 			}
 			if err := db.SaveMessage(c.Request.Context(), dbMessage); err != nil {
 				log.Printf("[WS] Failed to save bot message - SessionID: %s, Error: %v", sessionId, err)

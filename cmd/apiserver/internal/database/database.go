@@ -12,6 +12,7 @@ type Message struct {
 	Content   string    `json:"content"`
 	Sender    string    `json:"sender"`
 	Timestamp time.Time `json:"timestamp"`
+	ToolCalls string    `json:"toolCalls"` // JSON string of tool calls
 }
 
 // Database interface defines the methods for database operations

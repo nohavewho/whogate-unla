@@ -48,7 +48,12 @@ func (db *PostgresDB) Init(ctx context.Context) error {
 			session_id VARCHAR(36) REFERENCES sessions(id),
 			content TEXT NOT NULL,
 			sender VARCHAR(50) NOT NULL,
-			timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+			timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			tool_calls TEXT,
+			CONSTRAINT fk_session
+				FOREIGN KEY(session_id)
+				REFERENCES sessions(id)
+				ON DELETE CASCADE
 		);
 	`)
 	if err != nil {
@@ -69,16 +74,16 @@ func (db *PostgresDB) Close() error {
 // SaveMessage saves a message to the database
 func (db *PostgresDB) SaveMessage(ctx context.Context, message *Message) error {
 	_, err := db.pool.Exec(ctx, `
-		INSERT INTO messages (id, session_id, content, sender, timestamp)
-		VALUES ($1, $2, $3, $4, $5)
-	`, message.ID, message.SessionID, message.Content, message.Sender, message.Timestamp)
+		INSERT INTO messages (id, session_id, content, sender, timestamp, tool_calls)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, message.ID, message.SessionID, message.Content, message.Sender, message.Timestamp, message.ToolCalls)
 	return err
 }
 
 // GetMessages retrieves all messages for a specific session
 func (db *PostgresDB) GetMessages(ctx context.Context, sessionID string) ([]*Message, error) {
 	rows, err := db.pool.Query(ctx, `
-		SELECT id, session_id, content, sender, timestamp
+		SELECT id, session_id, content, sender, timestamp, tool_calls
 		FROM messages
 		WHERE session_id = $1
 		ORDER BY timestamp ASC
@@ -91,7 +96,7 @@ func (db *PostgresDB) GetMessages(ctx context.Context, sessionID string) ([]*Mes
 	var messages []*Message
 	for rows.Next() {
 		var msg Message
-		err := rows.Scan(&msg.ID, &msg.SessionID, &msg.Content, &msg.Sender, &msg.Timestamp)
+		err := rows.Scan(&msg.ID, &msg.SessionID, &msg.Content, &msg.Sender, &msg.Timestamp, &msg.ToolCalls)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +111,7 @@ func (db *PostgresDB) GetMessagesWithPagination(ctx context.Context, sessionID s
 	offset := (page - 1) * pageSize
 
 	rows, err := db.pool.Query(ctx, `
-		SELECT id, session_id, content, sender, timestamp
+		SELECT id, session_id, content, sender, timestamp, tool_calls
 		FROM messages
 		WHERE session_id = $1
 		ORDER BY timestamp DESC
@@ -120,7 +125,7 @@ func (db *PostgresDB) GetMessagesWithPagination(ctx context.Context, sessionID s
 	var messages []*Message
 	for rows.Next() {
 		var msg Message
-		err := rows.Scan(&msg.ID, &msg.SessionID, &msg.Content, &msg.Sender, &msg.Timestamp)
+		err := rows.Scan(&msg.ID, &msg.SessionID, &msg.Content, &msg.Sender, &msg.Timestamp, &msg.ToolCalls)
 		if err != nil {
 			return nil, err
 		}
