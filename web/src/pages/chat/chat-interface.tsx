@@ -1,4 +1,4 @@
-import { Card, CardBody, Button, Input, Select, SelectItem, Divider } from '@heroui/react';
+import { Card, CardBody, Button, Input, Select, SelectItem, Divider, Tabs, Tab } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
 import React from 'react';
@@ -355,22 +355,23 @@ export function ChatInterface() {
               {activeServices.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <h3 className="text-lg font-semibold">Available Tools</h3>
-                  <div className="grid grid-cols-1 gap-2">
+                  <Tabs aria-label="Server tools">
                     {activeServices.map(serverName => {
                       const serverTools = tools[serverName] || [];
                       return (
-                        <div key={serverName} className="flex flex-col gap-2">
-                          <h4 className="text-md font-medium">{serverName}</h4>
-                          {serverTools.map(tool => (
-                            <div key={tool.name} className="p-2 border rounded">
-                              <div className="font-medium">{tool.name}</div>
-                              <div className="text-sm text-default-500">{tool.description}</div>
-                            </div>
-                          ))}
-                        </div>
+                        <Tab key={serverName} title={serverName}>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {serverTools.map(tool => (
+                              <div key={tool.name} className="p-2 border rounded min-w-[200px] flex-1">
+                                <div className="font-medium">{tool.name}</div>
+                                <div className="text-sm text-default-500">{tool.description}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </Tab>
                       );
                     })}
-                  </div>
+                  </Tabs>
                 </div>
               )}
 
