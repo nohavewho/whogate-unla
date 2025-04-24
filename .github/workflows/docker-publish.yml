@@ -70,6 +70,8 @@ jobs:
           file: deploy/docker/allinone/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.PUSH_LATEST == 'true' && format('{0}/mcp-gateway-allinone:latest', env.DOCKER_HUB_USERNAME) || '' }}
             ${{ format('{0}/mcp-gateway-allinone:{1}', env.DOCKER_HUB_USERNAME, github.ref_name) }}
@@ -85,6 +87,8 @@ jobs:
           file: deploy/docker/multi/apiserver/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.PUSH_LATEST == 'true' && format('{0}/mcp-gateway-apiserver:latest', env.DOCKER_HUB_USERNAME) || '' }}
             ${{ format('{0}/mcp-gateway-apiserver:{1}', env.DOCKER_HUB_USERNAME, github.ref_name) }}
@@ -100,6 +104,8 @@ jobs:
           file: deploy/docker/multi/mcp-gateway/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.PUSH_LATEST == 'true' && format('{0}/mcp-gateway-mcp-gateway:latest', env.DOCKER_HUB_USERNAME) || '' }}
             ${{ format('{0}/mcp-gateway-mcp-gateway:{1}', env.DOCKER_HUB_USERNAME, github.ref_name) }}
@@ -115,6 +121,8 @@ jobs:
           file: deploy/docker/multi/mock-user-svc/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.PUSH_LATEST == 'true' && format('{0}/mcp-gateway-mock-user-svc:latest', env.DOCKER_HUB_USERNAME) || '' }}
             ${{ format('{0}/mcp-gateway-mock-user-svc:{1}', env.DOCKER_HUB_USERNAME, github.ref_name) }}
