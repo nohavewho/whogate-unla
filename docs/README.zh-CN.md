@@ -1,26 +1,63 @@
 # MCP Gateway
 
-[![English](https://img.shields.io/badge/English-Click-yellow)](../README.en.md)
+> 🚀 将现有 API 快速转化为 [MCP](https://modelcontextprotocol.io/) 服务，无需改动任何一行代码。
+
+[![English](https://img.shields.io/badge/English-Click-yellow)](../README.md)
 [![简体中文](https://img.shields.io/badge/简体中文-点击查看-orange)](README.zh-CN.md)
+[![Release](https://img.shields.io/github/v/release/mcp-ecosystem/mcp-gateway)](https://github.com/mcp-ecosystem/mcp-gateway/releases)
+[![文档](https://img.shields.io/badge/文档-在线阅读-blue)](https://mcp.ifuryst.com)
 
-MCP Gateway 是一个基于 Go 语言开发的轻量但高可用的网关服务，旨在让个人和企业在MCP(Model Control Protocol)浪潮下可以无痛将存量的API服务（RESTful, gRPC等）通过配置的方式转成MCP-Server
+---
 
-非常存粹的目的和功能特性：
-- 平台中立，不管是物理机、虚拟机、ECS、K8s等场景都可以无痛接入，无需对基础设施动手
-- 支持多种协议的转换，RESTful、gRPC等都可以通过配置的方式转成MCP-Server
-- 追求性能和轻松的多副本高可用，轻量但不对可用及性能妥协
-- 简单直观的管理页面，拒绝学习和运维成本
+## ✨ MCP Gateway 是什么？
+
+**MCP Gateway** 是一个用 Go 编写的轻量高可用网关服务，帮助个人与企业将已有的 API 通过配置方式转换为符合 [MCP 协议](https://modelcontextprotocol.io/) 的服务，无需改动任何代码。
 
 https://github.com/user-attachments/assets/2a812a14-85cf-45d6-9f37-cc08d8579b33
 
-## 功能特性
+### 🔧 核心设计理念
 
-- ⚙️ 零侵入式接入
-- 🪶 轻量设计，易于部署
-- 💡 请求头、参数、请求体和响应体等参数透传
-- 🧭 管理后台直观易用
+- ✅ 零侵入：平台中立，适配物理机、虚拟机、ECS、K8s 等环境，无需改动现有基础设施
+- 🔄 配置驱动：通过 YAML 配置即可将存量 API 转换为 MCP Server，无需改代码
+- 🪶 轻量高效：架构极致轻量，拒绝在性能与高可用性上妥协
+- 🧭 内置管理界面：开箱即用的 Web UI，降低学习与运维成本
 
-## 待办事项
+---
+
+## 🚀 快速开始
+
+MCP Gateway 提供开箱即用的 Docker 启动方式。完整部署与配置说明请参考 [文档](https://mcp.ifuryst.com/getting-started/quick-start)。
+
+### Docker 方式运行
+
+```bash
+mkdir mcp-gateway/{configs,data}
+cd mcp-gateway/
+curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/main/configs/apiserver.yaml -o configs/apiserver.yaml
+curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/main/configs/mcp-gateway.yaml -o configs/mcp-gateway.yaml
+curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/main/.env.example -o .env.allinone
+
+docker run -d \
+           --name mcp-gateway \
+           -p 80:80 \
+           -p 5234:5234 \
+           -p 5235:5235 \
+           -p 5236:5236 \
+           -e ENV=production \
+           -v $(pwd)/configs:/app/configs \
+           -v $(pwd)/data:/app/data \
+           -v $(pwd)/.env.allinone:/app/.env \
+           --restart unless-stopped \
+           ghcr.io/mcp-ecosystem/mcp-gateway/allinone:latest
+```
+
+访问 http://localhost/ 开始配置使用
+
+📖 查看完整指南 → [快速开始文档 »](https://mcp.ifuryst.com/getting-started/quick-start)
+
+---
+
+## 📋 待办事项
 
 - [x] RESTful API 到 MCP-Server 的转换
 - [ ] gRPC 到 MCP-Server 的转换
@@ -38,181 +75,17 @@ https://github.com/user-attachments/assets/2a812a14-85cf-45d6-9f37-cc08d8579b33
 - [ ] Kubernetes 集成
 - [ ] Helm 支持
 
-## 快速开始
+---
 
-### 后端服务
+## 📚 文档
 
-#### 网关服务
+更多使用方式、配置示例、集成说明请访问文档站点：
 
-1. 克隆项目
-    ```bash
-    git clone https://github.com/mcp-ecosystem/mcp-gateway.git
-    cd mcp-gateway
-    ```
+👉 **https://mcp.ifuryst.com**
 
-2. 安装依赖
-    ```bash
-    go mod download
-    ```
+---
 
-3. 运行服务
-    ```bash
-    go run ./cmd/mcp-gateway/main.go
-    ```
+## 📄 许可证
 
-#### 管理服务
+本项目采用 [MIT 协议](../LICENSE)。
 
-1. 克隆项目
-    ```bash
-    git clone https://github.com/mcp-ecosystem/mcp-gateway.git
-    cd mcp-gateway
-    ```
-
-2. 安装依赖
-    ```bash
-    go mod download
-    ```
-
-3. 运行服务
-    ```bash
-    go run cmd/apiserver/main.go
-    ```
-
-### 前端开发
-
-1. 进入前端目录
-    ```bash
-    cd web
-    ```
-
-2. 安装依赖
-    ```bash
-    npm install
-    ```
-
-3. 启动开发服务器
-    ```bash
-    npm run dev
-    ```
-
-## 项目结构
-
-```
-.
-├── cmd/            # 后端服务入口
-├── configs/        # 配置文件
-├── internal/       # 内部包
-├── pkg/            # 公共包
-├── web/            # 前端代码
-└── docs/           # 项目文档
-```
-
-## 配置说明
-
-配置文件位于 `configs` 目录下，支持 YAML 格式的配置文件。主要配置项包括：
-
-- 🖥️ 服务器配置
-- 🔀 路由规则
-- 🔐 工具权限
-- ⚙️ 系统参数
-
-## 贡献指南
-
-1. Fork 项目
-2. 创建特性分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
-
-## 许可证
-
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
-
-
-### 后端服务
-
-#### 网关服务
-
-1. 克隆项目
-```bash
-git clone https://github.com/mcp-ecosystem/mcp-gateway.git
-cd mcp-gateway
-```
-
-2. 安装依赖
-```bash
-go mod download
-```
-
-3. 运行服务
-```bash
-go run ./cmd/mcp-gateway/main.go
-```
-
-#### 管理服务
-
-1. 克隆项目
-```bash
-git clone https://github.com/mcp-ecosystem/mcp-gateway.git
-cd mcp-gateway
-```
-
-2. 安装依赖
-```bash
-go mod download
-```
-
-3. 运行服务
-```bash
-go run cmd/apiserver/main.go
-```
-
-### 前端开发
-
-1. 进入前端目录
-```bash
-cd web
-```
-
-2. 安装依赖
-```bash
-npm install
-```
-
-3. 启动开发服务器
-```bash
-npm run dev
-```
-
-## 项目结构
-
-```
-.
-├── cmd/            # 后端服务入口
-├── configs/        # 配置文件
-├── internal/       # 内部包
-├── pkg/            # 公共包
-├── web/            # 前端代码
-└── docs/           # 项目文档
-```
-
-## 配置说明
-
-配置文件位于 `configs` 目录下，支持 YAML 格式的配置文件。主要配置项包括：
-
-- 服务器配置
-- 路由规则
-- 工具权限
-- 系统参数
-
-## 贡献指南
-
-1. Fork 项目
-2. 创建特性分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
-
-## 许可证
-
-本项目采用 MIT 许可证 - 详见 [LICENSE](../LICENSE) 文件
