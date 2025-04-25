@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	config2 "github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,9 +13,11 @@ import (
 	"syscall"
 	"time"
 
+	config2 "github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/core/storage"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -198,6 +199,9 @@ func handleReload(logger *zap.Logger, mcpCfgLoader *config2.Loader, mcpCfgPath s
 }
 
 func run() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	logger, err := zap.NewProduction()
 	if err != nil {
 		panic(err)
@@ -234,6 +238,15 @@ func run() {
 			zap.Error(err))
 	}
 
+	// Initialize storage and load initial configuration
+	store, err := storage.NewDiskStore(ctx, logger, dataDir)
+	if err != nil {
+		logger.Fatal("failed to initialize storage",
+			zap.String("path", dataDir),
+			zap.Error(err))
+	}
+
+	// Load initial MCP configuration
 	mcpCfgLoader := config2.NewLoader(logger)
 	mcpCfg, err := mcpCfgLoader.LoadFromDir(mcpCfgPath)
 	if err != nil {
@@ -242,14 +255,13 @@ func run() {
 			zap.Error(err))
 	}
 
-	store, err := storage.NewDiskStorage(logger, dataDir)
-	if err != nil {
-		logger.Fatal("failed to initialize storage",
-			zap.String("path", dataDir),
+	// Store initial configuration
+	if err := store.Create(ctx, mcpCfg); err != nil {
+		logger.Fatal("Failed to store initial MCP configuration",
 			zap.Error(err))
 	}
 
-	srv := core.NewServer(logger, store)
+	srv := core.NewServer(logger)
 	router := gin.Default()
 
 	if err := srv.RegisterRoutes(router, mcpCfg); err != nil {
@@ -262,6 +274,14 @@ func run() {
 		Handler: router,
 	}
 
+	notifier := store.GetNotifier(ctx)
+	updateCh, err := notifier.Watch(ctx)
+	if err != nil {
+		logger.Fatal("failed to start watching for updates",
+			zap.Error(err))
+	}
+
+	// Keep the original HTTP reload endpoint
 	reloadChan = make(chan struct{})
 	reloadRouter := gin.Default()
 	reloadRouter.POST("/_reload", func(c *gin.Context) {
@@ -291,9 +311,7 @@ func run() {
 	}()
 
 	quit := make(chan os.Signal, 1)
-	reload := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	signal.Notify(reload, syscall.SIGHUP)
 
 	for {
 		select {
@@ -311,8 +329,8 @@ func run() {
 			}
 			cancel()
 			return
-		case sig := <-reload:
-			logger.Info("Received reload signal", zap.String("signal", sig.String()))
+		case <-updateCh:
+			logger.Info("Received reload signal")
 			handleReload(logger, mcpCfgLoader, mcpCfgPath, srv, cfg)
 		case <-reloadChan:
 			handleReload(logger, mcpCfgLoader, mcpCfgPath, srv, cfg)

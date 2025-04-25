@@ -15,7 +15,6 @@ import (
 // Server represents the MCP server
 type Server struct {
 	logger   *zap.Logger
-	store    Storage
 	renderer *template.Renderer
 	sessions sync.Map
 	tools    []mcp.ToolSchema
@@ -29,10 +28,9 @@ type Server struct {
 }
 
 // NewServer creates a new MCP server
-func NewServer(logger *zap.Logger, store Storage) *Server {
+func NewServer(logger *zap.Logger) *Server {
 	return &Server{
 		logger:               logger,
-		store:                store,
 		renderer:             template.NewRenderer(),
 		tools:                make([]mcp.ToolSchema, 0),
 		toolMap:              make(map[string]*config.ToolConfig),

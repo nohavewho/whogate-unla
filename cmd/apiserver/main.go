@@ -45,6 +45,8 @@ func init() {
 }
 
 func run() {
+	ctx := context.Background()
+
 	// Initialize logger
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -79,7 +81,7 @@ func run() {
 	defer db.Close()
 
 	// Initialize store
-	store, err := storage.NewDiskStore(logger, configPath)
+	store, err := storage.NewDiskStore(ctx, logger, configPath)
 	if err != nil {
 		logger.Fatal("Failed to initialize store",
 			zap.String("path", configPath),

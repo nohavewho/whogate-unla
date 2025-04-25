@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	"gopkg.in/yaml.v3"
 
 	"go.uber.org/zap"
@@ -16,15 +17,16 @@ import (
 
 // DiskStore implements the Store interface using the local filesystem
 type DiskStore struct {
-	logger  *zap.Logger
-	baseDir string
-	mu      sync.RWMutex
+	logger   *zap.Logger
+	baseDir  string
+	mu       sync.RWMutex
+	notifier notifier.Notifier
 }
 
 var _ Store = (*DiskStore)(nil)
 
 // NewDiskStore creates a new disk-based store
-func NewDiskStore(logger *zap.Logger, baseDir string) (*DiskStore, error) {
+func NewDiskStore(ctx context.Context, logger *zap.Logger, baseDir string) (*DiskStore, error) {
 	logger = logger.Named("mcp.store")
 
 	baseDir = getConfigPath(baseDir)
@@ -35,8 +37,9 @@ func NewDiskStore(logger *zap.Logger, baseDir string) (*DiskStore, error) {
 	}
 
 	return &DiskStore{
-		logger:  logger,
-		baseDir: baseDir,
+		logger:   logger,
+		baseDir:  baseDir,
+		notifier: notifier.NewSignalNotifier(ctx, logger),
 	}, nil
 }
 
@@ -147,13 +150,9 @@ func (s *DiskStore) Delete(_ context.Context, name string) error {
 	return os.Remove(path)
 }
 
-// Watch implements Store.Watch
-func (s *DiskStore) Watch(_ context.Context) (<-chan *config.MCPConfig, error) {
-	// TODO: Implement file system watching
-	// For now, return a closed channel as we don't have a file watcher implementation
-	ch := make(chan *config.MCPConfig)
-	close(ch)
-	return ch, nil
+// GetNotifier implements Store.GetNotifier
+func (s *DiskStore) GetNotifier(_ context.Context) notifier.Notifier {
+	return s.notifier
 }
 
 func getConfigPath(baseDir string) string {
