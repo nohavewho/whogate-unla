@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	database2 "github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
+	config2 "github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/dto"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/openai"
 	"log"
 	"net/http"
 	"os"
@@ -16,10 +20,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/mcp-ecosystem/mcp-gateway/cmd/apiserver/internal/database"
-	"github.com/mcp-ecosystem/mcp-gateway/cmd/apiserver/internal/dto"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/openai"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 	openaiGo "github.com/openai/openai-go"
 	"github.com/spf13/cobra"
@@ -29,7 +29,7 @@ import (
 
 var (
 	configPath   string
-	db           database.Database
+	db           database2.Database
 	openaiClient *openai.Client
 
 	versionCmd = &cobra.Command{
@@ -93,7 +93,7 @@ func run() {
 	defer logger.Sync()
 
 	// Load configuration
-	cfg, err := config.LoadConfig[config.APIServerConfig]("configs/apiserver.yaml")
+	cfg, err := config2.LoadConfig[config2.APIServerConfig]("configs/apiserver.yaml")
 	if err != nil {
 		logger.Fatal("Failed to load configuration", zap.Error(err))
 	}
@@ -104,11 +104,11 @@ func run() {
 	// Initialize database based on configuration
 	switch cfg.Database.Type {
 	case "postgres":
-		db = database.NewPostgresDB(&cfg.Database)
+		db = database2.NewPostgresDB(&cfg.Database)
 	case "sqlite":
-		db = database.NewSQLiteDB(&cfg.Database)
+		db = database2.NewSQLiteDB(&cfg.Database)
 	case "mysql":
-		db = database.NewMySQLDB(&cfg.Database)
+		db = database2.NewMySQLDB(&cfg.Database)
 	default:
 		logger.Fatal("Unsupported database type", zap.String("type", cfg.Database.Type))
 	}
@@ -179,7 +179,7 @@ func handleMCPServerUpdate(c *gin.Context) {
 	}
 
 	// Validate the YAML content
-	var cfg config.MCPConfig
+	var cfg config2.MCPConfig
 	if err := yaml.Unmarshal(content, &cfg); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid YAML content: " + err.Error()})
 		return
@@ -277,7 +277,7 @@ func handleWebSocket(c *gin.Context) {
 		case dto.MsgTypeMessage:
 
 			// Save all incoming messages to database
-			msg := &database.Message{
+			msg := &database2.Message{
 				ID:        uuid.New().String(),
 				SessionID: sessionId,
 				Content:   message.Content,
@@ -452,7 +452,7 @@ func handleWebSocket(c *gin.Context) {
 						log.Printf("[WS] Failed to marshal tool calls - SessionID: %s, Error: %v", sessionId, err)
 						continue
 					}
-					msg := &database.Message{
+					msg := &database2.Message{
 						ID:        uuid.New().String(),
 						SessionID: sessionId,
 						Content:   "",
@@ -485,7 +485,7 @@ func handleWebSocket(c *gin.Context) {
 				// If this is the last chunk, save the complete message
 				if chunk.Choices[0].FinishReason == "stop" {
 					// Save the complete message to database
-					dbMessage := &database.Message{
+					dbMessage := &database2.Message{
 						ID:        uuid.New().String(),
 						SessionID: sessionId,
 						Content:   responseContent,
@@ -504,7 +504,7 @@ func handleWebSocket(c *gin.Context) {
 				log.Printf("[WS] Failed to marshal tool result - SessionID: %s, Error: %v", sessionId, err)
 				continue
 			}
-			msg := &database.Message{
+			msg := &database2.Message{
 				ID:         uuid.New().String(),
 				SessionID:  sessionId,
 				Content:    "",
@@ -620,7 +620,7 @@ func handleWebSocket(c *gin.Context) {
 				// If this is the last chunk, save the complete message
 				if chunk.Choices[0].FinishReason == "stop" {
 					// Save the complete message to database
-					dbMessage := &database.Message{
+					dbMessage := &database2.Message{
 						ID:        uuid.New().String(),
 						SessionID: sessionId,
 						Content:   responseContent,
@@ -684,7 +684,7 @@ func handleMCPServerCreate(c *gin.Context) {
 	}
 
 	// Validate the YAML content and get the server name
-	var cfg config.MCPConfig
+	var cfg config2.MCPConfig
 	if err := yaml.Unmarshal(content, &cfg); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid YAML content: " + err.Error()})
 		return
@@ -772,7 +772,7 @@ func handleMCPServerDelete(c *gin.Context) {
 
 func sendReloadSignal() error {
 	// Load configuration
-	cfg, err := config.LoadConfig[config.APIServerConfig]("configs/apiserver.yaml")
+	cfg, err := config2.LoadConfig[config2.APIServerConfig]("configs/apiserver.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -828,7 +828,7 @@ func handleMCPServerSync(c *gin.Context) {
 		}
 
 		// Validate the YAML content
-		var cfg config.MCPConfig
+		var cfg config2.MCPConfig
 		if err := yaml.Unmarshal(content, &cfg); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "invalid YAML content in " + file.Name() + ": " + err.Error(),

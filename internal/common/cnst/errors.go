@@ -1,4 +1,4 @@
-package config
+package cnst
 
 import "errors"
 

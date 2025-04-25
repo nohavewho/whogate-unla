@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	config2 "github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,9 +15,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/server"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/server/storage"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/core/storage"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -127,7 +127,7 @@ func getPIDFile() string {
 	}
 
 	cfgPath := getCfgPath()
-	cfg, err := config.LoadConfig[config.MCPGatewayConfig](cfgPath)
+	cfg, err := config2.LoadConfig[config2.MCPGatewayConfig](cfgPath)
 	if err != nil {
 		return "/var/run/mcp-gateway.pid"
 	}
@@ -149,7 +149,7 @@ func removePIDFile() error {
 	return os.Remove(pidFile)
 }
 
-func handleReload(logger *zap.Logger, mcpCfgLoader *config.Loader, mcpCfgPath string, srv *server.Server, cfg *config.MCPGatewayConfig) {
+func handleReload(logger *zap.Logger, mcpCfgLoader *config2.Loader, mcpCfgPath string, srv *core.Server, cfg *config2.MCPGatewayConfig) {
 	logger.Info("Reloading MCP configuration")
 	newMCPCfg, err := mcpCfgLoader.LoadFromDir(mcpCfgPath)
 	if err != nil {
@@ -227,14 +227,14 @@ func run() {
 			zap.Error(err))
 	}
 
-	cfg, err := config.LoadConfig[config.MCPGatewayConfig](cfgPath)
+	cfg, err := config2.LoadConfig[config2.MCPGatewayConfig](cfgPath)
 	if err != nil {
 		logger.Fatal("Failed to load service configuration",
 			zap.String("path", cfgPath),
 			zap.Error(err))
 	}
 
-	mcpCfgLoader := config.NewLoader(logger)
+	mcpCfgLoader := config2.NewLoader(logger)
 	mcpCfg, err := mcpCfgLoader.LoadFromDir(mcpCfgPath)
 	if err != nil {
 		logger.Fatal("Failed to load MCP configuration",
@@ -249,7 +249,7 @@ func run() {
 			zap.Error(err))
 	}
 
-	srv := server.NewServer(logger, store)
+	srv := core.NewServer(logger, store)
 	router := gin.Default()
 
 	if err := srv.RegisterRoutes(router, mcpCfg); err != nil {

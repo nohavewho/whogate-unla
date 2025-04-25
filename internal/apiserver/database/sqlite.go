@@ -3,11 +3,11 @@ package database
 import (
 	"context"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

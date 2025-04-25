@@ -2,8 +2,8 @@ package openai
 
 import (
 	"context"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/openai/openai-go/packages/ssestream"

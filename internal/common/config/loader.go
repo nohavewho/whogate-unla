@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"os"
 	"path/filepath"
 	"strings"
@@ -142,7 +143,7 @@ func (l *Loader) Validate(cfg *MCPConfig) error {
 	toolNames := make(map[string]bool)
 	for _, tool := range cfg.Tools {
 		if toolNames[tool.Name] {
-			return ErrDuplicateToolName
+			return cnst.ErrDuplicateToolName
 		}
 		toolNames[tool.Name] = true
 	}
@@ -151,7 +152,7 @@ func (l *Loader) Validate(cfg *MCPConfig) error {
 	serverNames := make(map[string]bool)
 	for _, server := range cfg.Servers {
 		if serverNames[server.Name] {
-			return ErrDuplicateServerName
+			return cnst.ErrDuplicateServerName
 		}
 		serverNames[server.Name] = true
 	}
@@ -160,7 +161,7 @@ func (l *Loader) Validate(cfg *MCPConfig) error {
 	prefixes := make(map[string]bool)
 	for _, router := range cfg.Routers {
 		if prefixes[router.Prefix] {
-			return ErrDuplicateRouterPrefix
+			return cnst.ErrDuplicateRouterPrefix
 		}
 		prefixes[router.Prefix] = true
 	}

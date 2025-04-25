@@ -1,9 +1,10 @@
-package server
+package core
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"io"
 	"net/http"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 )

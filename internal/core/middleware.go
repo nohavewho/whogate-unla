@@ -1,12 +1,12 @@
-package server
+package core
 
 import (
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/auth"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"go.uber.org/zap"
 )
 

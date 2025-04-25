@@ -1,0 +1,3 @@
+- Only include essential comments where the code is not self-explanatory. Avoid redundant or obvious comments.
+- You can read docs/.ai/SOP.server.zh-CN.md for server when the task starts.
+- You can read docs/.ai/SOP.client.zh-CN.md for web when the task starts.

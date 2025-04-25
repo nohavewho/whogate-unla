@@ -3,9 +3,9 @@ package database
 import (
 	"context"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

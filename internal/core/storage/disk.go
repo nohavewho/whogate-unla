@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/server"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
 	"go.uber.org/zap"
 )
 
@@ -32,7 +32,7 @@ func NewDiskStorage(logger *zap.Logger, baseDir string) (*DiskStorage, error) {
 }
 
 // SaveTool implements Storage.SaveTool
-func (s *DiskStorage) SaveTool(ctx context.Context, tool *server.Tool) error {
+func (s *DiskStorage) SaveTool(ctx context.Context, tool *core.Tool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -55,7 +55,7 @@ func (s *DiskStorage) SaveTool(ctx context.Context, tool *server.Tool) error {
 }
 
 // GetTool implements Storage.GetTool
-func (s *DiskStorage) GetTool(ctx context.Context, name string) (*server.Tool, error) {
+func (s *DiskStorage) GetTool(ctx context.Context, name string) (*core.Tool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -65,7 +65,7 @@ func (s *DiskStorage) GetTool(ctx context.Context, name string) (*server.Tool, e
 		return nil, err
 	}
 
-	var tool server.Tool
+	var tool core.Tool
 	if err := json.Unmarshal(data, &tool); err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (s *DiskStorage) GetTool(ctx context.Context, name string) (*server.Tool, e
 }
 
 // ListTools implements Storage.ListTools
-func (s *DiskStorage) ListTools(ctx context.Context) ([]*server.Tool, error) {
+func (s *DiskStorage) ListTools(ctx context.Context) ([]*core.Tool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -87,7 +87,7 @@ func (s *DiskStorage) ListTools(ctx context.Context) ([]*server.Tool, error) {
 		return nil, err
 	}
 
-	var tools []*server.Tool
+	var tools []*core.Tool
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -101,7 +101,7 @@ func (s *DiskStorage) ListTools(ctx context.Context) ([]*server.Tool, error) {
 			continue
 		}
 
-		var tool server.Tool
+		var tool core.Tool
 		if err := json.Unmarshal(data, &tool); err != nil {
 			s.logger.Error("failed to unmarshal tool",
 				zap.String("file", entry.Name()),
@@ -125,7 +125,7 @@ func (s *DiskStorage) DeleteTool(ctx context.Context, name string) error {
 }
 
 // SaveServer implements Storage.SaveServer
-func (s *DiskStorage) SaveServer(ctx context.Context, server *server.StoredServer) error {
+func (s *DiskStorage) SaveServer(ctx context.Context, server *core.StoredServer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -148,7 +148,7 @@ func (s *DiskStorage) SaveServer(ctx context.Context, server *server.StoredServe
 }
 
 // GetServer implements Storage.GetServer
-func (s *DiskStorage) GetServer(ctx context.Context, name string) (*server.StoredServer, error) {
+func (s *DiskStorage) GetServer(ctx context.Context, name string) (*core.StoredServer, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -158,7 +158,7 @@ func (s *DiskStorage) GetServer(ctx context.Context, name string) (*server.Store
 		return nil, err
 	}
 
-	var server server.StoredServer
+	var server core.StoredServer
 	if err := json.Unmarshal(data, &server); err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (s *DiskStorage) GetServer(ctx context.Context, name string) (*server.Store
 }
 
 // ListServers implements Storage.ListServers
-func (s *DiskStorage) ListServers(ctx context.Context) ([]*server.StoredServer, error) {
+func (s *DiskStorage) ListServers(ctx context.Context) ([]*core.StoredServer, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -180,7 +180,7 @@ func (s *DiskStorage) ListServers(ctx context.Context) ([]*server.StoredServer, 
 		return nil, err
 	}
 
-	var servers []*server.StoredServer
+	var servers []*core.StoredServer
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -194,7 +194,7 @@ func (s *DiskStorage) ListServers(ctx context.Context) ([]*server.StoredServer, 
 			continue
 		}
 
-		var server server.StoredServer
+		var server core.StoredServer
 		if err := json.Unmarshal(data, &server); err != nil {
 			s.logger.Error("failed to unmarshal server",
 				zap.String("file", entry.Name()),

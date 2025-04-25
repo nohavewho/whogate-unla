@@ -1,15 +1,15 @@
-package server
+package core
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"io"
 	"net/http"
 	"strings"
 	texttemplate "text/template"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
 )
 
