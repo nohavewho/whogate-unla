@@ -50,7 +50,7 @@ class MCPService {
 
     try {
       // Create transport and client
-      const serverUrl = new URL(`${import.meta.env.VITE_MCP_GATEWAY_URL}${prefix}/mcp`, window.location.origin);
+      const serverUrl = new URL(`${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}${prefix}/mcp`, window.location.origin);
       const transport = new StreamableHTTPClientTransport(
         serverUrl,
         {

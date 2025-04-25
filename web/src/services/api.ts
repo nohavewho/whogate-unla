@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 
 // Create an axios instance with default config
 const api = axios.create({
-  baseURL: '/api', // Assuming the API is served under /api
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
 });
 
@@ -153,6 +153,26 @@ export const getChatMessages = async (sessionId: string, page: number = 1, pageS
       });
     } else {
       toast.error('获取聊天消息失败', {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    }
+    throw error;
+  }
+};
+
+export const getChatSessions = async () => {
+  try {
+    const response = await api.get('/chat/sessions');
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      toast.error(error.response.data.error, {
+        duration: 3000,
+        position: 'bottom-right',
+      });
+    } else {
+      toast.error('获取聊天会话列表失败', {
         duration: 3000,
         position: 'bottom-right',
       });

@@ -5,6 +5,7 @@ import {toast} from "react-hot-toast";
 import { useNavigate } from 'react-router-dom';
 
 import { wsService } from '../../../services/websocket';
+import { getChatSessions } from '../../../services/api';
 
 interface ChatHistoryProps {
   selectedChat: string | null;
@@ -35,19 +36,15 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/chat/sessions');
-      if (!response.ok) {
-        throw new Error('Failed to fetch sessions');
-      }
-      const data = await response.json();
+      const data = await getChatSessions();
       // Ensure data is an array and each session has required properties
       const validSessions = Array.isArray(data)
         ? data.filter(session =>
-            session &&
-            typeof session.id === 'string' &&
-            typeof session.createdAt === 'string' &&
-            typeof session.title === 'string'
-          )
+          session &&
+          typeof session.id === 'string' &&
+          typeof session.createdAt === 'string' &&
+          typeof session.title === 'string'
+        )
         : [];
       setSessions(validSessions);
     } catch (error) {

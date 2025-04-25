@@ -128,8 +128,9 @@ function AppContent() {
 }
 
 export default function App() {
+  const basePath = import.meta.env.VITE_BASE_URL || '';
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router basename={basePath} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppContent />
     </Router>
   );

@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
 
   return {
+    base: env.VITE_BASE_URL || '/',
     plugins: [react()],
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
@@ -25,11 +26,11 @@ export default defineConfig(({ mode }) => {
       allowedHosts: true,
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || '/api',
+          target: env.VITE_API_BASE_URL || '/api',
           changeOrigin: true,
         },
         '/ws': {
-          target: env.VITE_WS_URL || '/ws',
+          target: env.VITE_WS_BASE_URL || '/ws',
           ws: true,
         },
       },

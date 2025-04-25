@@ -11,8 +11,6 @@ services:
 
   web:
     image: ${WEB_IMAGE:-ghcr.io/mcp-ecosystem/mcp-gateway/web:latest}
-    environment:
-      - VITE_MCP_GATEWAY_URL=${VITE_MCP_GATEWAY_URL}
     ports:
       - "80:80"
     depends_on:
