@@ -107,6 +107,8 @@ func run() {
 		db = database.NewPostgresDB(&cfg.Database)
 	case "sqlite":
 		db = database.NewSQLiteDB(&cfg.Database)
+	case "mysql":
+		db = database.NewMySQLDB(&cfg.Database)
 	default:
 		logger.Fatal("Unsupported database type", zap.String("type", cfg.Database.Type))
 	}
