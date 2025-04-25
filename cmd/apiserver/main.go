@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/handler"
@@ -12,8 +15,6 @@ import (
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"log"
-	"os"
 )
 
 var (
@@ -80,12 +81,10 @@ func run() {
 	}
 	defer db.Close()
 
-	// Initialize store
-	store, err := storage.NewDiskStore(ctx, logger, configPath)
+	// Initialize store using factory
+	store, err := storage.NewStore(ctx, logger, &cfg.Storage)
 	if err != nil {
-		logger.Fatal("Failed to initialize store",
-			zap.String("path", configPath),
-			zap.Error(err))
+		logger.Fatal("Failed to initialize store", zap.Error(err))
 	}
 
 	logger.Info("Starting apiserver", zap.String("version", version.Get()))

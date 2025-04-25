@@ -4,8 +4,24 @@ database:
   port: ${DB_PORT:5432}
   user: "${DB_USER:postgres}"
   password: "${DB_PASSWORD:example}"
-  dbname: "${DB_NAME:mcp-gateway}"
+  dbname: "${DB_NAME:./mcp-gateway.db}"
   sslmode: "${DB_SSL_MODE:disable}"
+
+# Storage configuration
+storage:
+  type: "${GATEWAY_STORAGE_TYPE:db}"  # disk or db
+  # Database configuration (only used when type is db)
+  database:
+    type: "${GATEWAY_DB_TYPE:sqlite}"
+    host: "${GATEWAY_DB_HOST:localhost}"
+    port: ${GATEWAY_DB_PORT:5432}
+    user: "${GATEWAY_DB_USER:postgres}"
+    password: "${GATEWAY_DB_PASSWORD:example}"
+    dbname: "${GATEWAY_DB_NAME:./data/mcp-gateway.db}"
+    sslmode: "${GATEWAY_DB_SSL_MODE:disable}"
+  # Disk configuration (only used when type is disk)
+  disk:
+    path: "${GATEWAY_STORAGE_DISK_PATH:}"
 
 openai:
   api_key: "${OPENAI_API_KEY}"

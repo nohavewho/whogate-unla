@@ -1,6 +1,8 @@
+name: "mock-user-svc"
+
 routers:
   - server: "mock-user-svc"
-    prefix: "/api/v1/user"
+    prefix: "/mcp/user"
     cors:
       allowOrigins:
         - "*"

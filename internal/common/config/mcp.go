@@ -1,26 +1,27 @@
 package config
 
 import (
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 	"time"
+
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 )
 
 type (
 	// MCPServer represents the MCP server data structure
 	MCPServer struct {
-		Name      string    `json:"name" yaml:"name"`
-		Content   MCPConfig `json:"content" yaml:"content"`
+		Name      string    `json:"name" yaml:"name" gorm:"primaryKey"`
+		Content   MCPConfig `json:"content" yaml:"content" gorm:"type:json"`
 		CreatedAt time.Time `json:"createdAt" yaml:"created_at"`
 		UpdatedAt time.Time `json:"updatedAt" yaml:"updated_at"`
 	}
 
 	MCPConfig struct {
-		Name      string         `yaml:"name"`
+		Name      string         `yaml:"name" gorm:"primaryKey"`
 		CreatedAt time.Time      `yaml:"created_at"`
 		UpdatedAt time.Time      `yaml:"updated_at"`
-		Routers   []RouterConfig `yaml:"routers"`
-		Servers   []ServerConfig `yaml:"servers"`
-		Tools     []ToolConfig   `yaml:"tools"`
+		Routers   []RouterConfig `yaml:"routers" gorm:"type:json"`
+		Servers   []ServerConfig `yaml:"servers" gorm:"type:json"`
+		Tools     []ToolConfig   `yaml:"tools" gorm:"type:json"`
 	}
 
 	RouterConfig struct {

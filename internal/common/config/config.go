@@ -9,10 +9,11 @@ import (
 )
 
 type MCPGatewayConfig struct {
-	Port       int    `yaml:"port"`
-	InnerPort  int    `yaml:"inner_port"`
-	ReloadPort int    `yaml:"reload_port"`
-	PID        string `yaml:"pid"`
+	Port       int           `yaml:"port"`
+	InnerPort  int           `yaml:"inner_port"`
+	ReloadPort int           `yaml:"reload_port"`
+	PID        string        `yaml:"pid"`
+	Storage    StorageConfig `yaml:"storage"`
 }
 
 type Type interface {
@@ -42,7 +43,7 @@ func LoadConfig[T Type](path string) (*T, error) {
 
 // resolveEnv replaces environment variable placeholders in YAML content
 func resolveEnv(content []byte) []byte {
-	regex := regexp.MustCompile(`\$\{(\w+)(?::([^}]+))?}`)
+	regex := regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?\}`)
 
 	return regex.ReplaceAllFunc(content, func(match []byte) []byte {
 		matches := regex.FindSubmatch(match)

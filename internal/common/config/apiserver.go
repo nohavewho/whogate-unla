@@ -7,6 +7,7 @@ type (
 		Database   DatabaseConfig `yaml:"database"`
 		OpenAI     OpenAIConfig   `yaml:"openai"`
 		GatewayPID string         `yaml:"gateway_pid"`
+		Storage    StorageConfig  `yaml:"storage"`
 	}
 
 	DatabaseConfig struct {

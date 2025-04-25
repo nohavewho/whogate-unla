@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/helper"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	config2 "github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
 
 	"github.com/gin-gonic/gin"
@@ -83,7 +84,6 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "conf", "", "path to configuration file or directory")
-	rootCmd.PersistentFlags().StringVar(&dataDir, "data-dir", "data", "path to data directory")
 	rootCmd.PersistentFlags().StringVar(&pidFile, "pid", "", "path to PID file")
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(reloadCmd)
@@ -128,7 +128,7 @@ func getPIDFile() string {
 	}
 
 	cfgPath := getCfgPath()
-	cfg, err := config2.LoadConfig[config2.MCPGatewayConfig](cfgPath)
+	cfg, err := config.LoadConfig[config.MCPGatewayConfig](cfgPath)
 	if err != nil {
 		return "/var/run/mcp-gateway.pid"
 	}
@@ -150,13 +150,18 @@ func removePIDFile() error {
 	return os.Remove(pidFile)
 }
 
-func handleReload(logger *zap.Logger, mcpCfgLoader *config2.Loader, mcpCfgPath string, srv *core.Server, cfg *config2.MCPGatewayConfig) {
+func handleReload(ctx context.Context, logger *zap.Logger, store storage.Store, srv *core.Server, cfg *config.MCPGatewayConfig) {
 	logger.Info("Reloading MCP configuration")
-	newMCPCfg, err := mcpCfgLoader.LoadFromDir(mcpCfgPath)
+
+	mcpConfigs, err := store.List(ctx)
 	if err != nil {
-		logger.Error("failed to reload MCP configuration",
+		logger.Fatal("Failed to load MCP configurations",
 			zap.Error(err))
-		return
+	}
+	newMCPCfg, err := helper.MergeConfigs(mcpConfigs)
+	if err != nil {
+		logger.Fatal("failed to merge MCP configurations",
+			zap.Error(err))
 	}
 
 	serverLock.Lock()
@@ -231,7 +236,7 @@ func run() {
 			zap.Error(err))
 	}
 
-	cfg, err := config2.LoadConfig[config2.MCPGatewayConfig](cfgPath)
+	cfg, err := config.LoadConfig[config.MCPGatewayConfig](cfgPath)
 	if err != nil {
 		logger.Fatal("Failed to load service configuration",
 			zap.String("path", cfgPath),
@@ -239,25 +244,21 @@ func run() {
 	}
 
 	// Initialize storage and load initial configuration
-	store, err := storage.NewDiskStore(ctx, logger, dataDir)
+	store, err := storage.NewStore(ctx, logger, &cfg.Storage)
 	if err != nil {
 		logger.Fatal("failed to initialize storage",
-			zap.String("path", dataDir),
+			zap.String("type", cfg.Storage.Type),
 			zap.Error(err))
 	}
 
-	// Load initial MCP configuration
-	mcpCfgLoader := config2.NewLoader(logger)
-	mcpCfg, err := mcpCfgLoader.LoadFromDir(mcpCfgPath)
+	mcpConfigs, err := store.List(ctx)
 	if err != nil {
-		logger.Fatal("Failed to load MCP configuration",
-			zap.String("path", mcpCfgPath),
+		logger.Fatal("Failed to load MCP configurations",
 			zap.Error(err))
 	}
-
-	// Store initial configuration
-	if err := store.Create(ctx, mcpCfg); err != nil {
-		logger.Fatal("Failed to store initial MCP configuration",
+	mcpCfg, err := helper.MergeConfigs(mcpConfigs)
+	if err != nil {
+		logger.Fatal("failed to merge MCP configurations",
 			zap.Error(err))
 	}
 
@@ -331,9 +332,9 @@ func run() {
 			return
 		case <-updateCh:
 			logger.Info("Received reload signal")
-			handleReload(logger, mcpCfgLoader, mcpCfgPath, srv, cfg)
+			handleReload(ctx, logger, store, srv, cfg)
 		case <-reloadChan:
-			handleReload(logger, mcpCfgLoader, mcpCfgPath, srv, cfg)
+			handleReload(ctx, logger, store, srv, cfg)
 		}
 	}
 }

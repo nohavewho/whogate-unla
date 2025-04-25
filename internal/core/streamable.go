@@ -161,7 +161,7 @@ func (s *StreamableSession) HandleRequest(c *gin.Context, req mcp.JSONRPCRequest
 		}
 
 		// Send response directly
-		c.Header("Config-Type", "text/event-stream")
+		c.Header("Content-Type", "text/event-stream")
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 		c.String(http.StatusOK, fmt.Sprintf("event: message\ndata: %s\n\n", eventData))
@@ -210,7 +210,7 @@ func (s *StreamableSession) HandleRequest(c *gin.Context, req mcp.JSONRPCRequest
 		}
 
 		// Send response directly
-		c.Header("Config-Type", "text/event-stream")
+		c.Header("Content-Type", "text/event-stream")
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 		c.String(http.StatusOK, fmt.Sprintf("event: message\ndata: %s\n\n", eventData))
@@ -275,7 +275,7 @@ func (s *StreamableSession) HandleRequest(c *gin.Context, req mcp.JSONRPCRequest
 		}
 
 		// Send response directly
-		c.Header("Config-Type", "text/event-stream")
+		c.Header("Content-Type", "text/event-stream")
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 		c.String(http.StatusOK, fmt.Sprintf("event: message\ndata: %s\n\n", eventData))
@@ -461,7 +461,7 @@ func (s *Server) handleMCP(c *gin.Context) {
 	case http.MethodOptions:
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, DELETE")
-		c.Header("Access-Control-Allow-Headers", "Config-Type")
+		c.Header("Access-Control-Allow-Headers", "Content-Type")
 		c.Status(http.StatusOK)
 		return
 
