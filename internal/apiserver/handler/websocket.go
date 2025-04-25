@@ -77,7 +77,7 @@ func (h *WebSocket) HandleWebSocket(c *gin.Context) {
 		}
 
 		// Log received message
-		log.Printf("[WS] Message received - SessionID: %s, Type: %s, Content: %s",
+		log.Printf("[WS] Message received - SessionID: %s, Type: %s, Config: %s",
 			sessionId, message.Type, message.Content)
 
 		// Process message based on type

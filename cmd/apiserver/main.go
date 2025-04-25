@@ -7,13 +7,13 @@ import (
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/handler"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/openai"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"log"
 	"os"
-	"path/filepath"
 )
 
 var (
@@ -42,29 +42,6 @@ var (
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "conf", "", "path to configuration file or directory")
 	rootCmd.AddCommand(versionCmd)
-}
-
-func getConfigPath() string {
-	// 1. Check command line flag
-	if configPath != "" {
-		return configPath
-	}
-
-	// 2. Check environment variable
-	if envPath := os.Getenv("CONFIG_DIR"); envPath != "" {
-		return envPath
-	}
-
-	// 3. Default to APPDATA/.mcp/gateway
-	appData := os.Getenv("APPDATA")
-	if appData == "" {
-		// For non-Windows systems, use HOME
-		appData = os.Getenv("HOME")
-		if appData == "" {
-			log.Fatal("Neither APPDATA nor HOME environment variable is set")
-		}
-	}
-	return filepath.Join(appData, ".mcp", "gateway")
 }
 
 func run() {
@@ -101,14 +78,11 @@ func run() {
 	}
 	defer db.Close()
 
-	// Get configuration path
-	configDir := getConfigPath()
-	logger.Info("Using configuration directory", zap.String("path", configDir))
-
-	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		logger.Fatal("Failed to create config directory",
-			zap.String("path", configDir),
+	// Initialize store
+	store, err := storage.NewDiskStore(logger, configPath)
+	if err != nil {
+		logger.Fatal("Failed to initialize store",
+			zap.String("path", configPath),
 			zap.Error(err))
 	}
 
@@ -117,13 +91,13 @@ func run() {
 	r := gin.Default()
 
 	chatHandler := handler.NewChat(db)
-	mcpHandler := handler.NewMCP(db)
+	mcpHandler := handler.NewMCP(db, store)
 	wsHandler := handler.NewWebSocket(db, openaiClient)
 
 	// Configure routes
 	r.POST("/api/mcp-servers", mcpHandler.HandleMCPServerCreate)
 	r.PUT("/api/mcp-servers/:name", mcpHandler.HandleMCPServerUpdate)
-	r.GET("/api/mcp-servers", mcpHandler.HandleGetMCPServers)
+	r.GET("/api/mcp-servers", mcpHandler.HandleListMCPServers)
 	r.DELETE("/api/mcp-servers/:name", mcpHandler.HandleMCPServerDelete)
 	r.POST("/api/mcp-servers/sync", mcpHandler.HandleMCPServerSync)
 

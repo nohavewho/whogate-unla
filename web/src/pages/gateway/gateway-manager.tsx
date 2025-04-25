@@ -130,7 +130,7 @@ export function GatewayManager() {
       }
       onOpenChange();
     } catch {
-      toast.error('Invalid YAML format', {
+      toast.error('Something went wrong', {
         duration: 3000,
         position: 'bottom-right',
       });

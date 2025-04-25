@@ -2,26 +2,26 @@ package handler
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"log"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/dto"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
+	"gopkg.in/yaml.v3"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
-
-	"github.com/gin-gonic/gin"
-	"gopkg.in/yaml.v3"
 )
 
 type MCP struct {
-	db database.Database
+	db    database.Database
+	store storage.Store
 }
 
-func NewMCP(db database.Database) *MCP {
-	return &MCP{db: db}
+func NewMCP(db database.Database, store storage.Store) *MCP {
+	return &MCP{db: db, store: store}
 }
 
 func (h *MCP) HandleMCPServerUpdate(c *gin.Context) {
@@ -47,27 +47,26 @@ func (h *MCP) HandleMCPServerUpdate(c *gin.Context) {
 	}
 
 	// Check if the server name in config matches the name parameter
-	if len(cfg.Servers) == 0 || cfg.Servers[0].Name != name {
+	if len(cfg.Servers) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "server name in configuration must match name parameter"})
 		return
 	}
 
-	// Get the config directory
-	configDir := getConfigPath()
-
-	// Create the config file path
-	configFile := filepath.Join(configDir, name+".yaml")
-
-	// Check if the file exists
-	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+	// Get existing server
+	oldCfg, err := h.store.Get(c.Request.Context(), name)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "MCP server not found"})
 		return
 	}
 
-	// Write the content to file
-	if err := os.WriteFile(configFile, content, 0644); err != nil {
+	if oldCfg.Name != cfg.Name {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "server name in configuration must match name parameter"})
+		return
+	}
+
+	if err := h.store.Update(c.Request.Context(), &cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to save MCP server configuration: " + err.Error(),
+			"error": "failed to update MCP server: " + err.Error(),
 		})
 		return
 	}
@@ -82,46 +81,29 @@ func (h *MCP) HandleMCPServerUpdate(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"path":   configFile,
 	})
 }
 
-func (h *MCP) HandleGetMCPServers(c *gin.Context) {
-	// Get the config directory
-	configDir := getConfigPath()
-
-	// Get all yaml files in the directory
-	files, err := os.ReadDir(configDir)
+func (h *MCP) HandleListMCPServers(c *gin.Context) {
+	servers, err := h.store.List(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to read MCP servers directory: " + err.Error(),
+			"error": "Failed to get MCP servers: " + err.Error(),
 		})
 		return
 	}
 
-	// Load configurations from each yaml file
-	servers := make([]map[string]string, 0)
-	for _, file := range files {
-		if file.IsDir() || !strings.HasSuffix(strings.ToLower(file.Name()), ".yaml") {
-			continue
+	// TODO: temporary
+	results := make([]*dto.MCPServer, len(servers))
+	for i, server := range servers {
+		s, _ := yaml.Marshal(server)
+		results[i] = &dto.MCPServer{
+			Name:   server.Name,
+			Config: string(s),
 		}
-
-		// Read the raw YAML content
-		content, err := os.ReadFile(filepath.Join(configDir, file.Name()))
-		if err != nil {
-			log.Printf("Failed to read MCP server file %s: %v", file.Name(), err)
-			continue
-		}
-
-		// Add the YAML content to the response
-		servers = append(servers, map[string]string{
-			"name":   strings.TrimSuffix(file.Name(), ".yaml"),
-			"config": string(content),
-		})
 	}
 
-	// Return the list of MCP servers
-	c.JSON(http.StatusOK, servers)
+	c.JSON(http.StatusOK, results)
 }
 
 func (h *MCP) HandleMCPServerCreate(c *gin.Context) {
@@ -145,29 +127,21 @@ func (h *MCP) HandleMCPServerCreate(c *gin.Context) {
 		return
 	}
 
-	// Use the first server's name
-	name := cfg.Servers[0].Name
-	if name == "" {
+	if cfg.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "server name is required in configuration"})
 		return
 	}
 
-	// Get the config directory
-	configDir := getConfigPath()
-
-	// Create the config file path
-	configFile := filepath.Join(configDir, name+".yaml")
-
-	// Check if the file already exists
-	if _, err := os.Stat(configFile); err == nil {
+	// Check if server already exists
+	_, err = h.store.Get(c.Request.Context(), cfg.Name)
+	if err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "MCP server already exists"})
 		return
 	}
 
-	// Write the content to file
-	if err := os.WriteFile(configFile, content, 0644); err != nil {
+	if err := h.store.Create(c.Request.Context(), &cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to save MCP server configuration: " + err.Error(),
+			"error": "failed to create MCP server: " + err.Error(),
 		})
 		return
 	}
@@ -182,7 +156,6 @@ func (h *MCP) HandleMCPServerCreate(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"status": "success",
-		"path":   configFile,
 	})
 }
 
@@ -194,22 +167,17 @@ func (h *MCP) HandleMCPServerDelete(c *gin.Context) {
 		return
 	}
 
-	// Get the config directory
-	configDir := getConfigPath()
-
-	// Create the config file path
-	configFile := filepath.Join(configDir, name+".yaml")
-
-	// Check if the file exists
-	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+	// Check if server exists
+	_, err := h.store.Get(c.Request.Context(), name)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "MCP server not found"})
 		return
 	}
 
-	// Delete the file
-	if err := os.Remove(configFile); err != nil {
+	// Delete server
+	if err := h.store.Delete(c.Request.Context(), name); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to delete MCP server configuration: " + err.Error(),
+			"error": "failed to delete MCP server: " + err.Error(),
 		})
 		return
 	}
@@ -220,42 +188,6 @@ func (h *MCP) HandleMCPServerDelete(c *gin.Context) {
 }
 
 func (h *MCP) HandleMCPServerSync(c *gin.Context) {
-	// Get the config directory
-	configDir := getConfigPath()
-
-	// Read all YAML files in the config directory
-	files, err := os.ReadDir(configDir)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to read config directory: " + err.Error(),
-		})
-		return
-	}
-
-	// Validate all YAML files
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml") {
-			continue
-		}
-
-		content, err := os.ReadFile(filepath.Join(configDir, file.Name()))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "failed to read config file: " + err.Error(),
-			})
-			return
-		}
-
-		// Validate the YAML content
-		var cfg config.MCPConfig
-		if err := yaml.Unmarshal(content, &cfg); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "invalid YAML content in " + file.Name() + ": " + err.Error(),
-			})
-			return
-		}
-	}
-
 	// Send reload signal to gateway
 	if err := sendReloadSignal(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -266,7 +198,6 @@ func (h *MCP) HandleMCPServerSync(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"count":  len(files),
 	})
 }
 
@@ -298,23 +229,4 @@ func sendReloadSignal() error {
 	}
 
 	return nil
-}
-
-// Helper functions
-func getConfigPath() string {
-	// 1. Check environment variable
-	if envPath := os.Getenv("CONFIG_DIR"); envPath != "" {
-		return envPath
-	}
-
-	// 2. Default to APPDATA/.mcp/gateway
-	appData := os.Getenv("APPDATA")
-	if appData == "" {
-		// For non-Windows systems, use HOME
-		appData = os.Getenv("HOME")
-		if appData == "" {
-			log.Fatal("Neither APPDATA nor HOME environment variable is set")
-		}
-	}
-	return filepath.Join(appData, ".mcp", "gateway")
 }
