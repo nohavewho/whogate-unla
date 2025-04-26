@@ -36,7 +36,7 @@ MCP Gateway supports a ready-to-run Docker deployment. Full deployment and confi
 ### Run with Docker
 
 ```bash
-mkdir mcp-gateway/{configs,data}
+mkdir -p mcp-gateway/{configs,data}
 cd mcp-gateway/
 curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/main/configs/apiserver.yaml -o configs/apiserver.yaml
 curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/main/configs/mcp-gateway.yaml -o configs/mcp-gateway.yaml
@@ -44,9 +44,10 @@ curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/
 
 docker run -d \
            --name mcp-gateway \
-           -p 80:80 \
+           -p 8080:80 \
            -p 5234:5234 \
            -p 5235:5235 \
+           -p 5335:5335 \
            -p 5236:5236 \
            -e ENV=production \
            -v $(pwd)/configs:/app/configs \
@@ -56,7 +57,13 @@ docker run -d \
            ghcr.io/mcp-ecosystem/mcp-gateway/allinone:latest
 ```
 
-Visit http://localhost/ to start configuring.
+> For users in China, you can pull the image from Alibaba Cloud registry:
+>
+> ```bash
+> registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem/mcp-gateway-allinone:latest
+> ```
+
+Visit http://localhost:8080/ to start configuring.
 
 📖 Read the full guide → [Quick Start »](https://mcp.ifuryst.com/getting-started/quick-start)
 

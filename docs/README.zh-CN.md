@@ -36,7 +36,7 @@ MCP Gateway 提供开箱即用的 Docker 启动方式。完整部署与配置说
 ### Docker 方式运行
 
 ```bash
-mkdir mcp-gateway/{configs,data}
+mkdir -p mcp-gateway/{configs,data}
 cd mcp-gateway/
 curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/main/configs/apiserver.yaml -o configs/apiserver.yaml
 curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/main/configs/mcp-gateway.yaml -o configs/mcp-gateway.yaml
@@ -44,9 +44,10 @@ curl -sL https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/refs/heads/
 
 docker run -d \
            --name mcp-gateway \
-           -p 80:80 \
+           -p 8080:80 \
            -p 5234:5234 \
            -p 5235:5235 \
+           -p 5335:5335 \
            -p 5236:5236 \
            -e ENV=production \
            -v $(pwd)/configs:/app/configs \
@@ -56,7 +57,13 @@ docker run -d \
            ghcr.io/mcp-ecosystem/mcp-gateway/allinone:latest
 ```
 
-访问 http://localhost/ 开始配置使用
+> 在中国境内的设备可以拉阿里云仓库的镜像
+>
+> ```bash
+> registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem/mcp-gateway-allinone:latest
+> ```
+
+访问 http://localhost:8080/ 开始配置使用
 
 📖 查看完整指南 → [快速开始文档 »](https://mcp.ifuryst.com/getting-started/quick-start)
 
