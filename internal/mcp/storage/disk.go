@@ -161,12 +161,7 @@ func getConfigPath(baseDir string) string {
 		return baseDir
 	}
 
-	// 2. Check environment variable
-	if envPath := os.Getenv("CONFIG_DIR"); envPath != "" {
-		return envPath
-	}
-
-	// 3. Default to APPDATA/.mcp/gateway
+	// 2. Default to APPDATA/.mcp/gateway
 	appData := os.Getenv("APPDATA")
 	if appData == "" {
 		// For non-Windows systems, use HOME

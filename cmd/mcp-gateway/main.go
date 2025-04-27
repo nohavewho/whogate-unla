@@ -26,7 +26,6 @@ import (
 
 var (
 	configPath   string
-	dataDir      string
 	pidFile      string
 	reloadChan   chan struct{}
 	serverLock   sync.RWMutex
@@ -87,25 +86,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&pidFile, "pid", "", "path to PID file")
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(reloadCmd)
-}
-
-func getMCPCfgPath() string {
-	if configPath != "" {
-		return configPath
-	}
-
-	if envPath := os.Getenv("CONFIG_DIR"); envPath != "" {
-		return envPath
-	}
-
-	appData := os.Getenv("APPDATA")
-	if appData == "" {
-		appData = os.Getenv("HOME")
-		if appData == "" {
-			panic("Neither APPDATA nor HOME environment variable is set")
-		}
-	}
-	return filepath.Join(appData, ".mcp", "gateway")
 }
 
 func getCfgPath() string {
@@ -225,16 +205,8 @@ func run() {
 	logger.Info("Starting mcp-gateway", zap.String("version", version.Get()))
 
 	cfgPath := getCfgPath()
-	mcpCfgPath := getMCPCfgPath()
 	logger.Info("Using configuration paths",
-		zap.String("service_config", cfgPath),
-		zap.String("mcp_config", mcpCfgPath))
-
-	if err := os.MkdirAll(mcpCfgPath, 0755); err != nil {
-		logger.Fatal("Failed to create MCP config directory",
-			zap.String("path", mcpCfgPath),
-			zap.Error(err))
-	}
+		zap.String("service_config", cfgPath))
 
 	cfg, err := config.LoadConfig[config.MCPGatewayConfig](cfgPath)
 	if err != nil {
