@@ -122,6 +122,8 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 
 	r.GET("/api/chat/sessions", chatHandler.HandleGetChatSessions)
 	r.GET("/api/chat/sessions/:sessionId/messages", chatHandler.HandleGetChatMessages)
+
+	r.Static("/web", "./web")
 	return r
 }
 

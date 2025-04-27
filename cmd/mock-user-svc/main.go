@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -56,13 +55,6 @@ func run() {
 	defer logger.Sync()
 
 	logger.Info("Starting mock-user-svc", zap.String("version", version.Get()))
-
-	// Initialize PID manager
-	pidManager := utils.NewPIDManager("/var/run/mock-user-svc.pid")
-	if err := pidManager.WritePID(); err != nil {
-		logger.Fatal("Failed to write PID file", zap.Error(err))
-	}
-	defer pidManager.RemovePID()
 
 	// Initialize router
 	router := gin.Default()
