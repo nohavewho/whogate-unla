@@ -67,7 +67,7 @@ func (n *SignalNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, e
 }
 
 // NotifyUpdate implements Notifier.NotifyUpdate
-func (n *SignalNotifier) NotifyUpdate(ctx context.Context, server *config.MCPConfig) error {
+func (n *SignalNotifier) NotifyUpdate(_ context.Context, server *config.MCPConfig) error {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 

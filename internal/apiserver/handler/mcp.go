@@ -2,26 +2,28 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"syscall"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/dto"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
 	"gopkg.in/yaml.v3"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"syscall"
 )
 
 type MCP struct {
 	db    database.Database
 	store storage.Store
+	gwPID string
 }
 
-func NewMCP(db database.Database, store storage.Store) *MCP {
-	return &MCP{db: db, store: store}
+func NewMCP(db database.Database, store storage.Store, gatewayPID string) *MCP {
+	return &MCP{db: db, store: store, gwPID: gatewayPID}
 }
 
 func (h *MCP) HandleMCPServerUpdate(c *gin.Context) {
@@ -72,7 +74,7 @@ func (h *MCP) HandleMCPServerUpdate(c *gin.Context) {
 	}
 
 	// Send reload signal to gateway
-	if err := sendReloadSignal(); err != nil {
+	if err := sendReloadSignal(h.gwPID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload gateway: " + err.Error(),
 		})
@@ -147,7 +149,7 @@ func (h *MCP) HandleMCPServerCreate(c *gin.Context) {
 	}
 
 	// Send reload signal to gateway
-	if err := sendReloadSignal(); err != nil {
+	if err := sendReloadSignal(h.gwPID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload gateway: " + err.Error(),
 		})
@@ -189,7 +191,7 @@ func (h *MCP) HandleMCPServerDelete(c *gin.Context) {
 
 func (h *MCP) HandleMCPServerSync(c *gin.Context) {
 	// Send reload signal to gateway
-	if err := sendReloadSignal(); err != nil {
+	if err := sendReloadSignal(h.gwPID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload gateway: " + err.Error(),
 		})
@@ -201,15 +203,9 @@ func (h *MCP) HandleMCPServerSync(c *gin.Context) {
 	})
 }
 
-func sendReloadSignal() error {
-	// Load configuration
-	cfg, err := config.LoadConfig[config.APIServerConfig]("configs/apiserver.yaml")
-	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
-	}
-
+func sendReloadSignal(gatewayPID string) error {
 	// Read gateway PID file
-	pidBytes, err := os.ReadFile(cfg.GatewayPID)
+	pidBytes, err := os.ReadFile(gatewayPID)
 	if err != nil {
 		return fmt.Errorf("failed to read PID file: %w", err)
 	}

@@ -92,7 +92,7 @@ func run() {
 	r := gin.Default()
 
 	chatHandler := handler.NewChat(db)
-	mcpHandler := handler.NewMCP(db, store)
+	mcpHandler := handler.NewMCP(db, store, cfg.GatewayPID)
 	wsHandler := handler.NewWebSocket(db, openaiClient)
 
 	// Configure routes
