@@ -10,6 +10,16 @@
 
 ---
 
+## 🚀 在 Product Hunt 上支持 MCP Gateway！
+
+**MCP Gateway** 已经在 Product Hunt 上线啦！  
+如果你喜欢这个项目，欢迎来给我们投一票 ❤️  
+你的支持对我们意义重大，也能让更多人看到它！
+
+<a href="https://www.producthunt.com/posts/mcp-gateway?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-mcp&#0045;gateway" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=958310&theme=light&t=1745767484477" alt="MCP&#0032;Gateway - Turn&#0032;APIs&#0032;into&#0032;MCP&#0032;endpoints&#0044;without&#0032;changing&#0032;a&#0032;line&#0032;of&#0032;code | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
+---
+
 > ⚡ **注意**：MCP Gateway 正在快速迭代中！我们会尽力保证向下兼容，但无法百分百承诺兼容性。升级版本时一定要留意版本变更情况️。同时由于更新频繁，文档内容可能存在一定延迟，如遇问题欢迎通过 [Discord](https://discord.gg/udf69cT9TY) 或 [Issue](https://github.com/mcp-ecosystem/mcp-gateway/issues) 搜索和求助❤️
 
 ---
