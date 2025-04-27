@@ -2,7 +2,6 @@ package notifier
 
 import (
 	"context"
-
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"go.uber.org/zap"
 )

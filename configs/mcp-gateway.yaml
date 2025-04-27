@@ -1,5 +1,4 @@
 port: ${MCP_GATEWAY_PORT:5235}
-inner_port: ${MCP_GATEWAY_INNER_PORT:5335}
 pid: "${MCP_GATEWAY_PID:/var/run/mcp-gateway.pid}"
 
 # Storage configuration
@@ -20,7 +19,7 @@ storage:
 
 # Notifier configuration
 notifier:
-  # Type of notifier to use (signal, api, redis, composite)
+  # Type of notifier to use (signal, api, redis, composite(includes signal n api as default))
   type: "${NOTIFIER_TYPE:signal}"
 
   # Signal configuration (only used when type is signal)

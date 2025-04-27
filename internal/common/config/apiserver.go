@@ -4,11 +4,10 @@ import "fmt"
 
 type (
 	APIServerConfig struct {
-		Database   DatabaseConfig `yaml:"database"`
-		OpenAI     OpenAIConfig   `yaml:"openai"`
-		GatewayPID string         `yaml:"gateway_pid"`
-		Storage    StorageConfig  `yaml:"storage"`
-		Notifier   NotifierConfig `yaml:"notifier"`
+		Database DatabaseConfig `yaml:"database"`
+		OpenAI   OpenAIConfig   `yaml:"openai"`
+		Storage  StorageConfig  `yaml:"storage"`
+		Notifier NotifierConfig `yaml:"notifier"`
 	}
 
 	DatabaseConfig struct {

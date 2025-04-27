@@ -68,6 +68,9 @@ func initConfig(logger *zap.Logger) *config.APIServerConfig {
 
 // initNotifier initializes the notifier service
 func initNotifier(ctx context.Context, logger *zap.Logger, cfg *config.NotifierConfig) notifier.Notifier {
+	if notifier.Type(cfg.Type) == notifier.TypeComposite {
+		log.Fatal("Composite notifier is not supported in apiserver")
+	}
 	ntf, err := notifier.NewNotifier(ctx, logger, cfg)
 	if err != nil {
 		logger.Fatal("Failed to initialize notifier", zap.Error(err))

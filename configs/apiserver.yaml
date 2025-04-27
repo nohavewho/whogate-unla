@@ -1,11 +1,11 @@
 database:
-  type: "${DB_TYPE:sqlite}"
-  host: "${DB_HOST:localhost}"
-  port: ${DB_PORT:5432}
-  user: "${DB_USER:postgres}"
-  password: "${DB_PASSWORD:example}"
-  dbname: "${DB_NAME:./mcp-gateway.db}"
-  sslmode: "${DB_SSL_MODE:disable}"
+  type: "${APISERVER_DB_TYPE:sqlite}"
+  host: "${APISERVER_DB_HOST:localhost}"
+  port: ${APISERVER_DB_PORT:5432}
+  user: "${APISERVER_DB_USER:postgres}"
+  password: "${APISERVER_DB_PASSWORD:example}"
+  dbname: "${APISERVER_DB_NAME:./mcp-gateway.db}"
+  sslmode: "${APISERVER_DB_SSL_MODE:disable}"
 
 # Storage configuration
 storage:
@@ -26,27 +26,25 @@ storage:
 # Notifier configuration
 notifier:
   # Type of notifier to use (signal, api, redis, composite)
-  type: "${NOTIFIER_TYPE:signal}"
+  type: "${APISERVER_NOTIFIER_TYPE:signal}"
 
   # Signal configuration (only used when type is signal)
   signal:
-    signal: "${NOTIFIER_SIGNAL:SIGHUP}"
-    pid: "${NOTIFIER_SIGNAL_PID:/var/run/mcp-gateway.pid}"
+    signal: "${APISERVER_NOTIFIER_SIGNAL:SIGHUP}"
+    pid: "${APISERVER_NOTIFIER_SIGNAL_PID:/var/run/mcp-gateway.pid}"
 
   # API configuration (only used when type is api)
   api:
-    port: ${NOTIFIER_API_PORT:5235}
+    port: ${APISERVER_NOTIFIER_API_PORT:5235}
 
   # Redis configuration (only used when type is redis)
   redis:
-    addr: "${NOTIFIER_REDIS_ADDR:localhost:6379}"
-    password: "${NOTIFIER_REDIS_PASSWORD:UseStrongPasswordIsAGoodPractice}"
-    db: ${NOTIFIER_REDIS_DB:0}
-    topic: "${NOTIFIER_REDIS_TOPIC:mcp-gateway:reload}"
+    addr: "${APISERVER_NOTIFIER_REDIS_ADDR:localhost:6379}"
+    password: "${APISERVER_NOTIFIER_REDIS_PASSWORD:UseStrongPasswordIsAGoodPractice}"
+    db: ${APISERVER_NOTIFIER_REDIS_DB:0}
+    topic: "${APISERVER_NOTIFIER_REDIS_TOPIC:mcp-gateway:reload}"
 
 openai:
   api_key: "${OPENAI_API_KEY}"
   model: "${OPENAI_MODEL:gpt-4.1}"
   base_url: "${OPENAI_BASE_URL:https://api.openai.com/v1/}"
-
-gateway_pid: "${MCP_GATEWAY_PID:/var/run/mcp-gateway.pid}"

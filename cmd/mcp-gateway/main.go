@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,12 +28,10 @@ import (
 )
 
 var (
-	configPath   string
-	pidFile      string
-	reloadChan   chan struct{}
-	serverLock   sync.RWMutex
-	httpServer   *http.Server
-	reloadServer *http.Server
+	configPath string
+	pidFile    string
+	serverLock sync.RWMutex
+	httpServer *http.Server
 
 	versionCmd = &cobra.Command{
 		Use:   "version",
@@ -211,31 +210,10 @@ func run() {
 			zap.Error(err))
 	}
 
-	// Keep the original HTTP reload endpoint
-	reloadChan = make(chan struct{})
-	reloadRouter := gin.Default()
-	reloadRouter.POST("/_reload", func(c *gin.Context) {
-		reloadChan <- struct{}{}
-		c.JSON(http.StatusOK, gin.H{"status": "reload triggered"})
-	})
-
-	reloadServer = &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.InnerPort),
-		Handler: reloadRouter,
-	}
-
 	go func() {
 		logger.Info("Starting main server", zap.Int("port", cfg.Port))
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("failed to start main server",
-				zap.Error(err))
-		}
-	}()
-
-	go func() {
-		logger.Info("Starting inner server", zap.Int("port", cfg.InnerPort))
-		if err := reloadServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("failed to start inner server",
 				zap.Error(err))
 		}
 	}()
@@ -252,17 +230,10 @@ func run() {
 				logger.Error("failed to shutdown main server",
 					zap.Error(err))
 			}
-			if err := reloadServer.Shutdown(ctx); err != nil {
-				cancel()
-				logger.Error("failed to shutdown reload server",
-					zap.Error(err))
-			}
 			cancel()
 			return
 		case <-updateCh:
 			logger.Info("Received reload signal")
-			handleReload(ctx, logger, store, srv, cfg)
-		case <-reloadChan:
 			handleReload(ctx, logger, store, srv, cfg)
 		}
 	}
