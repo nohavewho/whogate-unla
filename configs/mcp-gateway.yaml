@@ -31,6 +31,7 @@ notifier:
   # API configuration (only used when type is api)
   api:
     port: ${NOTIFIER_API_PORT:5235}
+    target_url: "${NOTIFIER_API_TARGET_URL:http://localhost:5235/_reload}"
 
   # Redis configuration (only used when type is redis)
   redis:

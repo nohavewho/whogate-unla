@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"net/http"
 	"sync"
+
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
@@ -15,21 +16,23 @@ import (
 
 // APINotifier implements Notifier using HTTP API
 type APINotifier struct {
-	logger   *zap.Logger
-	watchers map[chan<- *config.MCPConfig]struct{}
-	mu       sync.RWMutex
-	router   *gin.Engine
-	server   *http.Server
-	role     config.NotifierRole
+	logger    *zap.Logger
+	watchers  map[chan<- *config.MCPConfig]struct{}
+	mu        sync.RWMutex
+	router    *gin.Engine
+	server    *http.Server
+	role      config.NotifierRole
+	targetURL string
 }
 
 // NewAPINotifier creates a new API-based notifier
-func NewAPINotifier(logger *zap.Logger, port int, role config.NotifierRole) *APINotifier {
+func NewAPINotifier(logger *zap.Logger, port int, role config.NotifierRole, targetURL string) *APINotifier {
 	n := &APINotifier{
-		logger:   logger.Named("notifier.api"),
-		watchers: make(map[chan<- *config.MCPConfig]struct{}),
-		router:   gin.Default(),
-		role:     role,
+		logger:    logger.Named("notifier.api"),
+		watchers:  make(map[chan<- *config.MCPConfig]struct{}),
+		router:    gin.Default(),
+		role:      role,
+		targetURL: targetURL,
 	}
 
 	// Setup API routes if can receive
@@ -80,22 +83,32 @@ func (n *APINotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, erro
 }
 
 // NotifyUpdate implements Notifier.NotifyUpdate
-func (n *APINotifier) NotifyUpdate(_ context.Context, server *config.MCPConfig) error {
+func (n *APINotifier) NotifyUpdate(ctx context.Context, server *config.MCPConfig) error {
 	if !n.CanSend() {
 		return cnst.ErrNotSender
 	}
 
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
-	for ch := range n.watchers {
-		select {
-		case ch <- server:
-		default:
-			n.logger.Warn("watcher channel is full, skipping notification",
-				zap.String("server", server.Name))
-		}
+	if n.targetURL == "" {
+		return fmt.Errorf("target URL is not configured")
 	}
+
+	// Send HTTP POST request to target URL
+	req, err := http.NewRequestWithContext(ctx, "POST", n.targetURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
 	return nil
 }
 

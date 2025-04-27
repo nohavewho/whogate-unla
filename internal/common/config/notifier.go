@@ -18,7 +18,8 @@ type (
 
 	// APIConfig represents the configuration for API-based notifier
 	APIConfig struct {
-		Port int `yaml:"port"`
+		Port      int    `yaml:"port"`
+		TargetURL string `yaml:"target_url"`
 	}
 
 	// RedisConfig represents the configuration for Redis-based notifier
