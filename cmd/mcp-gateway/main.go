@@ -3,21 +3,21 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/helper"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
+	pidHelper "github.com/mcp-ecosystem/mcp-gateway/pkg/helper"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 
@@ -33,55 +33,46 @@ var (
 	serverLock   sync.RWMutex
 	httpServer   *http.Server
 	reloadServer *http.Server
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of mcp-gateway",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("mcp-gateway version %s\n", version.Get())
+		},
+	}
+	reloadCmd = &cobra.Command{
+		Use:   "reload",
+		Short: "Reload the configuration of a running mcp-gateway instance",
+		Run: func(cmd *cobra.Command, args []string) {
+			// Load config to get PID path if not provided via command line
+			cfg, _, err := config.LoadConfig[config.MCPGatewayConfig](configPath)
+			if err != nil {
+				fmt.Printf("Failed to load config: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Use PID from config if not provided via command line
+			if pidFile == "" {
+				pidFile = cfg.PID
+			}
+
+			if err := utils.SendSignalToPIDFile(pidHelper.GetPIDPath(pidFile), syscall.SIGHUP); err != nil {
+				fmt.Printf("Failed to send reload signal: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("Reload signal sent successfully")
+		},
+	}
+	rootCmd = &cobra.Command{
+		Use:   "mcp-gateway",
+		Short: "MCP Gateway service",
+		Long:  `MCP Gateway is a service that provides API gateway functionality for MCP ecosystem`,
+		Run: func(cmd *cobra.Command, args []string) {
+			run()
+		},
+	}
 )
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the version number of mcp-gateway",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("mcp-gateway version %s\n", version.Get())
-	},
-}
-
-var reloadCmd = &cobra.Command{
-	Use:   "reload",
-	Short: "Reload the configuration of a running mcp-gateway instance",
-	Run: func(cmd *cobra.Command, args []string) {
-		pidBytes, err := os.ReadFile(pidFile)
-		if err != nil {
-			fmt.Printf("Failed to read PID file: %v\n", err)
-			os.Exit(1)
-		}
-
-		pid, err := strconv.Atoi(strings.TrimSpace(string(pidBytes)))
-		if err != nil {
-			fmt.Printf("Invalid PID in file: %v\n", err)
-			os.Exit(1)
-		}
-
-		process, err := os.FindProcess(pid)
-		if err != nil {
-			fmt.Printf("Failed to find process: %v\n", err)
-			os.Exit(1)
-		}
-
-		if err := process.Signal(syscall.SIGHUP); err != nil {
-			fmt.Printf("Failed to send reload signal: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Println("Reload signal sent successfully")
-	},
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "mcp-gateway",
-	Short: "MCP Gateway service",
-	Long:  `MCP Gateway is a service that provides API gateway functionality for MCP ecosystem`,
-	Run: func(cmd *cobra.Command, args []string) {
-		run()
-	},
-}
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "conf", cnst.MCPGatewayYaml, "path to configuration file, like /etc/mcp-gateway/apiserver.yaml")

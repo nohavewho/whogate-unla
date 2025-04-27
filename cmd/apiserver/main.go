@@ -46,50 +46,62 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 }
 
-func run() {
-	ctx := context.Background()
-
-	// Initialize logger
+// initLogger initializes the application logger
+func initLogger() *zap.Logger {
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
-	defer logger.Sync()
+	return logger
+}
 
-	// Load configuration
+// initConfig loads and returns the application configuration
+func initConfig(logger *zap.Logger) *config.APIServerConfig {
 	cfg, cfgPath, err := config.LoadConfig[config.APIServerConfig](configPath)
 	if err != nil {
 		logger.Fatal("Failed to load configuration",
 			zap.String("path", cfgPath), zap.Error(err))
 	}
 	logger.Info("Loaded configuration", zap.String("path", cfgPath))
+	return cfg
+}
 
-	// Initialize notifier
-	ntf, err := notifier.NewNotifier(ctx, logger, &cfg.Notifier)
+// initNotifier initializes the notifier service
+func initNotifier(ctx context.Context, logger *zap.Logger, cfg *config.NotifierConfig) notifier.Notifier {
+	ntf, err := notifier.NewNotifier(ctx, logger, cfg)
 	if err != nil {
 		logger.Fatal("Failed to initialize notifier", zap.Error(err))
 	}
+	return ntf
+}
 
-	// Initialize OpenAI client
-	openaiClient := openai.NewClient(&cfg.OpenAI)
+// initOpenAI initializes the OpenAI client
+func initOpenAI(cfg *config.OpenAIConfig) *openai.Client {
+	return openai.NewClient(cfg)
+}
 
-	// Initialize database based on configuration
-	logger.Info("Initializing database", zap.String("type", cfg.Database.Type))
-	db, err := database.NewDatabase(&cfg.Database)
+// initDatabase initializes the database connection
+func initDatabase(logger *zap.Logger, cfg *config.DatabaseConfig) database.Database {
+	logger.Info("Initializing database", zap.String("type", cfg.Type))
+	db, err := database.NewDatabase(cfg)
 	if err != nil {
 		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
-	defer db.Close()
-	logger.Info("Database initialized", zap.String("type", cfg.Database.Type))
+	logger.Info("Database initialized", zap.String("type", cfg.Type))
+	return db
+}
 
-	// Initialize store using factory
-	store, err := storage.NewStore(logger, &cfg.Storage)
+// initStore initializes the storage service
+func initStore(logger *zap.Logger, cfg *config.StorageConfig) storage.Store {
+	store, err := storage.NewStore(logger, cfg)
 	if err != nil {
 		logger.Fatal("Failed to initialize store", zap.Error(err))
 	}
+	return store
+}
 
-	logger.Info("Starting apiserver", zap.String("version", version.Get()))
-
+// initRouter initializes the HTTP router and handlers
+func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier, openaiClient *openai.Client) *gin.Engine {
 	r := gin.Default()
 
 	chatHandler := handler.NewChat(db)
@@ -111,15 +123,45 @@ func run() {
 	// Static file server
 	r.Static("/static", "./static")
 
+	return r
+}
+
+// startServer starts the HTTP server
+func startServer(logger *zap.Logger, router *gin.Engine) {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5234"
 	}
 
-	log.Printf("Server starting on port %s", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatal(err)
+	logger.Info("Server starting", zap.String("port", port))
+	if err := router.Run(":" + port); err != nil {
+		logger.Fatal("Failed to start server", zap.Error(err))
 	}
+}
+
+func run() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Initialize logger
+	logger := initLogger()
+	defer logger.Sync()
+
+	// Load configuration
+	cfg := initConfig(logger)
+
+	// Initialize services
+	ntf := initNotifier(ctx, logger, &cfg.Notifier)
+	openaiClient := initOpenAI(&cfg.OpenAI)
+	db := initDatabase(logger, &cfg.Database)
+	defer db.Close()
+	store := initStore(logger, &cfg.Storage)
+
+	logger.Info("Starting apiserver", zap.String("version", version.Get()))
+
+	// Initialize router and start server
+	router := initRouter(db, store, ntf, openaiClient)
+	startServer(logger, router)
 }
 
 func main() {
