@@ -3,12 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/helper"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,11 +14,14 @@ import (
 	"time"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/helper"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -83,52 +84,10 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&configPath, "conf", "", "path to configuration file or directory")
+	rootCmd.PersistentFlags().StringVar(&configPath, "conf", cnst.MCPGatewayYaml, "path to configuration file, like /etc/mcp-gateway/apiserver.yaml")
 	rootCmd.PersistentFlags().StringVar(&pidFile, "pid", "", "path to PID file")
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(reloadCmd)
-}
-
-func getCfgPath() string {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	configsPath := filepath.Join(currentDir, "configs", "mcp-gateway.yaml")
-	if _, err := os.Stat(configsPath); err == nil {
-		return configsPath
-	}
-
-	return "/etc/mcp-gateway/mcp-gateway.yaml"
-}
-
-func getPIDFile() string {
-	if pidFile != "" {
-		return pidFile
-	}
-
-	cfgPath := getCfgPath()
-	cfg, err := config.LoadConfig[config.MCPGatewayConfig](cfgPath)
-	if err != nil {
-		return "/var/run/mcp-gateway.pid"
-	}
-
-	return cfg.PID
-}
-
-func writePIDFile() error {
-	dir := filepath.Dir(pidFile)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	pid := os.Getpid()
-	return os.WriteFile(pidFile, []byte(fmt.Sprintf("%d\n", pid)), 0644)
-}
-
-func removePIDFile() error {
-	return os.Remove(pidFile)
 }
 
 func handleReload(ctx context.Context, logger *zap.Logger, store storage.Store, srv *core.Server, cfg *config.MCPGatewayConfig) {
@@ -194,27 +153,29 @@ func run() {
 	}
 	defer logger.Sync()
 
-	pidFile = getPIDFile()
-
-	if err := writePIDFile(); err != nil {
-		logger.Fatal("Failed to write PID file",
-			zap.String("path", pidFile),
-			zap.Error(err))
-	}
-	defer removePIDFile()
-
-	logger.Info("Starting mcp-gateway", zap.String("version", version.Get()))
-
-	cfgPath := getCfgPath()
-	logger.Info("Using configuration paths",
-		zap.String("service_config", cfgPath))
-
-	cfg, err := config.LoadConfig[config.MCPGatewayConfig](cfgPath)
+	cfg, cfgPath, err := config.LoadConfig[config.MCPGatewayConfig](cnst.MCPGatewayYaml)
 	if err != nil {
 		logger.Fatal("Failed to load service configuration",
 			zap.String("path", cfgPath),
 			zap.Error(err))
 	}
+	logger.Info("Loaded configuration", zap.String("path", cfgPath))
+
+	// Initialize PID manager
+	if pidFile == "" {
+		pidFile = cfg.PID
+	}
+
+	pidManager := utils.NewPIDManagerFromConfig(pidFile)
+	err = pidManager.WritePID()
+	if err != nil {
+		logger.Fatal("Failed to write PID file",
+			zap.String("path", pidManager.GetPIDFile()),
+			zap.Error(err))
+	}
+	defer pidManager.RemovePID()
+
+	logger.Info("Starting mcp-gateway", zap.String("version", version.Get()))
 
 	// Initialize storage and load initial configuration
 	store, err := storage.NewStore(logger, &cfg.Storage)

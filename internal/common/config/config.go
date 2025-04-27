@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/helper"
 	"os"
 	"regexp"
 
@@ -22,13 +23,14 @@ type Type interface {
 }
 
 // LoadConfig loads configuration from a YAML file with environment variable support
-func LoadConfig[T Type](path string) (*T, error) {
+func LoadConfig[T Type](filename string) (*T, string, error) {
 	// Load .env file if exists
 	_ = godotenv.Load()
 
-	data, err := os.ReadFile(path)
+	cfgPath := helper.GetCfgPath(filename)
+	data, err := os.ReadFile(cfgPath)
 	if err != nil {
-		return nil, err
+		return nil, cfgPath, err
 	}
 
 	// Resolve environment variables
@@ -36,10 +38,10 @@ func LoadConfig[T Type](path string) (*T, error) {
 
 	var cfg T
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, err
+		return nil, cfgPath, err
 	}
 
-	return &cfg, nil
+	return &cfg, cfgPath, nil
 }
 
 // resolveEnv replaces environment variable placeholders in YAML content

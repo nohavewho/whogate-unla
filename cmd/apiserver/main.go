@@ -3,25 +3,26 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	"log"
 	"os"
 
-	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/handler"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/openai"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
+
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
 var (
-	configPath   string
-	db           database.Database
-	openaiClient *openai.Client
+	configPath string
+	db         database.Database
 
 	versionCmd = &cobra.Command{
 		Use:   "version",
@@ -42,7 +43,7 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&configPath, "conf", "", "path to configuration file or directory")
+	rootCmd.PersistentFlags().StringVar(&configPath, "conf", cnst.ApiServerYaml, "path to configuration file, like /etc/mcp-gateway/apiserver.yaml")
 	rootCmd.AddCommand(versionCmd)
 }
 
@@ -57,10 +58,12 @@ func run() {
 	defer logger.Sync()
 
 	// Load configuration
-	cfg, err := config.LoadConfig[config.APIServerConfig]("configs/apiserver.yaml")
+	cfg, cfgPath, err := config.LoadConfig[config.APIServerConfig](configPath)
 	if err != nil {
-		logger.Fatal("Failed to load configuration", zap.Error(err))
+		logger.Fatal("Failed to load configuration",
+			zap.String("path", cfgPath), zap.Error(err))
 	}
+	logger.Info("Loaded configuration", zap.String("path", cfgPath))
 
 	// Initialize notifier
 	ntf, err := notifier.NewNotifier(ctx, logger, &cfg.Notifier)
@@ -69,7 +72,7 @@ func run() {
 	}
 
 	// Initialize OpenAI client
-	openaiClient = openai.NewClient(&cfg.OpenAI)
+	openaiClient := openai.NewClient(&cfg.OpenAI)
 
 	// Initialize database based on configuration
 	switch cfg.Database.Type {
