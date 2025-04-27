@@ -26,6 +26,20 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
+      # Read changelog
+      - name: Read changelog
+        id: changelog
+        run: |
+          VERSION_FILE="changelog/${GITHUB_REF#refs/tags/}.md"
+          if [ -f "$VERSION_FILE" ]; then
+            CHANGELOG_CONTENT=$(cat "$VERSION_FILE")
+            echo "CHANGELOG_CONTENT<<EOF" >> $GITHUB_ENV
+            echo "$CHANGELOG_CONTENT" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+          else
+            echo "CHANGELOG_CONTENT=" >> $GITHUB_ENV
+          fi
+
       # Build mcp-gateway
       - name: Build mcp-gateway for Linux amd64
         run: |
@@ -240,3 +254,5 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          body: |
+            ${{ env.CHANGELOG_CONTENT }}
