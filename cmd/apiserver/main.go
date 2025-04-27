@@ -22,7 +22,6 @@ import (
 
 var (
 	configPath string
-	db         database.Database
 
 	versionCmd = &cobra.Command{
 		Use:   "version",
@@ -75,21 +74,13 @@ func run() {
 	openaiClient := openai.NewClient(&cfg.OpenAI)
 
 	// Initialize database based on configuration
-	switch cfg.Database.Type {
-	case "postgres":
-		db = database.NewPostgresDB(&cfg.Database)
-	case "sqlite":
-		db = database.NewSQLiteDB(&cfg.Database)
-	case "mysql":
-		db = database.NewMySQLDB(&cfg.Database)
-	default:
-		logger.Fatal("Unsupported database type", zap.String("type", cfg.Database.Type))
-	}
-
-	if err := db.Init(context.Background()); err != nil {
+	logger.Info("Initializing database", zap.String("type", cfg.Database.Type))
+	db, err := database.NewDatabase(&cfg.Database)
+	if err != nil {
 		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
 	defer db.Close()
+	logger.Info("Database initialized", zap.String("type", cfg.Database.Type))
 
 	// Initialize store using factory
 	store, err := storage.NewStore(logger, &cfg.Storage)
