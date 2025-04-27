@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 )
 
@@ -12,4 +13,10 @@ type Notifier interface {
 
 	// NotifyUpdate triggers an update notification
 	NotifyUpdate(ctx context.Context, updated *config.MCPConfig) error
+
+	// CanReceive returns true if the notifier can receive updates
+	CanReceive() bool
+
+	// CanSend returns true if the notifier can send updates
+	CanSend() bool
 }

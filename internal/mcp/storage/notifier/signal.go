@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"os"
 	"os/signal"
 	"sync"
@@ -18,10 +19,11 @@ type SignalNotifier struct {
 	pid      string
 	mu       sync.RWMutex
 	watchers map[chan *config.MCPConfig]struct{}
+	role     config.NotifierRole
 }
 
 // NewSignalNotifier creates a new signal-based notifier
-func NewSignalNotifier(ctx context.Context, logger *zap.Logger, pid string) *SignalNotifier {
+func NewSignalNotifier(ctx context.Context, logger *zap.Logger, pid string, role config.NotifierRole) *SignalNotifier {
 	if logger == nil {
 		panic("logger is required")
 	}
@@ -33,10 +35,13 @@ func NewSignalNotifier(ctx context.Context, logger *zap.Logger, pid string) *Sig
 		logger:   logger.Named("notifier.signal"),
 		pid:      pid,
 		watchers: make(map[chan *config.MCPConfig]struct{}),
+		role:     role,
 	}
 
-	// Start signal handler
-	go n.handleSignals(ctx)
+	// Start signal handler if can receive
+	if n.CanReceive() {
+		go n.handleSignals(ctx)
+	}
 
 	return n
 }
@@ -76,6 +81,10 @@ func (n *SignalNotifier) notifyWatchers() {
 
 // Watch implements Notifier.Watch
 func (n *SignalNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, error) {
+	if !n.CanReceive() {
+		return nil, cnst.ErrNotReceiver
+	}
+
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -96,10 +105,24 @@ func (n *SignalNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, e
 
 // NotifyUpdate implements Notifier.NotifyUpdate
 func (n *SignalNotifier) NotifyUpdate(_ context.Context, _ *config.MCPConfig) error {
+	if !n.CanSend() {
+		return cnst.ErrNotSender
+	}
+
 	if err := utils.SendSignalToPIDFile(n.pid, syscall.SIGHUP); err != nil {
 		n.logger.Error("Failed to send signal", zap.Error(err))
 		return err
 	}
 	n.logger.Info("Successfully sent SIGHUP signal")
 	return nil
+}
+
+// CanReceive returns true if the notifier can receive updates
+func (n *SignalNotifier) CanReceive() bool {
+	return n.role == config.RoleReceiver || n.role == config.RoleBoth
+}
+
+// CanSend returns true if the notifier can send updates
+func (n *SignalNotifier) CanSend() bool {
+	return n.role == config.RoleSender || n.role == config.RoleBoth
 }

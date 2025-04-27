@@ -19,6 +19,7 @@ storage:
 
 # Notifier configuration
 notifier:
+  role: "${NOTIFIER_ROLE:receiver}"
   # Type of notifier to use (signal, api, redis, composite(includes signal n api as default))
   type: "${NOTIFIER_TYPE:signal}"
 

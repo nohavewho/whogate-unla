@@ -25,6 +25,7 @@ storage:
 
 # Notifier configuration
 notifier:
+  role: "${APISERVER_NOTIFIER_ROLE:sender}"
   # Type of notifier to use (signal, api, redis, composite)
   type: "${APISERVER_NOTIFIER_TYPE:signal}"
 

@@ -3,6 +3,7 @@ package config
 type (
 	// NotifierConfig represents the configuration for notifier
 	NotifierConfig struct {
+		Role   string       `yaml:"role"` // receiver, sender, or both
 		Type   string       `yaml:"type"`
 		Signal SignalConfig `yaml:"signal"`
 		API    APIConfig    `yaml:"api"`
@@ -27,4 +28,16 @@ type (
 		DB       int    `yaml:"db"`
 		Topic    string `yaml:"topic"`
 	}
+)
+
+// NotifierRole represents the role of a notifier
+type NotifierRole string
+
+const (
+	// RoleReceiver represents a notifier that can only receive updates
+	RoleReceiver NotifierRole = "receiver"
+	// RoleSender represents a notifier that can only send updates
+	RoleSender NotifierRole = "sender"
+	// RoleBoth represents a notifier that can both send and receive updates
+	RoleBoth NotifierRole = "both"
 )

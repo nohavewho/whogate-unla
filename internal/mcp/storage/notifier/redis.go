@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
@@ -15,10 +16,11 @@ type RedisNotifier struct {
 	logger *zap.Logger
 	client *redis.Client
 	topic  string
+	role   config.NotifierRole
 }
 
 // NewRedisNotifier creates a new Redis-based notifier
-func NewRedisNotifier(logger *zap.Logger, addr, password string, db int, topic string) (*RedisNotifier, error) {
+func NewRedisNotifier(logger *zap.Logger, addr, password string, db int, topic string, role config.NotifierRole) (*RedisNotifier, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
@@ -34,11 +36,16 @@ func NewRedisNotifier(logger *zap.Logger, addr, password string, db int, topic s
 		logger: logger.Named("notifier.redis"),
 		client: client,
 		topic:  topic,
+		role:   role,
 	}, nil
 }
 
 // Watch implements Notifier.Watch
 func (r *RedisNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, error) {
+	if !r.CanReceive() {
+		return nil, cnst.ErrNotReceiver
+	}
+
 	ch := make(chan *config.MCPConfig, 10)
 
 	pubsub := r.client.Subscribe(ctx, r.topic)
@@ -63,10 +70,24 @@ func (r *RedisNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, er
 
 // NotifyUpdate implements Notifier.NotifyUpdate
 func (r *RedisNotifier) NotifyUpdate(ctx context.Context, server *config.MCPConfig) error {
+	if !r.CanSend() {
+		return cnst.ErrNotSender
+	}
+
 	data, err := json.Marshal(server)
 	if err != nil {
 		return fmt.Errorf("failed to marshal server config: %w", err)
 	}
 
 	return r.client.Publish(ctx, r.topic, data).Err()
+}
+
+// CanReceive returns true if the notifier can receive updates
+func (r *RedisNotifier) CanReceive() bool {
+	return r.role == config.RoleReceiver || r.role == config.RoleBoth
+}
+
+// CanSend returns true if the notifier can send updates
+func (r *RedisNotifier) CanSend() bool {
+	return r.role == config.RoleSender || r.role == config.RoleBoth
 }
