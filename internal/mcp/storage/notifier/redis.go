@@ -1,28 +1,72 @@
 package notifier
 
-//type RedisNotifier struct {
-//	client *redis.Client
-//	topic  string
-//}
-//
-//func (r *RedisNotifier) Notify(ctx context.Context, updated *config.MCPConfig) error {
-//	data, _ := json.Marshal(updated)
-//	return r.client.Publish(ctx, r.topic, data).Err()
-//}
-//
-//func (r *RedisNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, error) {
-//	ch := make(chan *config.MCPConfig, 1)
-//
-//	pubsub := r.client.Subscribe(ctx, r.topic)
-//	go func() {
-//		defer close(ch)
-//		for msg := range pubsub.Channel() {
-//			var cfg config.MCPConfig
-//			if err := json.Unmarshal([]byte(msg.Payload), &cfg); err == nil {
-//				ch <- &cfg
-//			}
-//		}
-//	}()
-//
-//	return ch, nil
-//}
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"go.uber.org/zap"
+)
+
+// RedisNotifier implements Notifier using Redis pub/sub
+type RedisNotifier struct {
+	logger *zap.Logger
+	client *redis.Client
+	topic  string
+}
+
+// NewRedisNotifier creates a new Redis-based notifier
+func NewRedisNotifier(logger *zap.Logger, addr, password string, db int, topic string) (*RedisNotifier, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: password,
+		DB:       db,
+	})
+
+	// Test connection
+	if err := client.Ping(context.Background()).Err(); err != nil {
+		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+
+	return &RedisNotifier{
+		logger: logger.Named("notifier.redis"),
+		client: client,
+		topic:  topic,
+	}, nil
+}
+
+// Watch implements Notifier.Watch
+func (r *RedisNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, error) {
+	ch := make(chan *config.MCPConfig, 10)
+
+	pubsub := r.client.Subscribe(ctx, r.topic)
+	go func() {
+		defer close(ch)
+		defer pubsub.Close()
+
+		for msg := range pubsub.Channel() {
+			var cfg config.MCPConfig
+			if err := json.Unmarshal([]byte(msg.Payload), &cfg); err == nil {
+				select {
+				case ch <- &cfg:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return ch, nil
+}
+
+// NotifyUpdate implements Notifier.NotifyUpdate
+func (r *RedisNotifier) NotifyUpdate(ctx context.Context, server *config.MCPConfig) error {
+	data, err := json.Marshal(server)
+	if err != nil {
+		return fmt.Errorf("failed to marshal server config: %w", err)
+	}
+
+	return r.client.Publish(ctx, r.topic, data).Err()
+}

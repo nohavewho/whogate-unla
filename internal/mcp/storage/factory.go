@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
@@ -9,17 +8,17 @@ import (
 )
 
 // NewStore creates a new store based on configuration
-func NewStore(ctx context.Context, logger *zap.Logger, cfg *config.StorageConfig) (Store, error) {
+func NewStore(logger *zap.Logger, cfg *config.StorageConfig) (Store, error) {
 	logger.Info("Initializing storage", zap.String("type", cfg.Type))
 	switch cfg.Type {
 	case "disk":
-		return NewDiskStore(ctx, logger, cfg.Disk.Path)
+		return NewDiskStore(logger, cfg.Disk.Path)
 	case "db":
 		dsn, err := buildDSN(&cfg.Database)
 		if err != nil {
 			return nil, err
 		}
-		return NewDBStore(ctx, logger, DatabaseType(cfg.Database.Type), dsn)
+		return NewDBStore(logger, DatabaseType(cfg.Database.Type), dsn)
 	default:
 		return nil, fmt.Errorf("unsupported storage type: %s", cfg.Type)
 	}

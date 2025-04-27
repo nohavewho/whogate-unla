@@ -23,6 +23,27 @@ storage:
   disk:
     path: "${GATEWAY_STORAGE_DISK_PATH:}"
 
+# Notifier configuration
+notifier:
+  # Type of notifier to use (signal, api, redis, composite)
+  type: "${NOTIFIER_TYPE:signal}"
+
+  # Signal configuration (only used when type is signal)
+  signal:
+    signal: "${NOTIFIER_SIGNAL:SIGHUP}"
+    pid: "${NOTIFIER_SIGNAL_PID:/var/run/mcp-gateway.pid}"
+
+  # API configuration (only used when type is api)
+  api:
+    port: ${NOTIFIER_API_PORT:5235}
+
+  # Redis configuration (only used when type is redis)
+  redis:
+    addr: "${NOTIFIER_REDIS_ADDR:localhost:6379}"
+    password: "${NOTIFIER_REDIS_PASSWORD:UseStrongPasswordIsAGoodPractice}"
+    db: ${NOTIFIER_REDIS_DB:0}
+    topic: "${NOTIFIER_REDIS_TOPIC:mcp-gateway:reload}"
+
 openai:
   api_key: "${OPENAI_API_KEY}"
   model: "${OPENAI_MODEL:gpt-4.1}"

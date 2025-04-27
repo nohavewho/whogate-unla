@@ -2,8 +2,6 @@ package storage
 
 import (
 	"context"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
-
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 )
 
@@ -23,7 +21,4 @@ type Store interface {
 
 	// Delete deletes an MCP server record by name
 	Delete(ctx context.Context, name string) error
-
-	// GetNotifier returns the notifier implementation
-	GetNotifier(ctx context.Context) notifier.Notifier
 }

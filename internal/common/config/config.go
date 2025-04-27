@@ -9,11 +9,12 @@ import (
 )
 
 type MCPGatewayConfig struct {
-	Port       int           `yaml:"port"`
-	InnerPort  int           `yaml:"inner_port"`
-	ReloadPort int           `yaml:"reload_port"`
-	PID        string        `yaml:"pid"`
-	Storage    StorageConfig `yaml:"storage"`
+	Port       int            `yaml:"port"`
+	InnerPort  int            `yaml:"inner_port"`
+	ReloadPort int            `yaml:"reload_port"`
+	PID        string         `yaml:"pid"`
+	Storage    StorageConfig  `yaml:"storage"`
+	Notifier   NotifierConfig `yaml:"notifier"`
 }
 
 type Type interface {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	"log"
 	"os"
 
@@ -61,6 +62,12 @@ func run() {
 		logger.Fatal("Failed to load configuration", zap.Error(err))
 	}
 
+	// Initialize notifier
+	ntf, err := notifier.NewNotifier(ctx, logger, &cfg.Notifier)
+	if err != nil {
+		logger.Fatal("Failed to initialize notifier", zap.Error(err))
+	}
+
 	// Initialize OpenAI client
 	openaiClient = openai.NewClient(&cfg.OpenAI)
 
@@ -82,7 +89,7 @@ func run() {
 	defer db.Close()
 
 	// Initialize store using factory
-	store, err := storage.NewStore(ctx, logger, &cfg.Storage)
+	store, err := storage.NewStore(logger, &cfg.Storage)
 	if err != nil {
 		logger.Fatal("Failed to initialize store", zap.Error(err))
 	}
@@ -92,7 +99,7 @@ func run() {
 	r := gin.Default()
 
 	chatHandler := handler.NewChat(db)
-	mcpHandler := handler.NewMCP(db, store, cfg.GatewayPID)
+	mcpHandler := handler.NewMCP(db, store, ntf)
 	wsHandler := handler.NewWebSocket(db, openaiClient)
 
 	// Configure routes

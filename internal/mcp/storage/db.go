@@ -2,8 +2,8 @@ package storage
 
 import (
 	"context"
+
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -13,9 +13,8 @@ import (
 
 // DBStore implements the Store interface using a database
 type DBStore struct {
-	logger   *zap.Logger
-	db       *gorm.DB
-	notifier notifier.Notifier
+	logger *zap.Logger
+	db     *gorm.DB
 }
 
 var _ Store = (*DBStore)(nil)
@@ -30,7 +29,7 @@ const (
 )
 
 // NewDBStore creates a new database-based store
-func NewDBStore(ctx context.Context, logger *zap.Logger, dbType DatabaseType, dsn string) (*DBStore, error) {
+func NewDBStore(logger *zap.Logger, dbType DatabaseType, dsn string) (*DBStore, error) {
 	logger = logger.Named("mcp.store.db")
 
 	var dialector gorm.Dialector
@@ -56,9 +55,8 @@ func NewDBStore(ctx context.Context, logger *zap.Logger, dbType DatabaseType, ds
 	}
 
 	return &DBStore{
-		logger:   logger,
-		db:       db,
-		notifier: notifier.NewSignalNotifier(ctx, logger),
+		logger: logger,
+		db:     db,
 	}, nil
 }
 
@@ -74,7 +72,7 @@ func (s *DBStore) Create(_ context.Context, server *config.MCPConfig) error {
 		return result.Error
 	}
 
-	return s.notifier.NotifyUpdate(context.Background(), server)
+	return nil
 }
 
 // Get implements Store.Get
@@ -118,7 +116,7 @@ func (s *DBStore) Update(_ context.Context, server *config.MCPConfig) error {
 		return result.Error
 	}
 
-	return s.notifier.NotifyUpdate(context.Background(), server)
+	return nil
 }
 
 // Delete implements Store.Delete
@@ -128,11 +126,6 @@ func (s *DBStore) Delete(_ context.Context, name string) error {
 		return result.Error
 	}
 	return nil
-}
-
-// GetNotifier implements Store.GetNotifier
-func (s *DBStore) GetNotifier(_ context.Context) notifier.Notifier {
-	return s.notifier
 }
 
 // ErrInvalidDatabaseType is returned when an invalid database type is provided

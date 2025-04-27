@@ -70,7 +70,7 @@ func (n *APINotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, erro
 }
 
 // NotifyUpdate implements Notifier.NotifyUpdate
-func (n *APINotifier) NotifyUpdate(ctx context.Context, server *config.MCPConfig) error {
+func (n *APINotifier) NotifyUpdate(_ context.Context, server *config.MCPConfig) error {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 

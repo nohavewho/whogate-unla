@@ -13,17 +13,22 @@ import (
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/dto"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	"gopkg.in/yaml.v3"
 )
 
 type MCP struct {
-	db    database.Database
-	store storage.Store
-	gwPID string
+	db       database.Database
+	store    storage.Store
+	notifier notifier.Notifier
 }
 
-func NewMCP(db database.Database, store storage.Store, gatewayPID string) *MCP {
-	return &MCP{db: db, store: store, gwPID: gatewayPID}
+func NewMCP(db database.Database, store storage.Store, ntf notifier.Notifier) *MCP {
+	return &MCP{
+		db:       db,
+		store:    store,
+		notifier: ntf,
+	}
 }
 
 func (h *MCP) HandleMCPServerUpdate(c *gin.Context) {
@@ -73,8 +78,8 @@ func (h *MCP) HandleMCPServerUpdate(c *gin.Context) {
 		return
 	}
 
-	// Send reload signal to gateway
-	if err := sendReloadSignal(h.gwPID); err != nil {
+	// Send reload signal to gateway using notifier
+	if err := h.notifier.NotifyUpdate(c.Request.Context(), &cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload gateway: " + err.Error(),
 		})
@@ -148,8 +153,8 @@ func (h *MCP) HandleMCPServerCreate(c *gin.Context) {
 		return
 	}
 
-	// Send reload signal to gateway
-	if err := sendReloadSignal(h.gwPID); err != nil {
+	// Send reload signal to gateway using notifier
+	if err := h.notifier.NotifyUpdate(c.Request.Context(), &cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload gateway: " + err.Error(),
 		})
@@ -190,8 +195,8 @@ func (h *MCP) HandleMCPServerDelete(c *gin.Context) {
 }
 
 func (h *MCP) HandleMCPServerSync(c *gin.Context) {
-	// Send reload signal to gateway
-	if err := sendReloadSignal(h.gwPID); err != nil {
+	// Send reload signal to gateway using notifier
+	if err := h.notifier.NotifyUpdate(c.Request.Context(), nil); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to reload gateway: " + err.Error(),
 		})

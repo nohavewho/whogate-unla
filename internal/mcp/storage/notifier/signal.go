@@ -8,21 +8,31 @@ import (
 	"syscall"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
 	"go.uber.org/zap"
 )
 
 // SignalNotifier implements Notifier using system signals
 type SignalNotifier struct {
 	logger   *zap.Logger
-	watchers map[chan<- *config.MCPConfig]struct{}
+	pid      string
 	mu       sync.RWMutex
+	watchers map[chan *config.MCPConfig]struct{}
 }
 
 // NewSignalNotifier creates a new signal-based notifier
-func NewSignalNotifier(ctx context.Context, logger *zap.Logger) *SignalNotifier {
+func NewSignalNotifier(ctx context.Context, logger *zap.Logger, pid string) *SignalNotifier {
+	if logger == nil {
+		panic("logger is required")
+	}
+	if pid == "" {
+		panic("pid file path is required")
+	}
+
 	n := &SignalNotifier{
 		logger:   logger.Named("notifier.signal"),
-		watchers: make(map[chan<- *config.MCPConfig]struct{}),
+		pid:      pid,
+		watchers: make(map[chan *config.MCPConfig]struct{}),
 	}
 
 	// Start signal handler
@@ -31,6 +41,7 @@ func NewSignalNotifier(ctx context.Context, logger *zap.Logger) *SignalNotifier 
 	return n
 }
 
+// handleSignals listens for SIGHUP signals and notifies watchers
 func (n *SignalNotifier) handleSignals(ctx context.Context) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGHUP)
@@ -39,9 +50,26 @@ func (n *SignalNotifier) handleSignals(ctx context.Context) {
 		select {
 		case sig := <-sigChan:
 			n.logger.Info("Received reload signal", zap.String("signal", sig.String()))
-			// When signal is received, notify all watchers with nil server
-			// The actual server config will be reloaded by the watcher
-			_ = n.NotifyUpdate(ctx, nil)
+			n.notifyWatchers()
+
+		case <-ctx.Done():
+			n.logger.Info("Signal handler stopped")
+			return
+		}
+	}
+}
+
+// notifyWatchers sends nil config to all registered watchers
+func (n *SignalNotifier) notifyWatchers() {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	for ch := range n.watchers {
+		select {
+		case ch <- nil:
+			n.logger.Debug("Notified watcher")
+		default:
+			n.logger.Warn("Watcher channel is full, skipping")
 		}
 	}
 }
@@ -51,10 +79,10 @@ func (n *SignalNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, e
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	ch := make(chan *config.MCPConfig, 10)
+	ch := make(chan *config.MCPConfig, 10) // Buffered channel to prevent blocking
 	n.watchers[ch] = struct{}{}
 
-	// Start a goroutine to handle context cancellation and cleanup
+	// Cleanup on context cancellation
 	go func() {
 		<-ctx.Done()
 		n.mu.Lock()
@@ -67,17 +95,11 @@ func (n *SignalNotifier) Watch(ctx context.Context) (<-chan *config.MCPConfig, e
 }
 
 // NotifyUpdate implements Notifier.NotifyUpdate
-func (n *SignalNotifier) NotifyUpdate(_ context.Context, server *config.MCPConfig) error {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-
-	for ch := range n.watchers {
-		select {
-		case ch <- server:
-		default:
-			n.logger.Warn("watcher channel is full, skipping notification",
-				zap.String("server", server.Name))
-		}
+func (n *SignalNotifier) NotifyUpdate(_ context.Context, _ *config.MCPConfig) error {
+	if err := utils.SendSignalToPIDFile(n.pid, syscall.SIGHUP); err != nil {
+		n.logger.Error("Failed to send signal", zap.Error(err))
+		return err
 	}
+	n.logger.Info("Successfully sent SIGHUP signal")
 	return nil
 }

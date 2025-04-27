@@ -8,6 +8,7 @@ type (
 		OpenAI     OpenAIConfig   `yaml:"openai"`
 		GatewayPID string         `yaml:"gateway_pid"`
 		Storage    StorageConfig  `yaml:"storage"`
+		Notifier   NotifierConfig `yaml:"notifier"`
 	}
 
 	DatabaseConfig struct {

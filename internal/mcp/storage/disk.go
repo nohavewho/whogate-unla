@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	"gopkg.in/yaml.v3"
 
 	"go.uber.org/zap"
@@ -17,16 +16,15 @@ import (
 
 // DiskStore implements the Store interface using the local filesystem
 type DiskStore struct {
-	logger   *zap.Logger
-	baseDir  string
-	mu       sync.RWMutex
-	notifier notifier.Notifier
+	logger  *zap.Logger
+	baseDir string
+	mu      sync.RWMutex
 }
 
 var _ Store = (*DiskStore)(nil)
 
 // NewDiskStore creates a new disk-based store
-func NewDiskStore(ctx context.Context, logger *zap.Logger, baseDir string) (*DiskStore, error) {
+func NewDiskStore(logger *zap.Logger, baseDir string) (*DiskStore, error) {
 	logger = logger.Named("mcp.store")
 
 	baseDir = getConfigPath(baseDir)
@@ -37,9 +35,8 @@ func NewDiskStore(ctx context.Context, logger *zap.Logger, baseDir string) (*Dis
 	}
 
 	return &DiskStore{
-		logger:   logger,
-		baseDir:  baseDir,
-		notifier: notifier.NewSignalNotifier(ctx, logger),
+		logger:  logger,
+		baseDir: baseDir,
 	}, nil
 }
 
@@ -148,11 +145,6 @@ func (s *DiskStore) Delete(_ context.Context, name string) error {
 
 	path := filepath.Join(s.baseDir, name+".yaml")
 	return os.Remove(path)
-}
-
-// GetNotifier implements Store.GetNotifier
-func (s *DiskStore) GetNotifier(_ context.Context) notifier.Notifier {
-	return s.notifier
 }
 
 func getConfigPath(baseDir string) string {

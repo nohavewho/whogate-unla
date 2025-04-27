@@ -3,10 +3,10 @@ package core
 import (
 	"context"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 	"go.uber.org/zap"

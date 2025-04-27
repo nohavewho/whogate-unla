@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/helper"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	"net/http"
 	"os"
 	"os/signal"
@@ -216,7 +217,7 @@ func run() {
 	}
 
 	// Initialize storage and load initial configuration
-	store, err := storage.NewStore(ctx, logger, &cfg.Storage)
+	store, err := storage.NewStore(logger, &cfg.Storage)
 	if err != nil {
 		logger.Fatal("failed to initialize storage",
 			zap.String("type", cfg.Storage.Type),
@@ -247,8 +248,12 @@ func run() {
 		Handler: router,
 	}
 
-	notifier := store.GetNotifier(ctx)
-	updateCh, err := notifier.Watch(ctx)
+	ntf, err := notifier.NewNotifier(ctx, logger, &cfg.Notifier)
+	if err != nil {
+		logger.Fatal("failed to initialize notifier",
+			zap.Error(err))
+	}
+	updateCh, err := ntf.Watch(ctx)
 	if err != nil {
 		logger.Fatal("failed to start watching for updates",
 			zap.Error(err))
