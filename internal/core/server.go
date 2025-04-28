@@ -23,6 +23,8 @@ type (
 		prefixToServerConfig map[string]*config.ServerConfig
 		// sessions manages all active sessions
 		sessions session.Store
+		// shutdownCh is used to signal shutdown to all SSE connections
+		shutdownCh chan struct{}
 	}
 )
 
@@ -41,6 +43,7 @@ func NewServer(logger *zap.Logger, cfg *config.MCPGatewayConfig) (*Server, error
 		prefixToTools:        make(map[string][]mcp.ToolSchema),
 		prefixToServerConfig: make(map[string]*config.ServerConfig),
 		sessions:             sessionStore,
+		shutdownCh:           make(chan struct{}),
 	}, nil
 }
 
@@ -94,6 +97,7 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.MCPConfig) error
 
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(_ context.Context) error {
+	close(s.shutdownCh)
 	return nil
 }
 

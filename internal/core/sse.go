@@ -68,6 +68,8 @@ func (s *Server) handleSSE(c *gin.Context) {
 			flusher.Flush()
 		case <-r.Context().Done():
 			return
+		case <-s.shutdownCh:
+			return
 		}
 	}
 }
