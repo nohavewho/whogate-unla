@@ -160,7 +160,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn s
 
 	case mcp.ToolsList:
 		// Get tools for this prefix
-		tools, ok := s.prefixToTools[conn.Meta().ID]
+		tools, ok := s.prefixToTools[conn.Meta().Prefix]
 		if !ok {
 			tools = []mcp.ToolSchema{}
 		}
