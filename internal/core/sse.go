@@ -45,20 +45,11 @@ func (s *Server) handleSSE(c *gin.Context) {
 		Type:      "sse",
 		Extra:     nil,
 	}
-	conn, err := s.sessionStore.Register(c.Request.Context(), meta)
+	conn, err := s.sessions.Register(c.Request.Context(), meta)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store sess"})
 		return
 	}
-
-	s.sLock.Lock()
-	s.memorySessions[meta.ID] = &sessionDataInMemory{
-		flusher: flusher,
-		conn:    conn,
-		meta:    meta,
-	}
-	s.sLock.Unlock()
-	s.sessionToPrefix.Store(sessionID, prefix)
 
 	// Send the initial endpoint event
 	_, _ = fmt.Fprintf(w, "event: endpoint\ndata: %s\r\n\r\n",
@@ -82,7 +73,7 @@ func (s *Server) handleSSE(c *gin.Context) {
 }
 
 // sendErrorResponse sends an error response through SSE channel and returns Accepted status
-func (s *Server) sendErrorResponse(c *gin.Context, sess *sessionDataInMemory, req mcp.JSONRPCRequest, errorMsg string) {
+func (s *Server) sendErrorResponse(c *gin.Context, conn session.Connection, req mcp.JSONRPCRequest, errorMsg string) {
 	response := mcp.JSONRPCResponse{
 		JSONRPCBaseResult: mcp.JSONRPCBaseResult{
 			JSONRPC: mcp.JSPNRPCVersion,
@@ -103,7 +94,7 @@ func (s *Server) sendErrorResponse(c *gin.Context, sess *sessionDataInMemory, re
 		c.String(http.StatusAccepted, mcp.Accepted)
 		return
 	}
-	err = sess.conn.Send(c.Request.Context(), &session.Message{
+	err = conn.Send(c.Request.Context(), &session.Message{
 		Event: "message",
 		Data:  eventData,
 	})
@@ -131,10 +122,8 @@ func (s *Server) handleMessage(c *gin.Context) {
 		return
 	}
 
-	s.sLock.RLock()
-	sess, ok := s.memorySessions[sessionId]
-	s.sLock.RUnlock()
-	if !ok {
+	conn, err := s.sessions.Get(c.Request.Context(), sessionId)
+	if err != nil {
 		c.String(http.StatusAccepted, mcp.Accepted)
 		return
 	}
@@ -146,7 +135,7 @@ func (s *Server) handleMessage(c *gin.Context) {
 	case mcp.Initialize:
 		var params mcp.InitializeRequestParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			s.sendErrorResponse(c, sess, req, "Invalid initialize parameters")
+			s.sendErrorResponse(c, conn, req, "Invalid initialize parameters")
 			return
 		}
 
@@ -167,10 +156,10 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Send response via SSE
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			s.sendErrorResponse(c, sess, req, "Failed to marshal response")
+			s.sendErrorResponse(c, conn, req, "Failed to marshal response")
 			return
 		}
-		err = sess.conn.Send(c.Request.Context(), &session.Message{
+		err = conn.Send(c.Request.Context(), &session.Message{
 			Event: "message",
 			Data:  eventData,
 		})
@@ -181,16 +170,8 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Also send HTTP response
 		c.String(http.StatusAccepted, mcp.Accepted)
 	case mcp.ToolsList:
-		// Get the prefix for this session
-		prefixI, ok := s.sessionToPrefix.Load(sess.meta.ID)
-		if !ok {
-			s.sendErrorResponse(c, sess, req, "Session not found")
-			return
-		}
-		prefix := prefixI.(string)
-
 		// Get tools for this prefix
-		tools, ok := s.prefixToTools[prefix]
+		tools, ok := s.prefixToTools[conn.Meta().Prefix]
 		if !ok {
 			tools = []mcp.ToolSchema{} // Return empty list if prefix not found
 		}
@@ -208,10 +189,10 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Send response via SSE
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			s.sendErrorResponse(c, sess, req, "Failed to marshal response")
+			s.sendErrorResponse(c, conn, req, "Failed to marshal response")
 			return
 		}
-		err = sess.conn.Send(c.Request.Context(), &session.Message{
+		err = conn.Send(c.Request.Context(), &session.Message{
 			Event: "message",
 			Data:  eventData,
 		})
@@ -225,36 +206,34 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Execute the tool and return the result
 		var params mcp.CallToolParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			s.sendErrorResponse(c, sess, req, "Invalid tool call parameters")
+			s.sendErrorResponse(c, conn, req, "Invalid tool call parameters")
 			return
 		}
 
 		// Find the tool in the precomputed map
 		tool, exists := s.toolMap[params.Name]
 		if !exists {
-			s.sendErrorResponse(c, sess, req, "Tool not found")
+			s.sendErrorResponse(c, conn, req, "Tool not found")
 			return
 		}
 
 		// Convert arguments to map[string]any
 		var args map[string]any
 		if err := json.Unmarshal(params.Arguments, &args); err != nil {
-			s.sendErrorResponse(c, sess, req, "Invalid tool arguments")
+			s.sendErrorResponse(c, conn, req, "Invalid tool arguments")
 			return
 		}
 
-		prefixI, ok := s.sessionToPrefix.Load(sess.meta.ID)
+		serverCfg, ok := s.prefixToServerConfig[conn.Meta().Prefix]
 		if !ok {
-			s.sendErrorResponse(c, sess, req, "Session not found")
+			s.sendErrorResponse(c, conn, req, "Server configuration not found")
 			return
 		}
-		prefix := prefixI.(string)
-		serverCfg, ok := s.prefixToServerConfig[prefix]
 
 		// Execute the tool
 		result, err := s.executeTool(tool, args, c.Request, serverCfg.Config)
 		if err != nil {
-			s.sendErrorResponse(c, sess, req, fmt.Sprintf("Error: %s", err.Error()))
+			s.sendErrorResponse(c, conn, req, fmt.Sprintf("Error: %s", err.Error()))
 			return
 		}
 
@@ -276,10 +255,10 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Send response via SSE
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			s.sendErrorResponse(c, sess, req, "Failed to marshal response")
+			s.sendErrorResponse(c, conn, req, "Failed to marshal response")
 			return
 		}
-		err = sess.conn.Send(c.Request.Context(), &session.Message{
+		err = conn.Send(c.Request.Context(), &session.Message{
 			Event: "message",
 			Data:  eventData,
 		})
@@ -290,6 +269,6 @@ func (s *Server) handleMessage(c *gin.Context) {
 		// Also send HTTP response
 		c.String(http.StatusAccepted, mcp.Accepted)
 	default:
-		s.sendErrorResponse(c, sess, req, "Unknown method")
+		s.sendErrorResponse(c, conn, req, "Unknown method")
 	}
 }

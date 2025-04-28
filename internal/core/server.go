@@ -3,14 +3,10 @@ package core
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"sync"
-
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 	"go.uber.org/zap"
 )
@@ -18,28 +14,15 @@ import (
 type (
 	// Server represents the MCP server
 	Server struct {
-		logger   *zap.Logger
-		renderer *template.Renderer
-		sessions sync.Map
-		tools    []mcp.ToolSchema
-		toolMap  map[string]*config.ToolConfig
+		logger  *zap.Logger
+		tools   []mcp.ToolSchema
+		toolMap map[string]*config.ToolConfig
 		// prefixToTools maps prefix to allowed tools for each MCP server
 		prefixToTools map[string][]mcp.ToolSchema
 		// prefixToServerConfig maps prefix to server config for each MCP server
 		prefixToServerConfig map[string]*config.ServerConfig
-		// sessionToPrefix maps session ID to MCP server prefix
-		sessionToPrefix sync.Map
-
-		// sessionStore manages all active sessions
-		sessionStore   session.Store
-		memorySessions map[string]*sessionDataInMemory
-		sLock          sync.RWMutex
-	}
-
-	sessionDataInMemory struct {
-		flusher http.Flusher
-		conn    session.Connection
-		meta    *session.Meta
+		// sessions manages all active sessions
+		sessions session.Store
 	}
 )
 
@@ -53,13 +36,11 @@ func NewServer(logger *zap.Logger, cfg *config.MCPGatewayConfig) (*Server, error
 
 	return &Server{
 		logger:               logger,
-		renderer:             template.NewRenderer(),
 		tools:                make([]mcp.ToolSchema, 0),
 		toolMap:              make(map[string]*config.ToolConfig),
 		prefixToTools:        make(map[string][]mcp.ToolSchema),
 		prefixToServerConfig: make(map[string]*config.ServerConfig),
-		sessionStore:         sessionStore,
-		memorySessions:       make(map[string]*sessionDataInMemory),
+		sessions:             sessionStore,
 	}, nil
 }
 

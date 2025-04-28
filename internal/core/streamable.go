@@ -49,7 +49,10 @@ func (s *Server) handleMCP(c *gin.Context) {
 			c.Header("Mcp-Session-Id", sessionID)
 		}
 
-		var sess *sessionDataInMemory
+		var (
+			conn session.Connection
+			err  error
+		)
 		if req.Method == mcp.Initialize {
 			prefix := strings.TrimSuffix(c.Request.URL.Path, "/mcp")
 			if prefix == "" {
@@ -62,30 +65,20 @@ func (s *Server) handleMCP(c *gin.Context) {
 				Prefix:    prefix,
 				Type:      "streamable",
 			}
-			conn, err := s.sessionStore.Register(c.Request.Context(), meta)
+			conn, err = s.sessions.Register(c.Request.Context(), meta)
 			if err != nil {
 				c.String(http.StatusInternalServerError, "Failed to create session")
 				return
 			}
-
-			sess = &sessionDataInMemory{
-				conn: conn,
-				meta: meta,
-			}
-			s.sessionToPrefix.Store(sessionID, prefix)
 		} else {
-			conn, err := s.sessionStore.Get(c.Request.Context(), sessionID)
+			conn, err = s.sessions.Get(c.Request.Context(), sessionID)
 			if err != nil {
 				c.String(http.StatusInternalServerError, "Failed to get session")
 				return
 			}
-			sess = &sessionDataInMemory{
-				conn: conn,
-				meta: conn.Meta(),
-			}
 		}
 
-		if err := s.handleMCPRequest(c, req, sess); err != nil {
+		if err := s.handleMCPRequest(c, req, conn); err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -97,13 +90,11 @@ func (s *Server) handleMCP(c *gin.Context) {
 			return
 		}
 
-		err := s.sessionStore.Unregister(c.Request.Context(), sessionID)
+		err := s.sessions.Unregister(c.Request.Context(), sessionID)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Invalid or expired session")
 			return
 		}
-		s.sessionToPrefix.Delete(sessionID)
-
 		c.String(http.StatusOK, "Session terminated")
 
 	default:
@@ -111,14 +102,14 @@ func (s *Server) handleMCP(c *gin.Context) {
 	}
 }
 
-func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, sess *sessionDataInMemory) error {
+func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn session.Connection) error {
 	// Process the request based on its method
 	switch req.Method {
 	case mcp.Initialize:
 		// Handle initialization request
 		var params mcp.InitializeRequestParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			s.sendErrorResponse(c, sess, req, fmt.Sprintf("invalid initialize parameters: %v", err))
+			s.sendErrorResponse(c, conn, req, fmt.Sprintf("invalid initialize parameters: %v", err))
 			return nil
 		}
 
@@ -144,7 +135,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, sess *
 
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			s.sendErrorResponse(c, sess, req, fmt.Sprintf("failed to marshal response: %v", err))
+			s.sendErrorResponse(c, conn, req, fmt.Sprintf("failed to marshal response: %v", err))
 			return nil
 		}
 
@@ -168,16 +159,8 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, sess *
 		return nil
 
 	case mcp.ToolsList:
-		// Get the prefix for this session
-		prefixI, ok := s.sessionToPrefix.Load(sess.meta.ID)
-		if !ok {
-			s.sendErrorResponse(c, sess, req, "Session not found")
-			return nil
-		}
-		prefix := prefixI.(string)
-
 		// Get tools for this prefix
-		tools, ok := s.prefixToTools[prefix]
+		tools, ok := s.prefixToTools[conn.Meta().ID]
 		if !ok {
 			tools = []mcp.ToolSchema{}
 		}
@@ -194,7 +177,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, sess *
 
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			s.sendErrorResponse(c, sess, req, fmt.Sprintf("failed to marshal response: %v", err))
+			s.sendErrorResponse(c, conn, req, fmt.Sprintf("failed to marshal response: %v", err))
 			return nil
 		}
 
@@ -209,36 +192,34 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, sess *
 		// Handle tool call request
 		var params mcp.CallToolParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			s.sendErrorResponse(c, sess, req, fmt.Sprintf("invalid tool call parameters: %v", err))
+			s.sendErrorResponse(c, conn, req, fmt.Sprintf("invalid tool call parameters: %v", err))
 			return nil
 		}
 
 		// Find the tool in the precomputed map
 		tool, exists := s.toolMap[params.Name]
 		if !exists {
-			s.sendErrorResponse(c, sess, req, "Tool not found")
+			s.sendErrorResponse(c, conn, req, "Tool not found")
 			return nil
 		}
 
 		// Convert arguments to map[string]any
 		var args map[string]any
 		if err := json.Unmarshal(params.Arguments, &args); err != nil {
-			s.sendErrorResponse(c, sess, req, "Invalid tool arguments")
+			s.sendErrorResponse(c, conn, req, "Invalid tool arguments")
 			return nil
 		}
 
-		prefixI, ok := s.sessionToPrefix.Load(sess.meta.ID)
+		serverCfg, ok := s.prefixToServerConfig[conn.Meta().Prefix]
 		if !ok {
-			s.sendErrorResponse(c, sess, req, "Session not found")
+			s.sendErrorResponse(c, conn, req, "Server config not found")
 			return nil
 		}
-		prefix := prefixI.(string)
-		serverCfg, ok := s.prefixToServerConfig[prefix]
 
 		// Execute the tool
 		result, err := s.executeTool(tool, args, c.Request, serverCfg.Config)
 		if err != nil {
-			s.sendErrorResponse(c, sess, req, fmt.Sprintf("Error: %s", err.Error()))
+			s.sendErrorResponse(c, conn, req, fmt.Sprintf("Error: %s", err.Error()))
 			return nil
 		}
 
@@ -259,7 +240,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, sess *
 
 		eventData, err := json.Marshal(response)
 		if err != nil {
-			s.sendErrorResponse(c, sess, req, fmt.Sprintf("failed to marshal response: %v", err))
+			s.sendErrorResponse(c, conn, req, fmt.Sprintf("failed to marshal response: %v", err))
 			return nil
 		}
 
@@ -271,7 +252,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, sess *
 		return nil
 
 	default:
-		s.sendErrorResponse(c, sess, req, fmt.Sprintf("unknown method: %s", req.Method))
+		s.sendErrorResponse(c, conn, req, fmt.Sprintf("unknown method: %s", req.Method))
 		return nil
 	}
 }
