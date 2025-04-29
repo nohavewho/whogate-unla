@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
@@ -219,6 +220,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn s
 		// Execute the tool
 		result, err := s.executeTool(tool, args, c.Request, serverCfg.Config)
 		if err != nil {
+			s.logger.Error("failed to execute tool", zap.Error(err))
 			s.sendErrorResponse(c, conn, req, fmt.Sprintf("Error: %s", err.Error()))
 			return nil
 		}
