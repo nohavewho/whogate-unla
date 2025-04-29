@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
@@ -17,19 +18,10 @@ import (
 
 // handleSSE handles SSE connections
 func (s *Server) handleSSE(c *gin.Context) {
-	w := c.Writer
-	r := c.Request
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "streaming unsupported"})
-		return
-	}
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Get the prefix from the request path
 	prefix := strings.TrimSuffix(c.Request.URL.Path, "/sse")
@@ -52,9 +44,9 @@ func (s *Server) handleSSE(c *gin.Context) {
 	}
 
 	// Send the initial endpoint event
-	_, _ = fmt.Fprintf(w, "event: endpoint\ndata: %s\r\n\r\n",
-		fmt.Sprintf("%s/message?sessionId=%s", c.Request.URL.Path[:len(c.Request.URL.Path)-4], meta.ID))
-	flusher.Flush()
+	_, _ = fmt.Fprintf(c.Writer, "event: endpoint\ndata: %s\r\n\r\n",
+		fmt.Sprintf("%s/message?sessionId=%s", strings.TrimSuffix(c.Request.URL.Path, "/sse"), meta.ID))
+	c.Writer.Flush()
 
 	// Main event loop
 	for {
@@ -62,11 +54,12 @@ func (s *Server) handleSSE(c *gin.Context) {
 		case event := <-conn.EventQueue():
 			switch event.Event {
 			case "message":
-				_, _ = fmt.Fprint(w, fmt.Sprintf("event: message\ndata: %s\n\n", event.Data))
+				_, err = fmt.Fprint(c.Writer, fmt.Sprintf("event: message\ndata: %s\n\n", event.Data))
+				s.logger.Error("failed to send SSE message", zap.Error(err))
 			}
-			_, _ = fmt.Fprint(w, event)
-			flusher.Flush()
-		case <-r.Context().Done():
+			_, _ = fmt.Fprint(c.Writer, event)
+			c.Writer.Flush()
+		case <-c.Request.Context().Done():
 			return
 		case <-s.shutdownCh:
 			return

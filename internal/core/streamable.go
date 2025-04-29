@@ -19,25 +19,12 @@ import (
 func (s *Server) handleMCP(c *gin.Context) {
 	switch c.Request.Method {
 	case http.MethodOptions:
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, DELETE")
-		c.Header("Access-Control-Allow-Headers", "Content-Type")
 		c.Status(http.StatusOK)
 		return
 
 	case http.MethodGet:
-		prefix := strings.TrimSuffix(c.Request.URL.Path, "/mcp")
-		if prefix == "" {
-			prefix = "/"
-		}
-
-		sessionID := c.GetHeader("Mcp-Session-Id")
-		if sessionID == "" {
-			sessionID = uuid.New().String()
-			c.Header("Mcp-Session-Id", sessionID)
-		}
-
-		// TODO: complete
+		// Get for SSE Stream.
+		s.handleGet(c)
 	case http.MethodPost:
 		var req mcp.JSONRPCRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -103,6 +90,52 @@ func (s *Server) handleMCP(c *gin.Context) {
 		c.Header("Allow", "GET, POST, DELETE")
 		s.sendProtocolError(c, nil, mcp.ErrorCodeConnectionClosed, "Method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+}
+
+// handleGet handles GET requests for SSE stream
+func (s *Server) handleGet(c *gin.Context) {
+	// Check Accept header for text/event-stream
+	acceptHeader := c.GetHeader("Accept")
+	if !strings.Contains(acceptHeader, "text/event-stream") {
+		s.sendProtocolError(c, nil, mcp.ErrorCodeInvalidRequest, "Not Acceptable: Client must accept text/event-stream", http.StatusNotAcceptable)
+		return
+	}
+
+	sessionID := c.GetHeader("Mcp-Session-Id")
+	if sessionID == "" {
+		s.sendProtocolError(c, nil, mcp.ErrorCodeConnectionClosed, "Bad Request: Mcp-Session-Id header is required", http.StatusBadRequest)
+	}
+	conn, err := s.sessions.Get(c.Request.Context(), sessionID)
+	if err != nil {
+		s.sendProtocolError(c, nil, mcp.ErrorCodeRequestTimeout, "Session not found", http.StatusNotFound)
+		return
+	}
+
+	// TODO: replay events according to the last-event-id in request headers.
+
+	// TODO: only support one sse stream per session, we can detect it when sub the redis topic
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache, no-transform")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Mcp-Session-Id", sessionID)
+	c.Writer.Flush()
+
+	for {
+		select {
+		case event := <-conn.EventQueue():
+			switch event.Event {
+			case "message":
+				_, _ = fmt.Fprint(c.Writer, fmt.Sprintf("event: message\ndata: %s\n\n", event.Data))
+			}
+			_, _ = fmt.Fprint(c.Writer, event)
+			c.Writer.Flush()
+		case <-c.Request.Context().Done():
+			return
+		case <-s.shutdownCh:
+			return
+		}
 	}
 }
 
