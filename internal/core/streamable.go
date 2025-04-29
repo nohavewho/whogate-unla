@@ -73,18 +73,8 @@ func (s *Server) handleMCP(c *gin.Context) {
 		}
 		return
 	case http.MethodDelete:
-		sessionID := c.GetHeader("Mcp-Session-Id")
-		if sessionID == "" {
-			s.sendProtocolError(c, nil, mcp.ErrorCodeInvalidRequest, "Missing session ID", http.StatusBadRequest)
-			return
-		}
-
-		err := s.sessions.Unregister(c.Request.Context(), sessionID)
-		if err != nil {
-			s.sendProtocolError(c, nil, mcp.ErrorCodeInvalidRequest, "Invalid or expired session", http.StatusBadRequest)
-			return
-		}
-		c.String(http.StatusOK, "Session terminated")
+		s.handleDelete(c)
+		return
 
 	default:
 		c.Header("Allow", "GET, POST, DELETE")
@@ -102,13 +92,8 @@ func (s *Server) handleGet(c *gin.Context) {
 		return
 	}
 
-	sessionID := c.GetHeader("Mcp-Session-Id")
-	if sessionID == "" {
-		s.sendProtocolError(c, nil, mcp.ErrorCodeConnectionClosed, "Bad Request: Mcp-Session-Id header is required", http.StatusBadRequest)
-	}
-	conn, err := s.sessions.Get(c.Request.Context(), sessionID)
-	if err != nil {
-		s.sendProtocolError(c, nil, mcp.ErrorCodeRequestTimeout, "Session not found", http.StatusNotFound)
+	conn := s.getSession(c)
+	if conn == nil {
 		return
 	}
 
@@ -119,7 +104,7 @@ func (s *Server) handleGet(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache, no-transform")
 	c.Writer.Header().Set("Connection", "keep-alive")
-	c.Writer.Header().Set("Mcp-Session-Id", sessionID)
+	c.Writer.Header().Set("Mcp-Session-Id", conn.Meta().ID)
 	c.Writer.Flush()
 
 	for {
@@ -127,7 +112,10 @@ func (s *Server) handleGet(c *gin.Context) {
 		case event := <-conn.EventQueue():
 			switch event.Event {
 			case "message":
-				_, _ = fmt.Fprint(c.Writer, fmt.Sprintf("event: message\ndata: %s\n\n", event.Data))
+				_, err := fmt.Fprintf(c.Writer, "event: message\ndata: %s\n\n", event.Data)
+				if err != nil {
+					s.logger.Error("failed to send SSE message", zap.Error(err))
+				}
 			}
 			_, _ = fmt.Fprint(c.Writer, event)
 			c.Writer.Flush()
@@ -137,6 +125,21 @@ func (s *Server) handleGet(c *gin.Context) {
 			return
 		}
 	}
+}
+
+// handleDelete handles DELETE requests to terminate sessions
+func (s *Server) handleDelete(c *gin.Context) {
+	conn := s.getSession(c)
+	if conn == nil {
+		return
+	}
+
+	err := s.sessions.Unregister(c.Request.Context(), conn.Meta().ID)
+	if err != nil {
+		s.sendProtocolError(c, conn.Meta().ID, mcp.ErrorCodeInternalError, "Failed to terminate session", http.StatusInternalServerError)
+		return
+	}
+	c.Status(http.StatusOK)
 }
 
 func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn session.Connection) error {
@@ -234,4 +237,18 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn s
 		s.sendProtocolError(c, req.Id, mcp.ErrorCodeMethodNotFound, "Method not found", http.StatusNotFound)
 		return nil
 	}
+}
+
+func (s *Server) getSession(c *gin.Context) session.Connection {
+	sessionID := c.GetHeader("Mcp-Session-Id")
+	if sessionID == "" {
+		s.sendProtocolError(c, nil, mcp.ErrorCodeConnectionClosed, "Bad Request: Mcp-Session-Id header is required", http.StatusBadRequest)
+		return nil
+	}
+	conn, err := s.sessions.Get(c.Request.Context(), sessionID)
+	if err != nil {
+		s.sendProtocolError(c, nil, mcp.ErrorCodeRequestTimeout, "Session not found", http.StatusNotFound)
+		return nil
+	}
+	return conn
 }

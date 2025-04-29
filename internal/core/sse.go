@@ -3,10 +3,11 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
 
@@ -54,8 +55,10 @@ func (s *Server) handleSSE(c *gin.Context) {
 		case event := <-conn.EventQueue():
 			switch event.Event {
 			case "message":
-				_, err = fmt.Fprint(c.Writer, fmt.Sprintf("event: message\ndata: %s\n\n", event.Data))
-				s.logger.Error("failed to send SSE message", zap.Error(err))
+				_, err = fmt.Fprintf(c.Writer, "event: message\ndata: %s\n\n", event.Data)
+				if err != nil {
+					s.logger.Error("failed to send SSE message", zap.Error(err))
+				}
 			}
 			_, _ = fmt.Fprint(c.Writer, event)
 			c.Writer.Flush()
