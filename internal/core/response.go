@@ -81,6 +81,9 @@ func (s *Server) sendResponse(c *gin.Context, id any, conn session.Connection, r
 		c.Header("Content-Type", "text/event-stream")
 		c.Header("Cache-Control", "no-cache") // , no-transform
 		c.Header("Connection", "keep-alive")
+		if id != nil {
+			c.Header("Mcp-Session-Id", fmt.Sprintf("%v", id))
+		}
 		c.String(http.StatusOK, fmt.Sprintf("event: message\ndata: %s\n\n", eventData))
 	}
 }
