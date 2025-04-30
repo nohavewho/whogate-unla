@@ -43,65 +43,65 @@ jobs:
       # Build mcp-gateway
       - name: Build mcp-gateway for Linux amd64
         run: |
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-linux-amd64 ./cmd/mcp-gateway
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-linux-amd64 ./cmd/mcp-gateway
 
       - name: Build mcp-gateway for Linux arm64
         run: |
-          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-linux-arm64 ./cmd/mcp-gateway
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-linux-arm64 ./cmd/mcp-gateway
 
       - name: Build mcp-gateway for macOS amd64
         run: |
-          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-darwin-amd64 ./cmd/mcp-gateway
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-darwin-amd64 ./cmd/mcp-gateway
 
       - name: Build mcp-gateway for macOS arm64
         run: |
-          GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-darwin-arm64 ./cmd/mcp-gateway
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-darwin-arm64 ./cmd/mcp-gateway
 
       - name: Build mcp-gateway for Windows amd64
         run: |
-          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-windows-amd64.exe ./cmd/mcp-gateway
+          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mcp-gateway-windows-amd64.exe ./cmd/mcp-gateway
 
       # Build mock-user-svc
       - name: Build mock-user-svc for Linux amd64
         run: |
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-linux-amd64 ./cmd/mock-user-svc
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-linux-amd64 ./cmd/mock-user-svc
 
       - name: Build mock-user-svc for Linux arm64
         run: |
-          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-linux-arm64 ./cmd/mock-user-svc
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-linux-arm64 ./cmd/mock-user-svc
 
       - name: Build mock-user-svc for macOS amd64
         run: |
-          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-darwin-amd64 ./cmd/mock-user-svc
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-darwin-amd64 ./cmd/mock-user-svc
 
       - name: Build mock-user-svc for macOS arm64
         run: |
-          GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-darwin-arm64 ./cmd/mock-user-svc
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-darwin-arm64 ./cmd/mock-user-svc
 
       - name: Build mock-user-svc for Windows amd64
         run: |
-          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-windows-amd64.exe ./cmd/mock-user-svc
+          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o mock-user-svc-windows-amd64.exe ./cmd/mock-user-svc
 
       # Build apiserver
       - name: Build apiserver for Linux amd64
         run: |
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-linux-amd64 ./cmd/apiserver
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-linux-amd64 ./cmd/apiserver
 
       - name: Build apiserver for Linux arm64
         run: |
-          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-linux-arm64 ./cmd/apiserver
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-linux-arm64 ./cmd/apiserver
 
       - name: Build apiserver for macOS amd64
         run: |
-          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-darwin-amd64 ./cmd/apiserver
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-darwin-amd64 ./cmd/apiserver
 
       - name: Build apiserver for macOS arm64
         run: |
-          GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-darwin-arm64 ./cmd/apiserver
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-darwin-arm64 ./cmd/apiserver
 
       - name: Build apiserver for Windows amd64
         run: |
-          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-windows-amd64.exe ./cmd/apiserver
+          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.VERSION }}" -o apiserver-windows-amd64.exe ./cmd/apiserver
 
       # Build web
       - name: Install web dependencies
