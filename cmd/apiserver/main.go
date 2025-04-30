@@ -110,6 +110,7 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 	chatHandler := handler.NewChat(db)
 	mcpHandler := handler.NewMCP(db, store, ntf)
 	wsHandler := handler.NewWebSocket(db, openaiClient)
+	openapiHandler := handler.NewOpenAPI(db, store, ntf)
 
 	// Configure routes
 	r.POST("/api/mcp-servers", mcpHandler.HandleMCPServerCreate)
@@ -117,6 +118,9 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 	r.GET("/api/mcp-servers", mcpHandler.HandleListMCPServers)
 	r.DELETE("/api/mcp-servers/:name", mcpHandler.HandleMCPServerDelete)
 	r.POST("/api/mcp-servers/sync", mcpHandler.HandleMCPServerSync)
+
+	// OpenAPI routes
+	r.POST("/api/openapi/import", openapiHandler.HandleImport)
 
 	r.GET("/ws/chat", wsHandler.HandleWebSocket)
 
