@@ -63,6 +63,59 @@ var (
 			fmt.Println("Reload signal sent successfully")
 		},
 	}
+	testCmd = &cobra.Command{
+		Use:   "test",
+		Short: "Test the configuration of mcp-gateway",
+		Run: func(cmd *cobra.Command, args []string) {
+			// Load config
+			cfg, _, err := config.LoadConfig[config.MCPGatewayConfig](configPath)
+			if err != nil {
+				fmt.Printf("Failed to load config: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Initialize logger
+			logger, err := zap.NewProduction()
+			if err != nil {
+				fmt.Printf("Failed to initialize logger: %v\n", err)
+				os.Exit(1)
+			}
+			defer logger.Sync()
+
+			// Initialize storage
+			store, err := storage.NewStore(logger, &cfg.Storage)
+			if err != nil {
+				fmt.Printf("Failed to initialize storage: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Load all MCP configurations
+			mcpConfigs, err := store.List(context.Background())
+			if err != nil {
+				fmt.Printf("Failed to load MCP configurations: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Validate configurations
+			if err := config.ValidateMCPConfigs(mcpConfigs); err != nil {
+				var validationErr *config.ValidationError
+				if errors.As(err, &validationErr) {
+					fmt.Printf("Configuration validation failed: %v\n", validationErr)
+				} else {
+					fmt.Printf("Failed to validate configurations: %v\n", err)
+				}
+				os.Exit(1)
+			}
+
+			// Try to merge configurations
+			if _, err := helper.MergeConfigs(mcpConfigs); err != nil {
+				fmt.Printf("Failed to merge configurations: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Println("Configuration test is successful")
+		},
+	}
 	rootCmd = &cobra.Command{
 		Use:   "mcp-gateway",
 		Short: "MCP Gateway service",
@@ -78,6 +131,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&pidFile, "pid", "", "path to PID file")
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(reloadCmd)
+	rootCmd.AddCommand(testCmd)
 }
 
 func handleReload(ctx context.Context, logger *zap.Logger, store storage.Store, srv *core.Server, cfg *config.MCPGatewayConfig) {
@@ -88,6 +142,20 @@ func handleReload(ctx context.Context, logger *zap.Logger, store storage.Store, 
 		logger.Fatal("Failed to load MCP configurations",
 			zap.Error(err))
 	}
+
+	// Validate configurations before merging
+	if err := config.ValidateMCPConfigs(mcpConfigs); err != nil {
+		var validationErr *config.ValidationError
+		if errors.As(err, &validationErr) {
+			logger.Error("Configuration validation failed",
+				zap.String("error", validationErr.Error()))
+		} else {
+			logger.Error("failed to validate configurations",
+				zap.Error(err))
+		}
+		return
+	}
+
 	newMCPCfg, err := helper.MergeConfigs(mcpConfigs)
 	if err != nil {
 		logger.Fatal("failed to merge MCP configurations",
@@ -180,6 +248,18 @@ func run() {
 		logger.Fatal("Failed to load MCP configurations",
 			zap.Error(err))
 	}
+
+	// Validate configurations before merging
+	if err := config.ValidateMCPConfigs(mcpConfigs); err != nil {
+		var validationErr *config.ValidationError
+		if errors.As(err, &validationErr) {
+			logger.Fatal("Configuration validation failed",
+				zap.String("error", validationErr.Error()))
+		}
+		logger.Fatal("failed to validate configurations",
+			zap.Error(err))
+	}
+
 	mcpCfg, err := helper.MergeConfigs(mcpConfigs)
 	if err != nil {
 		logger.Fatal("failed to merge MCP configurations",
