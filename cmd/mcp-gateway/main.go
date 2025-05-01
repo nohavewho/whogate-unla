@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
 	"net/http"
 	"os"
 	"os/signal"
@@ -75,7 +76,7 @@ var (
 			}
 
 			// Initialize logger
-			logger, err := zap.NewProduction()
+			logger, err := logger.NewLogger(&cfg.Logger)
 			if err != nil {
 				fmt.Printf("Failed to initialize logger: %v\n", err)
 				os.Exit(1)
@@ -205,18 +206,19 @@ func handleReload(ctx context.Context, logger *zap.Logger, store storage.Store, 
 func run() {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	logger, err := zap.NewProduction()
+	// Load configuration first
+	cfg, cfgPath, err := config.LoadConfig[config.MCPGatewayConfig](cnst.MCPGatewayYaml)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Failed to load service configuration: %v", err))
+	}
+
+	// Initialize logger with configuration
+	logger, err := logger.NewLogger(&cfg.Logger)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize logger: %v", err))
 	}
 	defer logger.Sync()
 
-	cfg, cfgPath, err := config.LoadConfig[config.MCPGatewayConfig](cnst.MCPGatewayYaml)
-	if err != nil {
-		logger.Fatal("Failed to load service configuration",
-			zap.String("path", cfgPath),
-			zap.Error(err))
-	}
 	logger.Info("Loaded configuration", zap.String("path", cfgPath))
 
 	// Initialize PID manager

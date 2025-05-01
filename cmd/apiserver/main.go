@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
 	"log"
 	"os"
 
@@ -47,8 +48,8 @@ func init() {
 }
 
 // initLogger initializes the application logger
-func initLogger() *zap.Logger {
-	logger, err := zap.NewProduction()
+func initLogger(cfg *config.APIServerConfig) *zap.Logger {
+	logger, err := logger.NewLogger(&cfg.Logger)
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
@@ -56,13 +57,11 @@ func initLogger() *zap.Logger {
 }
 
 // initConfig loads and returns the application configuration
-func initConfig(logger *zap.Logger) *config.APIServerConfig {
-	cfg, cfgPath, err := config.LoadConfig[config.APIServerConfig](configPath)
+func initConfig() *config.APIServerConfig {
+	cfg, _, err := config.LoadConfig[config.APIServerConfig](configPath)
 	if err != nil {
-		logger.Fatal("Failed to load configuration",
-			zap.String("path", cfgPath), zap.Error(err))
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
-	logger.Info("Loaded configuration", zap.String("path", cfgPath))
 	return cfg
 }
 
@@ -148,12 +147,14 @@ func run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Initialize logger
-	logger := initLogger()
+	// Load configuration first
+	cfg := initConfig()
+
+	// Initialize logger with configuration
+	logger := initLogger(cfg)
 	defer logger.Sync()
 
-	// Load configuration
-	cfg := initConfig(logger)
+	logger.Info("Starting apiserver", zap.String("version", version.Get()))
 
 	// Initialize services
 	ntf := initNotifier(ctx, logger, &cfg.Notifier)
@@ -161,8 +162,6 @@ func run() {
 	db := initDatabase(logger, &cfg.Database)
 	defer db.Close()
 	store := initStore(logger, &cfg.Storage)
-
-	logger.Info("Starting apiserver", zap.String("version", version.Get()))
 
 	// Initialize router and start server
 	router := initRouter(db, store, ntf, openaiClient)
