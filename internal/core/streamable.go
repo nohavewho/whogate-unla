@@ -113,8 +113,6 @@ func (s *Server) handlePost(c *gin.Context) {
 	}
 
 	sessionID := c.GetHeader(mcp.HeaderMcpSessionID)
-	fmt.Println(sessionID)
-	fmt.Println(req)
 
 	var (
 		conn session.Connection

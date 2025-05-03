@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"io"
 	"net/http"
 	"strings"
 	texttemplate "text/template"
 
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
 )
 
@@ -18,8 +18,7 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 	client := &http.Client{}
 
 	tmplCtx := template.NewContext()
-	tmplCtx.Args = args
-
+	tmplCtx.Args = preprocessArgs(args)
 	tmplCtx.Config = serverCfg
 
 	for k, v := range request.Header {
@@ -115,4 +114,19 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 	}
 
 	return string(respBody), nil
+}
+
+func preprocessArgs(args map[string]any) map[string]any {
+	processed := make(map[string]any)
+
+	for k, v := range args {
+		switch val := v.(type) {
+		case []any:
+			ss, _ := json.Marshal(val)
+			processed[k] = string(ss)
+		default:
+			processed[k] = v
+		}
+	}
+	return processed
 }
