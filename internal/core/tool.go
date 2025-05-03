@@ -19,6 +19,19 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 
 	tmplCtx := template.NewContext()
 	tmplCtx.Args = preprocessArgs(args)
+	for k, v := range serverCfg {
+		tmpl, err := texttemplate.New("server").Funcs(texttemplate.FuncMap{
+			"env": tmplCtx.Env,
+		}).Parse(v)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse config template: %w", err)
+		}
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, tmplCtx); err != nil {
+			return "", fmt.Errorf("failed to execute config template: %w", err)
+		}
+		serverCfg[k] = buf.String()
+	}
 	tmplCtx.Config = serverCfg
 
 	for k, v := range request.Header {
@@ -27,7 +40,9 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 		}
 	}
 
-	endpointTmpl, err := texttemplate.New("endpoint").Parse(tool.Endpoint)
+	endpointTmpl, err := texttemplate.New("endpoint").Funcs(texttemplate.FuncMap{
+		"env": tmplCtx.Env,
+	}).Parse(tool.Endpoint)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse endpoint template: %w", err)
 	}
@@ -40,7 +55,9 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 
 	var reqBody io.Reader
 	if tool.RequestBody != "" {
-		bodyTmpl, err := texttemplate.New("body").Parse(tool.RequestBody)
+		bodyTmpl, err := texttemplate.New("body").Funcs(texttemplate.FuncMap{
+			"env": tmplCtx.Env,
+		}).Parse(tool.RequestBody)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse request body template: %w", err)
 		}
@@ -58,7 +75,9 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 	}
 
 	for k, v := range tool.Headers {
-		headerTmpl, err := texttemplate.New("header").Parse(v)
+		headerTmpl, err := texttemplate.New("header").Funcs(texttemplate.FuncMap{
+			"env": tmplCtx.Env,
+		}).Parse(v)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse header template: %w", err)
 		}
@@ -94,7 +113,9 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 	}
 
 	if tool.ResponseBody != "" {
-		respTmpl, err := texttemplate.New("response").Parse(tool.ResponseBody)
+		respTmpl, err := texttemplate.New("response").Funcs(texttemplate.FuncMap{
+			"env": tmplCtx.Env,
+		}).Parse(tool.ResponseBody)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse response body template: %w", err)
 		}

@@ -29,6 +29,7 @@ servers:
       - "update_user_preferences"
     config:
       Cookie: 123
+      Authorization: "Bearer {{ env \"AUTH_TOKEN\" }}"
 
 tools:
   - name: "register_user"
@@ -37,7 +38,7 @@ tools:
     endpoint: "http://localhost:5236/users"
     headers:
       Content-Type: "application/json"
-      Authorization: "{{.Request.Headers.Authorization}}"
+      Authorization: "{{.Config.Authorization}}"
       Cookie: "{{.Config.Cookie}}"
     args:
       - name: "username"

@@ -22,7 +22,9 @@ func (r *Renderer) Render(tmpl string, ctx *Context) (string, error) {
 	t, ok := r.templates[tmpl]
 	if !ok {
 		var err error
-		t, err = template.New("").Parse(tmpl)
+		t, err = template.New("").Funcs(template.FuncMap{
+			"env": ctx.Env,
+		}).Parse(tmpl)
 		if err != nil {
 			return "", err
 		}
