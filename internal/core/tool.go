@@ -92,6 +92,24 @@ func processArguments(req *http.Request, tool *config.ToolConfig, args map[strin
 	}
 }
 
+// preprocessResponseData processes response data to handle []any type
+func preprocessResponseData(data map[string]any) map[string]any {
+	processed := make(map[string]any)
+
+	for k, v := range data {
+		switch val := v.(type) {
+		case []any:
+			ss, _ := json.Marshal(val)
+			processed[k] = string(ss)
+		case map[string]any:
+			processed[k] = preprocessResponseData(val)
+		default:
+			processed[k] = v
+		}
+	}
+	return processed
+}
+
 // processResponse processes the HTTP response and applies response template if needed
 func processResponse(resp *http.Response, tool *config.ToolConfig, tmplCtx *template.Context) (string, error) {
 	respBody, err := io.ReadAll(resp.Body)
@@ -108,6 +126,8 @@ func processResponse(resp *http.Response, tool *config.ToolConfig, tmplCtx *temp
 		// TODO: ignore the error for now, in case the response is not JSON
 	}
 
+	// Preprocess response data to handle []any type
+	respData = preprocessResponseData(respData)
 	tmplCtx.Response.Data = respData
 	tmplCtx.Response.Body = string(respBody)
 

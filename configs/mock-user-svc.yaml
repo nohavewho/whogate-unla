@@ -29,7 +29,7 @@ servers:
       - "update_user_preferences"
     config:
       Cookie: 123
-      Authorization: "Bearer {{ env \"AUTH_TOKEN\" }}"
+      Authorization: 'Bearer {{ env "AUTH_TOKEN" }}'
 
 tools:
   - name: "register_user"
