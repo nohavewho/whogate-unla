@@ -85,7 +85,7 @@ docker run -d \
 - [ ] gRPC 到 MCP-Server 的转换
 - [x] 请求/响应体转换
 - [x] 管理界面
-- [ ] 会话持久化
+- [x] 会话持久化
 - [x] MCP SSE支持
 - [x] MCP Streamable HTTP支持
 - [ ] 可迁移可恢复会话

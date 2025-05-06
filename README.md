@@ -85,7 +85,7 @@ Visit http://localhost:8080/ to start configuring.
 - [ ] Convert gRPC to MCP-Server
 - [x] Request/Response body transformation
 - [x] Management interface
-- [ ] Session persistence
+- [x] Session persistence
 - [x] MCP SSE support
 - [x] MCP Streamable HTTP support
 - [ ] Migratable and restorable sessions
