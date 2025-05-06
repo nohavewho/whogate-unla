@@ -63,6 +63,7 @@ export function ChatInterface() {
   const [hasMore, setHasMore] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
   const [lastScrollTop, setLastScrollTop] = React.useState(0);
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = React.useState(false);
 
   // 解析配置
   const parseConfig = (config: string) => {
@@ -357,9 +358,9 @@ export function ChatInterface() {
           setSelectedChat(id);
           navigate(`/chat/${id}`);
         }}
+        isCollapsed={isHistoryCollapsed}
       />
-
-      <div className="flex-1 ml-4">
+      <div className={isHistoryCollapsed ? "flex-1 ml-2" : "flex-1 ml-4"}>
         <Card className="h-full bg-card">
           <CardBody className="p-0 h-full flex flex-col">
             <div
@@ -418,22 +419,33 @@ export function ChatInterface() {
                 </div>
               )}
 
-              <Input
-                value={input}
-                onValueChange={setInput}
-                placeholder="Type your message..."
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                endContent={
-                  <Button
-                    isIconOnly
-                    color="primary"
-                    variant="light"
-                    onPress={handleSend}
-                  >
-                    <Icon icon="lucide:send" className="text-lg" />
-                  </Button>
-                }
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  isIconOnly
+                  variant="light"
+                  aria-label={isHistoryCollapsed ? "Expand chat history" : "Collapse chat history"}
+                  onPress={() => setIsHistoryCollapsed(v => !v)}
+                  className="mr-2"
+                >
+                  <Icon icon={isHistoryCollapsed ? "lucide:chevron-right" : "lucide:chevron-left"} className="text-lg" />
+                </Button>
+                <Input
+                  value={input}
+                  onValueChange={setInput}
+                  placeholder="Type your message..."
+                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                  endContent={
+                    <Button
+                      isIconOnly
+                      color="primary"
+                      variant="light"
+                      onPress={handleSend}
+                    >
+                      <Icon icon="lucide:send" className="text-lg" />
+                    </Button>
+                  }
+                />
+              </div>
             </div>
           </CardBody>
         </Card>
