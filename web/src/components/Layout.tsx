@@ -63,6 +63,19 @@ export function Layout({ children }: LayoutProps) {
       >
         <NavbarContent justify="end" className="gap-4">
           <NavbarItem>
+            <Tooltip content="Join Discord">
+              <Button
+                as={HeroLink}
+                href="https://discord.gg/udf69cT9TY"
+                target="_blank"
+                variant="light"
+                isIconOnly
+              >
+                <Icon icon="ic:baseline-discord" className="text-2xl" />
+              </Button>
+            </Tooltip>
+          </NavbarItem>
+          <NavbarItem>
             <Tooltip content="View on GitHub">
               <Button
                 as={HeroLink}
@@ -71,7 +84,7 @@ export function Layout({ children }: LayoutProps) {
                 variant="light"
                 isIconOnly
               >
-                <Icon icon="mdi:github" className="text-xl" />
+                <Icon icon="mdi:github" className="text-2xl" />
               </Button>
             </Tooltip>
           </NavbarItem>
@@ -84,7 +97,7 @@ export function Layout({ children }: LayoutProps) {
               >
                 <Icon
                   icon={isDark ? "lucide:sun" : "lucide:moon"}
-                  className="text-xl"
+                  className="text-2xl"
                 />
               </Button>
             </Tooltip>
