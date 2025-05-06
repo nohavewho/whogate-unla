@@ -61,6 +61,7 @@ type (
 		Properties map[string]any `json:"properties"`
 		Required   []string       `json:"required,omitempty"`
 		Title      string         `json:"title"`
+		Enum       []any          `json:"enum,omitempty"`
 	}
 
 	// ListToolsResult represents the result of a tools/list request

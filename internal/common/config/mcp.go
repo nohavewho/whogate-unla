@@ -3,6 +3,8 @@ package config
 import (
 	"time"
 
+	"github.com/ifuryst/lol"
+
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 )
 
@@ -59,12 +61,18 @@ type (
 	}
 
 	ArgConfig struct {
-		Name        string `yaml:"name"`
-		Position    string `yaml:"position"` // header, query, path, body
-		Required    bool   `yaml:"required"`
-		Type        string `yaml:"type"`
-		Description string `yaml:"description"`
-		Default     string `yaml:"default"`
+		Name        string      `yaml:"name" json:"name"`
+		Position    string      `yaml:"position" json:"position"` // header, query, path, body
+		Required    bool        `yaml:"required" json:"required"`
+		Type        string      `yaml:"type" json:"type"`
+		Description string      `yaml:"description" json:"description"`
+		Default     string      `yaml:"default" json:"default"`
+		Items       ItemsConfig `yaml:"items,omitempty" json:"items,omitempty"`
+	}
+
+	ItemsConfig struct {
+		Type string   `yaml:"type" json:"type"`
+		Enum []string `yaml:"enum,omitempty" json:"enum,omitempty"`
 	}
 )
 
@@ -82,6 +90,17 @@ func (t *ToolConfig) ToToolSchema() mcp.ToolSchema {
 		if arg.Description != "" {
 			property["title"] = arg.Description
 		}
+
+		if arg.Type == "array" {
+			items := make(map[string]any)
+			if len(arg.Items.Enum) > 0 {
+				items["enum"] = lol.Union(arg.Items.Enum)
+			} else {
+				items["type"] = arg.Items.Type
+			}
+			property["items"] = items
+		}
+
 		properties[arg.Name] = property
 		if arg.Required {
 			required = append(required, arg.Name)

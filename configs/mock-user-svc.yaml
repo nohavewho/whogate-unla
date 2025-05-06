@@ -122,7 +122,10 @@ tools:
         position: "body"
         required: true
         type: "array"
-        description: "User tags"
+        items:
+          type: "string"
+          enum: ["developer", "designer", "manager", "tester"]
+        description: "User role tags"
         default: "[]"
     requestBody: |-
       {
