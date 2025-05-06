@@ -208,7 +208,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn s
 
 	case mcp.ToolsList:
 		// Get tools for this prefix
-		tools, ok := s.prefixToTools[conn.Meta().Prefix]
+		tools, ok := s.state.prefixToTools[conn.Meta().Prefix]
 		if !ok {
 			tools = []mcp.ToolSchema{}
 		}
@@ -227,7 +227,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn s
 		}
 
 		// Find the tool in the precomputed map
-		tool, exists := s.toolMap[params.Name]
+		tool, exists := s.state.toolMap[params.Name]
 		if !exists {
 			s.sendProtocolError(c, req.Id, "Tool not found", http.StatusNotFound, mcp.ErrorCodeMethodNotFound)
 			return
@@ -240,7 +240,8 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn s
 			return
 		}
 
-		serverCfg, ok := s.prefixToServerConfig[conn.Meta().Prefix]
+		// Get server configuration
+		serverCfg, ok := s.state.prefixToServerConfig[conn.Meta().Prefix]
 		if !ok {
 			s.sendProtocolError(c, req.Id, "Server config not found", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
 			return

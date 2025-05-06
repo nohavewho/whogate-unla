@@ -4,22 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
-	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
-	"time"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/helper"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	pidHelper "github.com/mcp-ecosystem/mcp-gateway/pkg/helper"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 
@@ -31,8 +27,6 @@ import (
 var (
 	configPath string
 	pidFile    string
-	serverLock sync.RWMutex
-	httpServer *http.Server
 
 	versionCmd = &cobra.Command{
 		Use:   "version",
@@ -140,8 +134,9 @@ func handleReload(ctx context.Context, logger *zap.Logger, store storage.Store, 
 
 	mcpConfigs, err := store.List(ctx)
 	if err != nil {
-		logger.Fatal("Failed to load MCP configurations",
+		logger.Error("Failed to load MCP configurations",
 			zap.Error(err))
+		return
 	}
 
 	// Validate configurations before merging
@@ -159,48 +154,19 @@ func handleReload(ctx context.Context, logger *zap.Logger, store storage.Store, 
 
 	newMCPCfg, err := helper.MergeConfigs(mcpConfigs)
 	if err != nil {
-		logger.Fatal("failed to merge MCP configurations",
-			zap.Error(err))
-	}
-
-	serverLock.Lock()
-	defer serverLock.Unlock()
-
-	newRouter := gin.New()
-
-	if err := srv.RegisterRoutes(newRouter, newMCPCfg); err != nil {
-		logger.Error("failed to register new routes",
+		logger.Error("failed to merge MCP configurations",
 			zap.Error(err))
 		return
 	}
 
+	// Update server configuration in place
 	if err := srv.UpdateConfig(newMCPCfg); err != nil {
 		logger.Error("failed to update server configuration",
 			zap.Error(err))
 		return
 	}
 
-	newServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: newRouter,
-	}
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
-	if err := httpServer.Shutdown(shutdownCtx); err != nil {
-		logger.Error("failed to shutdown old server",
-			zap.Error(err),
-			zap.String("error_type", fmt.Sprintf("%T", err)))
-		return
-	}
-
-	httpServer = newServer
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("failed to start new server",
-				zap.Error(err))
-		}
-	}()
+	logger.Info("Configuration reloaded successfully")
 }
 
 func run() {
@@ -280,11 +246,6 @@ func run() {
 			zap.Error(err))
 	}
 
-	httpServer = &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: router,
-	}
-
 	ntf, err := notifier.NewNotifier(ctx, logger, &cfg.Notifier)
 	if err != nil {
 		logger.Fatal("failed to initialize notifier",
@@ -298,7 +259,7 @@ func run() {
 
 	go func() {
 		logger.Info("Starting main server", zap.Int("port", cfg.Port))
-		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := router.Run(fmt.Sprintf(":%d", cfg.Port)); err != nil {
 			logger.Fatal("failed to start main server",
 				zap.Error(err))
 		}
@@ -315,12 +276,8 @@ func run() {
 			// First cancel the main context to stop accepting new requests
 			cancel()
 
-			// Then shutdown the server with a timeout
-			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer shutdownCancel()
-
-			// Shutdown the MCP server first to close all SSE connections
-			err := srv.Shutdown(shutdownCtx)
+			// Shutdown the MCP server to close all SSE connections
+			err = srv.Shutdown(ctx)
 			if err != nil {
 				logger.Error("failed to shutdown MCP server",
 					zap.Error(err))
@@ -328,12 +285,6 @@ func run() {
 				logger.Info("MCP server shutdown completed successfully")
 			}
 
-			if err := httpServer.Shutdown(shutdownCtx); err != nil {
-				logger.Error("failed to shutdown main server",
-					zap.Error(err))
-			} else {
-				logger.Info("Server shutdown completed successfully")
-			}
 			return
 		case <-updateCh:
 			logger.Info("Received reload signal")

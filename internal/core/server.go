@@ -3,29 +3,35 @@ package core
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
 
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 	"go.uber.org/zap"
 )
 
 type (
 	// Server represents the MCP server
 	Server struct {
-		logger  *zap.Logger
-		tools   []mcp.ToolSchema
-		toolMap map[string]*config.ToolConfig
-		// prefixToTools maps prefix to allowed tools for each MCP server
-		prefixToTools map[string][]mcp.ToolSchema
-		// prefixToServerConfig maps prefix to server config for each MCP server
-		prefixToServerConfig map[string]*config.ServerConfig
+		logger *zap.Logger
+		// state contains all the read-only shared state
+		state *serverState
 		// sessions manages all active sessions
 		sessions session.Store
 		// shutdownCh is used to signal shutdown to all SSE connections
 		shutdownCh chan struct{}
+	}
+
+	// serverState contains all the read-only shared state
+	serverState struct {
+		tools                []mcp.ToolSchema
+		toolMap              map[string]*config.ToolConfig
+		prefixToTools        map[string][]mcp.ToolSchema
+		prefixToServerConfig map[string]*config.ServerConfig
 	}
 )
 
@@ -38,13 +44,15 @@ func NewServer(logger *zap.Logger, cfg *config.MCPGatewayConfig) (*Server, error
 	}
 
 	return &Server{
-		logger:               logger,
-		tools:                make([]mcp.ToolSchema, 0),
-		toolMap:              make(map[string]*config.ToolConfig),
-		prefixToTools:        make(map[string][]mcp.ToolSchema),
-		prefixToServerConfig: make(map[string]*config.ServerConfig),
-		sessions:             sessionStore,
-		shutdownCh:           make(chan struct{}),
+		logger: logger,
+		state: &serverState{
+			tools:                make([]mcp.ToolSchema, 0),
+			toolMap:              make(map[string]*config.ToolConfig),
+			prefixToTools:        make(map[string][]mcp.ToolSchema),
+			prefixToServerConfig: make(map[string]*config.ServerConfig),
+		},
+		sessions:   sessionStore,
+		shutdownCh: make(chan struct{}),
 	}, nil
 }
 
@@ -58,47 +66,55 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.MCPConfig) error
 	router.Use(s.loggerMiddleware())
 	router.Use(s.recoveryMiddleware())
 
-	// Initialize tool map and list for MCP servers
-	s.LoadConfig(cfg)
-
-	// Build prefix to tools mapping for MCP servers
-	prefixMap := make(map[string]string)
-	routerConfigs := make(map[string]*config.RouterConfig)
-	for _, routerCfg := range cfg.Routers {
-		prefixMap[routerCfg.Server] = routerCfg.Prefix
-		routerConfigs[routerCfg.Prefix] = &routerCfg
+	// Create new state and load configuration
+	newState, err := loadConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	for _, serverCfg := range cfg.Servers {
-		prefix, exists := prefixMap[serverCfg.Name]
-		if !exists {
-			return fmt.Errorf("no router prefix found for MCP server: %s", serverCfg.Name)
-		}
+	// Atomically replace the state
+	s.state = newState
 
-		// Filter tools based on MCP server's allowed tools
-		var allowedTools []mcp.ToolSchema
-		for _, toolName := range serverCfg.AllowedTools {
-			if tool, ok := s.toolMap[toolName]; ok {
-				allowedTools = append(allowedTools, tool.ToToolSchema())
-			}
-		}
-		s.prefixToTools[prefix] = allowedTools
-		s.prefixToServerConfig[prefix] = &serverCfg
-
-		group := router.Group(prefix)
-
-		// Add CORS middleware if configured in router
-		if routerCfg, ok := routerConfigs[prefix]; ok && routerCfg.CORS != nil {
-			group.Use(s.corsMiddleware(routerCfg.CORS))
-		}
-
-		// Add both old SSE endpoints and new MCP endpoint
-		group.GET("/sse", s.handleSSE)
-		group.POST("/message", s.handleMessage)
-		group.Any("/mcp", s.handleMCP)
-	}
+	// Register all routes under root path
+	router.Any("/*path", s.handleRoot)
 
 	return nil
+}
+
+// handleRoot handles all requests and routes them based on the path
+func (s *Server) handleRoot(c *gin.Context) {
+	path := c.Request.URL.Path
+
+	// Split path into parts and get the last part as endpoint
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) < 2 {
+		s.sendProtocolError(c, nil, "Invalid path", http.StatusBadRequest, mcp.ErrorCodeInvalidRequest)
+		return
+	}
+
+	endpoint := parts[len(parts)-1]
+	prefix := "/" + strings.Join(parts[:len(parts)-1], "/")
+
+	// Get a local reference to the current state
+	state := s.state
+
+	// Check if prefix exists in configuration
+	if _, ok := state.prefixToTools[prefix]; !ok {
+		s.sendProtocolError(c, nil, "Invalid prefix", http.StatusNotFound, mcp.ErrorCodeInvalidRequest)
+		return
+	}
+
+	// Route based on the endpoint
+	switch endpoint {
+	case "sse":
+		s.handleSSE(c)
+	case "message":
+		s.handleMessage(c)
+	case "mcp":
+		s.handleMCP(c)
+	default:
+		s.sendProtocolError(c, nil, "Invalid endpoint", http.StatusNotFound, mcp.ErrorCodeInvalidRequest)
+	}
 }
 
 // Shutdown gracefully shuts down the server
@@ -107,14 +123,47 @@ func (s *Server) Shutdown(_ context.Context) error {
 	return nil
 }
 
-// LoadConfig loads the MCP server configuration
-func (s *Server) LoadConfig(cfg *config.MCPConfig) {
+// loadConfig creates a new serverState from the given configuration
+func loadConfig(cfg *config.MCPConfig) (*serverState, error) {
+	// Create new state
+	newState := &serverState{
+		tools:                make([]mcp.ToolSchema, 0),
+		toolMap:              make(map[string]*config.ToolConfig),
+		prefixToTools:        make(map[string][]mcp.ToolSchema),
+		prefixToServerConfig: make(map[string]*config.ServerConfig),
+	}
+
 	// Initialize tool map and list for MCP servers
 	for i := range cfg.Tools {
 		tool := &cfg.Tools[i]
-		s.toolMap[tool.Name] = tool
-		s.tools = append(s.tools, tool.ToToolSchema())
+		newState.toolMap[tool.Name] = tool
+		newState.tools = append(newState.tools, tool.ToToolSchema())
 	}
+
+	// Build prefix to tools mapping for MCP servers
+	prefixMap := make(map[string]string)
+	for _, routerCfg := range cfg.Routers {
+		prefixMap[routerCfg.Server] = routerCfg.Prefix
+	}
+
+	for _, serverCfg := range cfg.Servers {
+		prefix, exists := prefixMap[serverCfg.Name]
+		if !exists {
+			return nil, fmt.Errorf("no router prefix found for MCP server: %s", serverCfg.Name)
+		}
+
+		// Filter tools based on MCP server's allowed tools
+		var allowedTools []mcp.ToolSchema
+		for _, toolName := range serverCfg.AllowedTools {
+			if tool, ok := newState.toolMap[toolName]; ok {
+				allowedTools = append(allowedTools, tool.ToToolSchema())
+			}
+		}
+		newState.prefixToTools[prefix] = allowedTools
+		newState.prefixToServerConfig[prefix] = &serverCfg
+	}
+
+	return newState, nil
 }
 
 // UpdateConfig updates the server configuration
@@ -124,35 +173,14 @@ func (s *Server) UpdateConfig(cfg *config.MCPConfig) error {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Clear existing tools
-	s.tools = make([]mcp.ToolSchema, 0)
-	s.toolMap = make(map[string]*config.ToolConfig)
-	s.prefixToTools = make(map[string][]mcp.ToolSchema)
-
-	// Initialize tool map and list for MCP servers
-	s.LoadConfig(cfg)
-
-	// Build prefix to tools mapping for MCP servers
-	prefixMap := make(map[string]string)
-	for _, routerCfg := range cfg.Routers {
-		prefixMap[routerCfg.Server] = routerCfg.Prefix
+	// Create new state and load configuration
+	newState, err := loadConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	for _, serverCfg := range cfg.Servers {
-		prefix, exists := prefixMap[serverCfg.Name]
-		if !exists {
-			return fmt.Errorf("no router prefix found for MCP server: %s", serverCfg.Name)
-		}
-
-		// Filter tools based on MCP server's allowed tools
-		var allowedTools []mcp.ToolSchema
-		for _, toolName := range serverCfg.AllowedTools {
-			if tool, ok := s.toolMap[toolName]; ok {
-				allowedTools = append(allowedTools, tool.ToToolSchema())
-			}
-		}
-		s.prefixToTools[prefix] = allowedTools
-	}
+	// Atomically replace the state
+	s.state = newState
 
 	return nil
 }

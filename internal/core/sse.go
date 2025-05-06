@@ -164,7 +164,7 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 		s.sendSuccessResponse(c, conn, req, result, true)
 	case mcp.ToolsList:
 		// Get tools for this prefix
-		tools, ok := s.prefixToTools[conn.Meta().Prefix]
+		tools, ok := s.state.prefixToTools[conn.Meta().Prefix]
 		if !ok {
 			tools = []mcp.ToolSchema{} // Return empty list if prefix not found
 		}
@@ -182,7 +182,7 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 		}
 
 		// Find the tool in the precomputed map
-		tool, exists := s.toolMap[params.Name]
+		tool, exists := s.state.toolMap[params.Name]
 		if !exists {
 			s.sendProtocolError(c, req.Id, "Tool not found", http.StatusNotFound, mcp.ErrorCodeMethodNotFound)
 			return
@@ -195,7 +195,8 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 			return
 		}
 
-		serverCfg, ok := s.prefixToServerConfig[conn.Meta().Prefix]
+		// Get server configuration
+		serverCfg, ok := s.state.prefixToServerConfig[conn.Meta().Prefix]
 		if !ok {
 			s.sendProtocolError(c, req.Id, "Server configuration not found", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
 			return
