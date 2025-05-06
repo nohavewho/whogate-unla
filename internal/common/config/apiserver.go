@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type (
 	APIServerConfig struct {
@@ -9,6 +12,7 @@ type (
 		Storage  StorageConfig  `yaml:"storage"`
 		Notifier NotifierConfig `yaml:"notifier"`
 		Logger   LoggerConfig   `yaml:"logger"`
+		JWT      JWTConfig      `yaml:"jwt"`
 	}
 
 	DatabaseConfig struct {
@@ -25,6 +29,11 @@ type (
 		APIKey  string `yaml:"api_key"`
 		Model   string `yaml:"model"`
 		BaseURL string `yaml:"base_url"`
+	}
+
+	JWTConfig struct {
+		SecretKey string        `yaml:"secret_key"`
+		Duration  time.Duration `yaml:"duration"`
 	}
 )
 

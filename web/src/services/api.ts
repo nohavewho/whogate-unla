@@ -3,9 +3,40 @@ import toast from 'react-hot-toast';
 
 // Create an axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
+
+// Add response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear any existing token
+      window.localStorage.removeItem('token');
+      // Redirect to login page
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Add request interceptor to add token to headers
+api.interceptors.request.use(
+  (config) => {
+    const token = window.localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // API endpoints
 export const getMCPServers = async () => {

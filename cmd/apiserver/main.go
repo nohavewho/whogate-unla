@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
 	"log"
 	"os"
 
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
+
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/handler"
+	apiserverHandler "github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/handler"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/middleware"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/auth/jwt"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
@@ -103,28 +106,45 @@ func initStore(logger *zap.Logger, cfg *config.StorageConfig) storage.Store {
 }
 
 // initRouter initializes the HTTP router and handlers
-func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier, openaiClient *openai.Client) *gin.Engine {
+func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier, openaiClient *openai.Client, cfg *config.APIServerConfig) *gin.Engine {
 	r := gin.Default()
 
-	chatHandler := handler.NewChat(db)
-	mcpHandler := handler.NewMCP(db, store, ntf)
-	wsHandler := handler.NewWebSocket(db, openaiClient)
-	openapiHandler := handler.NewOpenAPI(db, store, ntf)
+	// Initialize auth services
+	jwtService := jwt.NewService(jwt.Config{
+		SecretKey: cfg.JWT.SecretKey,
+		Duration:  cfg.JWT.Duration,
+	})
+	authH := apiserverHandler.NewHandler(db, jwtService)
 
-	// Configure routes
-	r.POST("/api/mcp-servers", mcpHandler.HandleMCPServerCreate)
-	r.PUT("/api/mcp-servers/:name", mcpHandler.HandleMCPServerUpdate)
-	r.GET("/api/mcp-servers", mcpHandler.HandleListMCPServers)
-	r.DELETE("/api/mcp-servers/:name", mcpHandler.HandleMCPServerDelete)
-	r.POST("/api/mcp-servers/sync", mcpHandler.HandleMCPServerSync)
+	authG := r.Group("/api/auth")
+	authG.POST("/init", authH.Initialize)
+	authG.GET("/init/status", authH.IsInitialized)
+	authG.POST("/login", authH.Login)
 
-	// OpenAPI routes
-	r.POST("/api/openapi/import", openapiHandler.HandleImport)
+	// Protected routes
+	protected := r.Group("/api")
+	protected.Use(middleware.JWTAuthMiddleware(jwtService))
+	{
+		chatHandler := apiserverHandler.NewChat(db)
+		mcpHandler := apiserverHandler.NewMCP(db, store, ntf)
+		wsHandler := apiserverHandler.NewWebSocket(db, openaiClient)
+		openapiHandler := apiserverHandler.NewOpenAPI(db, store, ntf)
 
-	r.GET("/ws/chat", wsHandler.HandleWebSocket)
+		// Configure routes
+		protected.POST("/mcp-servers", mcpHandler.HandleMCPServerCreate)
+		protected.PUT("/mcp-servers/:name", mcpHandler.HandleMCPServerUpdate)
+		protected.GET("/mcp-servers", mcpHandler.HandleListMCPServers)
+		protected.DELETE("/mcp-servers/:name", mcpHandler.HandleMCPServerDelete)
+		protected.POST("/mcp-servers/sync", mcpHandler.HandleMCPServerSync)
 
-	r.GET("/api/chat/sessions", chatHandler.HandleGetChatSessions)
-	r.GET("/api/chat/sessions/:sessionId/messages", chatHandler.HandleGetChatMessages)
+		// OpenAPI routes
+		protected.POST("/openapi/import", openapiHandler.HandleImport)
+
+		protected.GET("/ws/chat", wsHandler.HandleWebSocket)
+
+		protected.GET("/chat/sessions", chatHandler.HandleGetChatSessions)
+		protected.GET("/chat/sessions/:sessionId/messages", chatHandler.HandleGetChatMessages)
+	}
 
 	r.Static("/web", "./web")
 	return r
@@ -164,7 +184,7 @@ func run() {
 	store := initStore(logger, &cfg.Storage)
 
 	// Initialize router and start server
-	router := initRouter(db, store, ntf, openaiClient)
+	router := initRouter(db, store, ntf, openaiClient, cfg)
 	startServer(logger, router)
 }
 

@@ -19,3 +19,20 @@ type Message struct {
 	ToolCalls  string    `json:"toolCalls,omitempty"`
 	ToolResult string    `json:"toolResult,omitempty"`
 }
+
+// User represents an admin user
+type User struct {
+	ID        string    `json:"id" gorm:"primaryKey"`
+	Username  string    `json:"username" gorm:"uniqueIndex"`
+	Password  string    `json:"-" gorm:"not null"` // Password is not exposed in JSON
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// InitState represents the initialization state of the system
+type InitState struct {
+	ID            string    `json:"id" gorm:"primaryKey"`
+	IsInitialized bool      `json:"isInitialized" gorm:"not null"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+}

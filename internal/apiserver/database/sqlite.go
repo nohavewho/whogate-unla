@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -35,7 +36,7 @@ func NewSQLite(cfg *config.DatabaseConfig) (Database, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	if err := gormDB.AutoMigrate(&Message{}, &Session{}); err != nil {
+	if err := gormDB.AutoMigrate(&Message{}, &Session{}, &User{}, &InitState{}); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
@@ -107,4 +108,59 @@ func (db *SQLite) GetSessions(ctx context.Context) ([]*Session, error) {
 		Order("created_at desc").
 		Find(&sessions).Error
 	return sessions, err
+}
+
+// CreateUser creates a new user
+func (db *SQLite) CreateUser(ctx context.Context, user *User) error {
+	return db.db.WithContext(ctx).Create(user).Error
+}
+
+// GetUserByUsername retrieves a user by username
+func (db *SQLite) GetUserByUsername(ctx context.Context, username string) (*User, error) {
+	var user User
+	err := db.db.WithContext(ctx).
+		Where("username = ?", username).
+		First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// UpdateUser updates an existing user
+func (db *SQLite) UpdateUser(ctx context.Context, user *User) error {
+	return db.db.WithContext(ctx).Save(user).Error
+}
+
+// DeleteUser deletes a user by ID
+func (db *SQLite) DeleteUser(ctx context.Context, id string) error {
+	return db.db.WithContext(ctx).Delete(&User{}, "id = ?", id).Error
+}
+
+// GetInitState retrieves the initialization state
+func (db *SQLite) GetInitState(ctx context.Context) (*InitState, error) {
+	var state InitState
+	err := db.db.WithContext(ctx).First(&state).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// If no record exists, create one with default values
+			state = InitState{
+				ID:            "system",
+				IsInitialized: false,
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
+			}
+			if err := db.db.WithContext(ctx).Create(&state).Error; err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+	return &state, nil
+}
+
+// SetInitState updates the initialization state
+func (db *SQLite) SetInitState(ctx context.Context, state *InitState) error {
+	return db.db.WithContext(ctx).Save(state).Error
 }
