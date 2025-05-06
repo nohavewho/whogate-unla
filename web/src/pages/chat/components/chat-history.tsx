@@ -79,7 +79,7 @@ export function ChatHistory({ selectedChat, onSelectChat }: ChatHistoryProps) {
   };
 
   return (
-    <Card className="w-64 relative group">
+    <Card className="w-64 relative group bg-card">
       <button
         type="button"
         aria-label="Resize chat history"

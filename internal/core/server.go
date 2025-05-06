@@ -32,6 +32,7 @@ type (
 		toolMap              map[string]*config.ToolConfig
 		prefixToTools        map[string][]mcp.ToolSchema
 		prefixToServerConfig map[string]*config.ServerConfig
+		prefixToRouterConfig map[string]*config.RouterConfig
 	}
 )
 
@@ -50,6 +51,7 @@ func NewServer(logger *zap.Logger, cfg *config.MCPGatewayConfig) (*Server, error
 			toolMap:              make(map[string]*config.ToolConfig),
 			prefixToTools:        make(map[string][]mcp.ToolSchema),
 			prefixToServerConfig: make(map[string]*config.ServerConfig),
+			prefixToRouterConfig: make(map[string]*config.RouterConfig),
 		},
 		sessions:   sessionStore,
 		shutdownCh: make(chan struct{}),
@@ -84,27 +86,28 @@ func (s *Server) RegisterRoutes(router *gin.Engine, cfg *config.MCPConfig) error
 // handleRoot handles all requests and routes them based on the path
 func (s *Server) handleRoot(c *gin.Context) {
 	path := c.Request.URL.Path
-
-	// Split path into parts and get the last part as endpoint
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 2 {
 		s.sendProtocolError(c, nil, "Invalid path", http.StatusBadRequest, mcp.ErrorCodeInvalidRequest)
 		return
 	}
-
 	endpoint := parts[len(parts)-1]
 	prefix := "/" + strings.Join(parts[:len(parts)-1], "/")
 
-	// Get a local reference to the current state
-	state := s.state
+	// 动态设置CORS
+	if routerCfg, ok := s.state.prefixToRouterConfig[prefix]; ok && routerCfg.CORS != nil {
+		s.corsMiddleware(routerCfg.CORS)(c)
+		if c.IsAborted() {
+			return
+		}
+	}
 
-	// Check if prefix exists in configuration
+	state := s.state
 	if _, ok := state.prefixToTools[prefix]; !ok {
 		s.sendProtocolError(c, nil, "Invalid prefix", http.StatusNotFound, mcp.ErrorCodeInvalidRequest)
 		return
 	}
 
-	// Route based on the endpoint
 	switch endpoint {
 	case "sse":
 		s.handleSSE(c)
@@ -131,6 +134,7 @@ func loadConfig(cfg *config.MCPConfig) (*serverState, error) {
 		toolMap:              make(map[string]*config.ToolConfig),
 		prefixToTools:        make(map[string][]mcp.ToolSchema),
 		prefixToServerConfig: make(map[string]*config.ServerConfig),
+		prefixToRouterConfig: make(map[string]*config.RouterConfig),
 	}
 
 	// Initialize tool map and list for MCP servers
@@ -142,8 +146,9 @@ func loadConfig(cfg *config.MCPConfig) (*serverState, error) {
 
 	// Build prefix to tools mapping for MCP servers
 	prefixMap := make(map[string]string)
-	for _, routerCfg := range cfg.Routers {
+	for i, routerCfg := range cfg.Routers {
 		prefixMap[routerCfg.Server] = routerCfg.Prefix
+		newState.prefixToRouterConfig[routerCfg.Prefix] = &cfg.Routers[i]
 	}
 
 	for _, serverCfg := range cfg.Servers {

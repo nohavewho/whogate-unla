@@ -360,7 +360,7 @@ export function ChatInterface() {
       />
 
       <div className="flex-1 ml-4">
-        <Card className="h-full">
+        <Card className="h-full bg-card">
           <CardBody className="p-0 h-full flex flex-col">
             <div
               ref={messagesContainerRef}
