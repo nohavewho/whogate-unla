@@ -122,7 +122,7 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&configPath, "conf", cnst.MCPGatewayYaml, "path to configuration file, like /etc/mcp-gateway/apiserver.yaml")
+	rootCmd.PersistentFlags().StringVar(&configPath, "conf", cnst.MCPGatewayYaml, "path to configuration file, like /etc/mcp-gateway/mcp-gateway.yaml")
 	rootCmd.PersistentFlags().StringVar(&pidFile, "pid", "", "path to PID file")
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(reloadCmd)
@@ -173,7 +173,7 @@ func run() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Load configuration first
-	cfg, cfgPath, err := config.LoadConfig[config.MCPGatewayConfig](cnst.MCPGatewayYaml)
+	cfg, cfgPath, err := config.LoadConfig[config.MCPGatewayConfig](configPath)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to load service configuration: %v", err))
 	}
