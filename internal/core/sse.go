@@ -62,8 +62,9 @@ func (s *Server) handleSSE(c *gin.Context) {
 				if err != nil {
 					s.logger.Error("failed to send SSE message", zap.Error(err))
 				}
+			default:
+				_, _ = fmt.Fprint(c.Writer, event)
 			}
-			_, _ = fmt.Fprint(c.Writer, event)
 			c.Writer.Flush()
 		case <-c.Request.Context().Done():
 			return
