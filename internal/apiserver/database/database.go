@@ -35,7 +35,4 @@ type Database interface {
 	UpdateUser(ctx context.Context, user *User) error
 	DeleteUser(ctx context.Context, id uint) error
 	ListUsers(ctx context.Context) ([]*User, error)
-
-	GetInitState(ctx context.Context) (*InitState, error)
-	SetInitState(ctx context.Context, state *InitState) error
 }

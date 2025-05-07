@@ -1,7 +1,7 @@
 import { Button, Input, Card, CardBody, CardHeader } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import axios from 'axios';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,29 +13,15 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
   const navigate = useNavigate();
-
-  const checkInitialization = useCallback(async () => {
-    try {
-      const response = await api.get('/auth/init/status');
-      setIsInitialized(response.data.initialized);
-    } catch {
-      toast.error(t('errors.check_system_status'));
-    }
-  }, [t]);
 
   useEffect(() => {
     // Check if already logged in
     const token = window.localStorage.getItem('token');
     if (token) {
       navigate('/');
-      return;
     }
-
-    // Check if system is initialized
-    checkInitialization();
-  }, [navigate, checkInitialization]);
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,39 +43,6 @@ export function LoginPage() {
     }
   };
 
-  const handleInitialize = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      await api.post('/auth/init', { username, password });
-      toast.success(t('auth.init_success'));
-      setIsInitialized(true);
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
-        toast.error(error.response.data.error);
-      } else {
-        toast.error(t('auth.init_failed'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (isInitialized === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardBody className="p-6">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md">
@@ -99,11 +52,11 @@ export function LoginPage() {
             <h1 className="text-2xl font-bold">MCP Admin</h1>
           </div>
           <p className="text-default-500">
-            {isInitialized ? t('auth.login_to_continue') : t('auth.set_admin_credentials')}
+            {t('auth.login_to_continue')}
           </p>
         </CardHeader>
         <CardBody className="p-6">
-          <form onSubmit={isInitialized ? handleLogin : handleInitialize} className="flex flex-col gap-4">
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <Input
               label={t('auth.username')}
               placeholder={t('auth.username_placeholder')}
@@ -127,7 +80,7 @@ export function LoginPage() {
               isLoading={loading}
               className="w-full"
             >
-              {isInitialized ? t('auth.login') : t('auth.initialize_system')}
+              {t('auth.login')}
             </Button>
           </form>
         </CardBody>

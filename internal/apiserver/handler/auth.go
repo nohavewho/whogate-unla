@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/auth/jwt"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/dto"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -15,13 +16,15 @@ import (
 type Handler struct {
 	db         database.Database
 	jwtService *jwt.Service
+	cfg        *config.MCPGatewayConfig
 }
 
 // NewHandler creates a new authentication handler
-func NewHandler(db database.Database, jwtService *jwt.Service) *Handler {
+func NewHandler(db database.Database, jwtService *jwt.Service, cfg *config.MCPGatewayConfig) *Handler {
 	return &Handler{
 		db:         db,
 		jwtService: jwtService,
+		cfg:        cfg,
 	}
 }
 
@@ -71,70 +74,6 @@ func (h *Handler) Login(c *gin.Context) {
 		"token": token,
 		"user":  userInfo,
 	})
-}
-
-// Initialize handles system initialization
-func (h *Handler) Initialize(c *gin.Context) {
-	var req dto.InitializeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-
-	// Check if the system is already initialized
-	state, err := h.db.GetInitState(c.Request.Context())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	if state.IsInitialized {
-		c.JSON(http.StatusConflict, gin.H{"error": "system already initialized"})
-		return
-	}
-
-	// Hash the password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	// Create the admin user
-	user := &database.User{
-		Username:  req.Username,
-		Password:  string(hashedPassword),
-		Role:      database.RoleAdmin,
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	if err := h.db.CreateUser(c.Request.Context(), user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	// Update the initialization state
-	state.IsInitialized = true
-	state.UpdatedAt = time.Now()
-	if err := h.db.SetInitState(c.Request.Context(), state); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	c.Status(http.StatusCreated)
-}
-
-// IsInitialized checks if the system is initialized
-func (h *Handler) IsInitialized(c *gin.Context) {
-	state, err := h.db.GetInitState(c.Request.Context())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"initialized": state.IsInitialized})
 }
 
 // ChangePassword handles password change requests

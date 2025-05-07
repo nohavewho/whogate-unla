@@ -88,14 +88,10 @@
     "username_placeholder": "Enter username",
     "password_placeholder": "Enter password",
     "login_to_continue": "Please login to continue",
-    "set_admin_credentials": "Set up admin credentials",
-    "initialize_system": "Initialize System",
     "login_success": "Login successful",
     "login_failed": "Login failed, please try again",
     "logout_success": "Logout successful",
-    "session_expired": "Session expired, please login again",
-    "init_success": "System initialized successfully",
-    "init_failed": "Failed to initialize system, please try again"
+    "session_expired": "Session expired, please login again"
   },
   "gateway": {
     "title": "Gateway Manager",

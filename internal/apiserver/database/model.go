@@ -38,11 +38,3 @@ type User struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
-
-// InitState represents the initialization state of the system
-type InitState struct {
-	ID            uint      `json:"id" gorm:"primaryKey;autoIncrement"`
-	IsInitialized bool      `json:"isInitialized" gorm:"not null"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
-}
