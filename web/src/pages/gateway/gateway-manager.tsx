@@ -4,7 +4,7 @@ import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { configureMonacoYaml } from 'monaco-yaml';
 import React from 'react';
-import toast from 'react-hot-toast';
+import { toast } from '../../utils/toast';
 
 import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, syncMCPServers } from '../../services/api';
 

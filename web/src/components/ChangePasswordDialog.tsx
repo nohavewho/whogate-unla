@@ -2,9 +2,9 @@ import { Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter
 import { Icon } from '@iconify/react';
 import axios from 'axios';
 import React, { useState } from 'react';
-import toast from 'react-hot-toast';
 
 import api from '../services/api';
+import { toast } from '../utils/toast';
 
 interface ChangePasswordDialogProps {
   isOpen: boolean;

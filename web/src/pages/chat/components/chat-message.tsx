@@ -1,7 +1,7 @@
 import { Avatar, Button, Accordion, AccordionItem } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useContext } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from '../../../utils/toast';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from 'rehype-katex';

@@ -2,7 +2,7 @@ import { Button, Input, Card, CardBody, CardHeader } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { toast } from '../../utils/toast';
 import { useNavigate } from 'react-router-dom';
 
 import api from '../../services/api';

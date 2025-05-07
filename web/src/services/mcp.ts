@@ -6,7 +6,7 @@ import {
   type CallToolRequest,
   CallToolResultSchema
 } from '@modelcontextprotocol/sdk/types.js';
-import toast from 'react-hot-toast';
+import { toast } from '../utils/toast';
 
 import { Tool } from '../types/mcp';
 

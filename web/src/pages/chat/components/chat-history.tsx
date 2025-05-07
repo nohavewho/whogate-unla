@@ -1,7 +1,7 @@
 import { Card, CardBody, Button } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import React from 'react';
-import {toast} from "react-hot-toast";
+import { toast } from '../../../utils/toast';
 import { useNavigate } from 'react-router-dom';
 
 import { getChatSessions } from '../../../services/api';

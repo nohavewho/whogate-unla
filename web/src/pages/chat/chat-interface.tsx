@@ -2,7 +2,7 @@ import { Card, CardBody, Button, Input, Select, SelectItem, Divider, Tabs, Tab }
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
 import React from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from '../../utils/toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 

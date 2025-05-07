@@ -1,4 +1,4 @@
-import toast from 'react-hot-toast';
+import { toast } from '../utils/toast';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ToolCall } from '../types/message';
