@@ -1,11 +1,11 @@
 import { Card, CardBody, Button } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import React from 'react';
-import { toast } from '../../../utils/toast';
 import { useNavigate } from 'react-router-dom';
 
 import { getChatSessions } from '../../../services/api';
 import { wsService } from '../../../services/websocket';
+import { toast } from '../../../utils/toast';
 
 interface ChatHistoryProps {
   selectedChat: string | null;
@@ -51,7 +51,6 @@ export function ChatHistory({ selectedChat, onSelectChat, isCollapsed }: ChatHis
     } catch (error) {
       toast.error(`Failed to fetch chat history: ${error}`, {
         duration: 3000,
-        position: 'bottom-right',
       });
       setSessions([]); // Set empty array on error
     } finally {

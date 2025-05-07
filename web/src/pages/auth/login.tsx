@@ -2,10 +2,10 @@ import { Button, Input, Card, CardBody, CardHeader } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
-import { toast } from '../../utils/toast';
 import { useNavigate } from 'react-router-dom';
 
 import api from '../../services/api';
+import { toast } from '../../utils/toast';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');

@@ -1,7 +1,6 @@
 import { Avatar, Button, Accordion, AccordionItem } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useContext } from "react";
-import { toast } from '../../../utils/toast';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from 'rehype-katex';
@@ -13,6 +12,7 @@ import 'highlight.js/styles/github.css';
 import { mcpService } from "../../../services/mcp";
 import { wsService } from "../../../services/websocket";
 import {Message, ToolCall, ToolResult} from "../../../types/message";
+import { toast } from '../../../utils/toast';
 import { ChatContext } from "../chat-context";
 
 interface ChatMessageProps {
@@ -32,7 +32,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
       if (!tool?.function?.name) {
         toast.error('工具名称格式错误', {
           duration: 3000,
-          position: 'bottom-right',
         });
         return;
       }
@@ -42,7 +41,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
       if (!serverName || !toolName) {
         toast.error('工具名称格式错误', {
           duration: 3000,
-          position: 'bottom-right',
         });
         return;
       }
@@ -52,7 +50,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
       if (!sessionId) {
         toast.error(`服务器 ${serverName} 未连接`, {
           duration: 3000,
-          position: 'bottom-right',
         });
         return;
       }
@@ -64,7 +61,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
       // 显示工具调用结果
       toast.success(`工具调用成功: ${result}`, {
         duration: 3000,
-        position: 'bottom-right',
       });
 
       // 将工具调用结果作为新消息发送
@@ -73,7 +69,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
       console.error('工具调用失败:', error);
       toast.error(`工具调用失败: ${(error as Error).message}`, {
         duration: 3000,
-        position: 'bottom-right',
       });
     }
   };

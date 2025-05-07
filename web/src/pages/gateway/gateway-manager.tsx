@@ -4,9 +4,10 @@ import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { configureMonacoYaml } from 'monaco-yaml';
 import React from 'react';
-import { toast } from '../../utils/toast';
 
 import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, syncMCPServers } from '../../services/api';
+import { toast } from '../../utils/toast';
+
 
 import OpenAPIImport from './components/OpenAPIImport';
 
@@ -80,7 +81,7 @@ export function GatewayManager() {
 
   // Listen for theme changes
   React.useEffect(() => {
-    const observer = new MutationObserver((mutations) => {
+    const observer = new globalThis.MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.attributeName === 'class') {
           setIsDark(document.documentElement.classList.contains('dark'));
@@ -104,7 +105,7 @@ export function GatewayManager() {
         enableSchemaRequest: true,
         schemas: [
           {
-            uri: 'https://raw.githubusercontent.com/mcp-ecosystem/mcp-gateway/main/schema/gateway.json',
+            uri: '',
             fileMatch: ['*.yml', '*.yaml'],
           },
         ],
@@ -122,7 +123,6 @@ export function GatewayManager() {
       } catch {
         toast.error('获取 MCP 服务器列表失败', {
           duration: 3000,
-          position: 'bottom-right',
         });
       } finally {
         setIsLoading(false);
@@ -149,14 +149,12 @@ export function GatewayManager() {
         setMCPServers(servers);
         toast.success('配置已保存', {
           duration: 3000,
-          position: 'bottom-right',
         });
       }
       onOpenChange();
     } catch {
       toast.error('Something went wrong', {
         duration: 3000,
-        position: 'bottom-right',
       });
     }
   };
@@ -168,12 +166,10 @@ export function GatewayManager() {
       setMCPServers(servers);
       toast.success('配置已删除', {
         duration: 3000,
-        position: 'bottom-right',
       });
     } catch {
       toast.error('删除失败', {
         duration: 3000,
-        position: 'bottom-right',
       });
     }
   };
@@ -186,12 +182,10 @@ export function GatewayManager() {
       setMCPServers(servers);
       toast.success('配置已同步', {
         duration: 3000,
-        position: 'bottom-right',
       });
     } catch {
       toast.error('同步失败', {
         duration: 3000,
-        position: 'bottom-right',
       });
     } finally {
       setIsLoading(false);
@@ -203,12 +197,10 @@ export function GatewayManager() {
       await navigator.clipboard.writeText(text);
       toast.success(`已复制: ${text}`, {
         duration: 2000,
-        position: 'bottom-right',
       });
     } catch {
       toast.error("复制失败，请手动复制", {
         duration: 2000,
-        position: 'bottom-right',
       });
     }
   };
@@ -221,7 +213,6 @@ export function GatewayManager() {
       } catch {
         toast.error('Invalid YAML format', {
           duration: 3000,
-          position: 'bottom-right',
         });
         return;
       }
@@ -234,12 +225,10 @@ export function GatewayManager() {
       setNewConfig('');
       toast.success('创建成功', {
         duration: 3000,
-        position: 'bottom-right',
       });
     } catch {
       toast.error('创建失败', {
         duration: 3000,
-        position: 'bottom-right',
       });
     }
   };
@@ -251,12 +240,10 @@ export function GatewayManager() {
       onImportOpenChange();
       toast.success('OpenAPI specification imported successfully', {
         duration: 3000,
-        position: 'bottom-right',
       });
     } catch {
       toast.error('Failed to refresh server list', {
         duration: 3000,
-        position: 'bottom-right',
       });
     }
   };
@@ -270,7 +257,6 @@ export function GatewayManager() {
         } catch {
           toast.error(`解析配置失败: ${server.name}`, {
             duration: 3000,
-            position: 'bottom-right',
           });
           return server;
         }

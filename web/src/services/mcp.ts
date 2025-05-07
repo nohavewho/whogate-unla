@@ -6,9 +6,10 @@ import {
   type CallToolRequest,
   CallToolResultSchema
 } from '@modelcontextprotocol/sdk/types.js';
-import { toast } from '../utils/toast';
 
 import { Tool } from '../types/mcp';
+import { toast } from '../utils/toast';
+
 
 // Declare global constant injected by Vite
 declare const __APP_VERSION__: string;
@@ -69,7 +70,6 @@ class MCPService {
         onError?.(error);
         toast.error(`MCP 服务器 ${serverName} 发生错误: ${error.message}`, {
           duration: 3000,
-          position: 'bottom-right',
         });
       };
 
@@ -91,7 +91,6 @@ class MCPService {
       console.error(`Failed to connect to MCP server ${serverName}:`, error);
       toast.error(`连接 MCP 服务器 ${serverName} 失败`, {
         duration: 3000,
-        position: 'bottom-right',
       });
       throw error;
     }
@@ -121,7 +120,6 @@ class MCPService {
       console.error(`Failed to get tools from ${serverName}:`, error);
       toast.error(`获取工具列表失败: ${(error as Error).message}`, {
         duration: 3000,
-        position: 'bottom-right',
       });
       throw error;
     }
@@ -168,7 +166,6 @@ class MCPService {
       console.error(`Failed to call tool ${toolName} on ${serverName}:`, error);
       toast.error(`调用工具 ${toolName} 失败: ${(error as Error).message}`, {
         duration: 3000,
-        position: 'bottom-right',
       });
       throw error;
     }

@@ -6,7 +6,6 @@ import {
   ModalFooter,
   Button,
 } from "@heroui/react";
-import React from 'react';
 
 interface WechatQRCodeProps {
   isOpen: boolean;

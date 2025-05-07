@@ -27,7 +27,7 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isDark, setIsDark] = React.useState(() => {
-    const savedTheme = localStorage.getItem('theme');
+    const savedTheme = window.localStorage.getItem('theme');
     return savedTheme === 'dark';
   });
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
@@ -40,7 +40,7 @@ export function Layout({ children }: LayoutProps) {
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, []);
+  }, [isDark]);
 
   const menuItems = [
     { to: "/", icon: "lucide:server", label: "Gateway Manager" },
@@ -55,7 +55,7 @@ export function Layout({ children }: LayoutProps) {
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', !isDark ? 'dark' : 'light');
+    window.localStorage.setItem('theme', !isDark ? 'dark' : 'light');
   };
 
   return (

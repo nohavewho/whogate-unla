@@ -2,7 +2,6 @@ import { Card, CardBody, Button, Input, Select, SelectItem, Divider, Tabs, Tab }
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
 import React from 'react';
-import { toast } from '../../utils/toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,6 +10,7 @@ import { mcpService } from '../../services/mcp';
 import { wsService, WebSocketMessage } from '../../services/websocket';
 import { Tool } from '../../types/mcp';
 import {Message as MessageType, ToolCall, ToolResult} from '../../types/message';
+import { toast } from '../../utils/toast';
 
 import { ChatProvider } from './chat-context';
 import { ChatHistory } from './components/chat-history';
@@ -89,7 +89,6 @@ export function ChatInterface() {
       } catch {
         toast.error('获取 MCP 服务器列表失败', {
           duration: 3000,
-          position: 'bottom-right',
         });
       }
     };
@@ -113,13 +112,11 @@ export function ChatInterface() {
               onError: (error) => {
                 toast.error(`MCP 服务器 ${serverName} 发生错误: ${error.message}`, {
                   duration: 3000,
-                  position: 'bottom-right',
                 });
               },
               onNotification: (notification) => {
                 toast.success(`收到来自 ${serverName} 的通知: ${notification}`, {
                   duration: 3000,
-                  position: 'bottom-right',
                 });
               }
             });
@@ -133,7 +130,6 @@ export function ChatInterface() {
           } catch (error) {
             toast.error(`获取工具列表失败: ${error}`, {
               duration: 3000,
-              position: 'bottom-right',
             });
           }
         }
@@ -187,7 +183,6 @@ export function ChatInterface() {
     } catch (error) {
       toast.error(`加载消息失败: ${error instanceof Error ? error.message : 'Unknown error'}`, {
         duration: 3000,
-        position: 'bottom-right',
       });
       setMessages([]);
       setHasMore(false);
