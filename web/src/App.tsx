@@ -25,6 +25,7 @@ function MainLayout() {
     <Layout>
       <Routes>
         <Route path="/" element={<GatewayManager />} />
+        <Route path="/chat" element={<ChatInterface />} />
         <Route path="/chat/:sessionId" element={<ChatInterface />} />
         <Route path="/gateway/*" element={<GatewayManager />} />
         <Route path="/users" element={<UserManagement />} />
