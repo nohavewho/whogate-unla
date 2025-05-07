@@ -131,6 +131,17 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 
 		// Auth routes
 		protected.POST("/auth/change-password", authH.ChangePassword)
+		protected.GET("/auth/user/info", authH.GetUserInfo)
+
+		// User management routes (admin only)
+		userMgmt := protected.Group("/auth/users")
+		userMgmt.Use(apiserverHandler.AdminAuthMiddleware())
+		{
+			userMgmt.GET("", authH.ListUsers)
+			userMgmt.POST("", authH.CreateUser)
+			userMgmt.PUT("", authH.UpdateUser)
+			userMgmt.DELETE("/:username", authH.DeleteUser)
+		}
 
 		// Configure routes
 		protected.POST("/mcp-servers", mcpHandler.HandleMCPServerCreate)

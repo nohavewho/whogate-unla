@@ -65,6 +65,7 @@ export function ChatInterface() {
   const [lastScrollTop, setLastScrollTop] = React.useState(0);
   const [isHistoryCollapsed, setIsHistoryCollapsed] = React.useState(false);
   const [isToolsCollapsed, setIsToolsCollapsed] = React.useState(false);
+  const isNavigatingRef = React.useRef(false);
 
   // 解析配置
   const parseConfig = (config: string) => {
@@ -192,12 +193,13 @@ export function ChatInterface() {
   }, []);
 
   React.useEffect(() => {
-    if (!sessionId) {
+    if (!sessionId && !isNavigatingRef.current) {
       // If no session ID in URL, create a new one and redirect
+      isNavigatingRef.current = true;
       wsService.cleanup();
       const newSessionId = wsService.getSessionId();
       navigate(`/chat/${newSessionId}`);
-      return
+      return;
     }
 
     // Clear old messages first

@@ -159,3 +159,12 @@ func (db *MySQL) GetInitState(ctx context.Context) (*InitState, error) {
 func (db *MySQL) SetInitState(ctx context.Context, state *InitState) error {
 	return db.db.WithContext(ctx).Save(state).Error
 }
+
+// ListUsers retrieves all users
+func (db *MySQL) ListUsers(ctx context.Context) ([]*User, error) {
+	var users []*User
+	err := db.db.WithContext(ctx).
+		Order("created_at desc").
+		Find(&users).Error
+	return users, err
+}

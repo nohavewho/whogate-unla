@@ -12,8 +12,10 @@ import {
   DropdownItem
 } from "@heroui/react";
 import { Icon } from '@iconify/react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
+
+import { getCurrentUser } from '../api/auth';
 
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { WechatQRCode } from './WechatQRCode';
@@ -32,6 +34,7 @@ export function Layout({ children }: LayoutProps) {
   });
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const [isWechatQRCodeOpen, setIsWechatQRCodeOpen] = React.useState(false);
+  const [userInfo, setUserInfo] = useState<{ username: string; role: string } | null>(null);
 
   // Initialize theme on mount
   React.useEffect(() => {
@@ -42,9 +45,39 @@ export function Layout({ children }: LayoutProps) {
     }
   }, [isDark]);
 
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await getCurrentUser();
+        console.log('User info response:', response);
+        setUserInfo(response.data);
+      } catch (error) {
+        console.error('Failed to fetch user info:', error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
   const menuItems = [
-    { to: "/", icon: "lucide:server", label: "Gateway Manager" },
-    { to: "/chat", icon: "lucide:message-square", label: "MCP Chat" }
+    {
+      key: 'chat',
+      label: 'Chat Playground',
+      icon: 'lucide:message-square',
+      path: '/chat',
+    },
+    {
+      key: 'gateway',
+      label: 'Gateway Manager',
+      icon: 'lucide:server',
+      path: '/gateway',
+    },
+    ...(userInfo?.role === 'admin' ? [{
+      key: 'users',
+      label: 'User Management',
+      icon: 'lucide:users',
+      path: '/users',
+    }] : []),
   ];
 
   const handleLogout = () => {
@@ -144,16 +177,16 @@ export function Layout({ children }: LayoutProps) {
             {menuItems.map((item) => (
               isCollapsed ? (
                 <Tooltip
-                  key={item.to}
+                  key={item.path}
                   content={item.label}
                   placement="right"
                 >
                   <Link
-                    to={item.to}
+                    to={item.path}
                     className={`flex items-center w-full px-4 py-2 rounded-lg mb-1 ${
-                      (item.to === "/"
+                      (item.path === "/"
                         ? location.pathname === "/"
-                        : location.pathname.startsWith(item.to))
+                        : location.pathname.startsWith(item.path))
                         ? 'bg-primary/10 text-primary'
                         : 'hover:bg-accent text-foreground'
                     }`}
@@ -163,12 +196,12 @@ export function Layout({ children }: LayoutProps) {
                 </Tooltip>
               ) : (
                 <Link
-                  key={item.to}
-                  to={item.to}
+                  key={item.path}
+                  to={item.path}
                   className={`flex items-center w-full px-4 py-2 rounded-lg mb-1 ${
-                    (item.to === "/"
+                    (item.path === "/"
                       ? location.pathname === "/"
-                      : location.pathname.startsWith(item.to))
+                      : location.pathname.startsWith(item.path))
                       ? 'bg-primary/10 text-primary'
                       : 'hover:bg-accent text-foreground'
                   }`}
@@ -186,14 +219,18 @@ export function Layout({ children }: LayoutProps) {
                 <div className="flex items-center gap-3 cursor-pointer hover:bg-accent p-2 rounded-lg transition-colors">
                   <Avatar
                     icon={<Icon icon="lucide:user" className="text-xl" />}
-                    name="Admin"
+                    name={userInfo?.username || 'User'}
                     size="sm"
                     color="primary"
                   />
                   {!isCollapsed && (
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">Admin</p>
-                      <p className="text-xs text-muted-foreground">Administrator</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {userInfo?.username || 'Loading...'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {userInfo?.role === 'admin' ? 'Administrator' : 'Normal User'}
+                      </p>
                     </div>
                   )}
                 </div>
