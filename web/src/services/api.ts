@@ -17,8 +17,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Clear any existing token
       window.localStorage.removeItem('token');
-      // Redirect to login page
-      window.location.href = '/login';
+      // Only redirect if not already on login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      // If already on login page, do not redirect, just clear token
     }
     return Promise.reject(error);
   }

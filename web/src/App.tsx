@@ -1,5 +1,4 @@
 import React from 'react';
-import { Toaster } from 'react-hot-toast';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import { Layout } from './components/Layout';
@@ -35,7 +34,6 @@ function MainLayout() {
 export default function App() {
   return (
     <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
-      <Toaster position="top-right" />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
