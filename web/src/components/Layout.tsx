@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Navbar,
   NavbarContent,
@@ -13,9 +12,11 @@ import {
   DropdownItem
 } from "@heroui/react";
 import { Icon } from '@iconify/react';
+import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 
 import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { WechatQRCode } from './WechatQRCode';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,6 +31,7 @@ export function Layout({ children }: LayoutProps) {
     return savedTheme === 'dark';
   });
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+  const [isWechatQRCodeOpen, setIsWechatQRCodeOpen] = React.useState(false);
 
   // Initialize theme on mount
   React.useEffect(() => {
@@ -65,6 +67,17 @@ export function Layout({ children }: LayoutProps) {
         height="4rem"
       >
         <NavbarContent justify="end" className="gap-4">
+          <NavbarItem>
+            <Tooltip content="加入微信群">
+              <Button
+                variant="light"
+                isIconOnly
+                onPress={() => setIsWechatQRCodeOpen(true)}
+              >
+                <Icon icon="mdi:wechat" className="text-2xl" />
+              </Button>
+            </Tooltip>
+          </NavbarItem>
           <NavbarItem>
             <Tooltip content="Join Discord">
               <Button
@@ -218,6 +231,12 @@ export function Layout({ children }: LayoutProps) {
         isOpen={isChangePasswordOpen}
         onOpenChange={() => setIsChangePasswordOpen(false)}
       />
+
+      {/* WeChat QR Code Dialog */}
+      <WechatQRCode
+        isOpen={isWechatQRCodeOpen}
+        onOpenChange={setIsWechatQRCodeOpen}
+      />
     </div>
   );
-} 
+}
