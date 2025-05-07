@@ -18,7 +18,8 @@ import {
   Switch,
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import  { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import api from '../../services/api';
 import { toast } from '../../utils/toast';
@@ -46,6 +47,7 @@ interface UpdateUserForm {
 }
 
 export function UserManagement() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -69,30 +71,30 @@ export function UserManagement() {
     onClose: onUpdateClose,
   } = useDisclosure();
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await api.get('/auth/users');
       setUsers(response.data);
     } catch {
-      toast.error('Failed to fetch user list');
+      toast.error(t('errors.fetch_users'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleCreate = async () => {
     try {
       await api.post('/auth/users', createForm);
-      toast.success('User created successfully');
+      toast.success(t('users.add_success'));
       onCreateClose();
       fetchUsers();
       setCreateForm({ username: '', password: '', role: 'normal' });
     } catch {
-      toast.error('Failed to create user');
+      toast.error(t('users.add_failed'));
     }
   };
 
@@ -100,24 +102,24 @@ export function UserManagement() {
     if (!selectedUser) return;
     try {
       await api.put('/auth/users', updateForm);
-      toast.success('User updated successfully');
+      toast.success(t('users.edit_success'));
       onUpdateClose();
       fetchUsers();
       setSelectedUser(null);
       setUpdateForm({ username: '' });
     } catch {
-      toast.error('Failed to update user');
+      toast.error(t('users.edit_failed'));
     }
   };
 
   const handleDelete = async (username: string) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    if (!window.confirm(t('users.confirm_delete'))) return;
     try {
       await api.delete(`/auth/users/${username}`);
-      toast.success('User deleted successfully');
+      toast.success(t('users.delete_success'));
       fetchUsers();
     } catch {
-      toast.error('Failed to delete user');
+      toast.error(t('users.delete_failed'));
     }
   };
 
@@ -137,42 +139,42 @@ export function UserManagement() {
         username: user.username,
         isActive: !user.isActive,
       });
-      toast.success(`User ${user.isActive ? 'disabled' : 'enabled'} successfully`);
+      toast.success(t(user.isActive ? 'users.disable_success' : 'users.enable_success'));
       fetchUsers();
     } catch {
-      toast.error(`Failed to ${user.isActive ? 'disable' : 'enable'} user`);
+      toast.error(t(user.isActive ? 'users.disable_failed' : 'users.enable_failed'));
     }
   };
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">User Management</h1>
+        <h1 className="text-2xl font-bold">{t('users.title')}</h1>
         <Button
           color="primary"
           startContent={<Icon icon="lucide:plus" />}
           onPress={onCreateOpen}
         >
-          Create User
+          {t('users.add')}
         </Button>
       </div>
 
-      <Table aria-label="User List">
+      <Table aria-label={t('users.title')}>
         <TableHeader>
-          <TableColumn>Username</TableColumn>
-          <TableColumn>Role</TableColumn>
-          <TableColumn>Status</TableColumn>
-          <TableColumn>Created At</TableColumn>
-          <TableColumn>Actions</TableColumn>
+          <TableColumn>{t('users.username')}</TableColumn>
+          <TableColumn>{t('users.role')}</TableColumn>
+          <TableColumn>{t('users.status')}</TableColumn>
+          <TableColumn>{t('users.created_at')}</TableColumn>
+          <TableColumn>{t('users.actions')}</TableColumn>
         </TableHeader>
         <TableBody
-          loadingContent={<div>Loading...</div>}
+          loadingContent={<div>{t('common.loading')}</div>}
           loadingState={loading ? 'loading' : 'idle'}
         >
           {users.map((user) => (
             <TableRow key={user.id}>
               <TableCell>{user.username}</TableCell>
-              <TableCell>{user.role === 'admin' ? 'Administrator' : 'Normal User'}</TableCell>
+              <TableCell>{user.role === 'admin' ? t('users.role_admin') : t('users.role_normal')}</TableCell>
               <TableCell>
                 <span
                   className={`px-2 py-1 rounded-full text-xs ${
@@ -181,7 +183,7 @@ export function UserManagement() {
                       : 'bg-danger-100 text-danger-800'
                   }`}
                 >
-                  {user.isActive ? 'Enabled' : 'Disabled'}
+                  {user.isActive ? t('users.status_enabled') : t('users.status_disabled')}
                 </span>
               </TableCell>
               <TableCell>
@@ -196,7 +198,7 @@ export function UserManagement() {
                       onValueChange={() => handleToggleStatus(user)}
                     />
                     <span className="text-sm text-gray-600">
-                      {user.isActive ? 'Enabled' : 'Disabled'}
+                      {user.isActive ? t('users.status_enabled') : t('users.status_disabled')}
                     </span>
                   </div>
                   <div className="flex gap-2">
@@ -205,7 +207,7 @@ export function UserManagement() {
                       variant="light"
                       onPress={() => handleEdit(user)}
                     >
-                      Edit
+                      {t('users.edit')}
                     </Button>
                     <Button
                       size="sm"
@@ -213,7 +215,7 @@ export function UserManagement() {
                       variant="light"
                       onPress={() => handleDelete(user.username)}
                     >
-                      Delete
+                      {t('users.delete')}
                     </Button>
                   </div>
                 </div>
@@ -226,18 +228,18 @@ export function UserManagement() {
       {/* Create User Modal */}
       <Modal isOpen={isCreateOpen} onClose={onCreateClose}>
         <ModalContent>
-          <ModalHeader>Create User</ModalHeader>
+          <ModalHeader>{t('users.add')}</ModalHeader>
           <ModalBody>
             <div className="flex flex-col gap-4">
               <Input
-                label="Username"
+                label={t('users.username')}
                 value={createForm.username}
                 onChange={(e) =>
                   setCreateForm({ ...createForm, username: e.target.value })
                 }
               />
               <Input
-                label="Password"
+                label={t('users.password')}
                 type="password"
                 value={createForm.password}
                 onChange={(e) =>
@@ -245,7 +247,7 @@ export function UserManagement() {
                 }
               />
               <Select
-                label="Role"
+                label={t('users.role')}
                 selectedKeys={[createForm.role]}
                 onSelectionChange={(keys) =>
                   setCreateForm({
@@ -254,17 +256,17 @@ export function UserManagement() {
                   })
                 }
               >
-                <SelectItem key="admin">Administrator</SelectItem>
-                <SelectItem key="normal">Normal User</SelectItem>
+                <SelectItem key="admin">{t('users.role_admin')}</SelectItem>
+                <SelectItem key="normal">{t('users.role_normal')}</SelectItem>
               </Select>
             </div>
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onCreateClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button color="primary" onPress={handleCreate}>
-              Create
+              {t('users.add')}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -273,25 +275,25 @@ export function UserManagement() {
       {/* Update User Modal */}
       <Modal isOpen={isUpdateOpen} onClose={onUpdateClose}>
         <ModalContent>
-          <ModalHeader>Edit User</ModalHeader>
+          <ModalHeader>{t('users.edit')}</ModalHeader>
           <ModalBody>
             <div className="flex flex-col gap-4">
               <Input
-                label="Username"
+                label={t('users.username')}
                 value={updateForm.username}
                 isReadOnly
               />
               <Input
-                label="Password"
+                label={t('users.password')}
                 type="password"
-                placeholder="Leave empty to keep current password"
+                placeholder={t('users.password_placeholder')}
                 value={updateForm.password || ''}
                 onChange={(e) =>
                   setUpdateForm({ ...updateForm, password: e.target.value })
                 }
               />
               <Select
-                label="Role"
+                label={t('users.role')}
                 selectedKeys={[updateForm.role || '']}
                 onSelectionChange={(keys) =>
                   setUpdateForm({
@@ -300,17 +302,17 @@ export function UserManagement() {
                   })
                 }
               >
-                <SelectItem key="admin">Administrator</SelectItem>
-                <SelectItem key="normal">Normal User</SelectItem>
+                <SelectItem key="admin">{t('users.role_admin')}</SelectItem>
+                <SelectItem key="normal">{t('users.role_normal')}</SelectItem>
               </Select>
             </div>
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onUpdateClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button color="primary" onPress={handleUpdate}>
-              Save
+              {t('common.save')}
             </Button>
           </ModalFooter>
         </ModalContent>

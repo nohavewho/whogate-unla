@@ -2,6 +2,7 @@ import { Card, CardBody, Button, Input, Select, SelectItem, Divider, Tabs, Tab }
 import { Icon } from '@iconify/react';
 import yaml from 'js-yaml';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -48,6 +49,7 @@ interface Gateway {
 }
 
 export function ChatInterface() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -68,14 +70,14 @@ export function ChatInterface() {
   const isNavigatingRef = React.useRef(false);
 
   // 解析配置
-  const parseConfig = (config: string) => {
+  const parseConfig = React.useCallback((config: string) => {
     try {
       return yaml.load(config) as Gateway['parsedConfig'];
     } catch (error) {
-      toast.error(`Failed to parse config: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('errors.parse_config', { error: error instanceof Error ? error.message : 'Unknown error' }));
       return undefined;
     }
-  };
+  }, [t]);
 
   // 获取 MCP servers 列表并解析配置
   React.useEffect(() => {
@@ -88,14 +90,14 @@ export function ChatInterface() {
         }));
         setMcpServers(parsedServers);
       } catch {
-        toast.error('获取 MCP 服务器列表失败', {
+        toast.error(t('errors.fetch_mcp_servers'), {
           duration: 3000,
         });
       }
     };
 
     void fetchMCPServers();
-  }, []);
+  }, [t, parseConfig]);
 
   // 当选中服务器变化时，重新加载工具列表
   React.useEffect(() => {
@@ -111,12 +113,12 @@ export function ChatInterface() {
               name: serverName,
               prefix: router.prefix,
               onError: (error) => {
-                toast.error(`MCP 服务器 ${serverName} 发生错误: ${error.message}`, {
+                toast.error(t('errors.mcp_server_error', { server: serverName, error: error.message }), {
                   duration: 3000,
                 });
               },
               onNotification: (notification) => {
-                toast.success(`收到来自 ${serverName} 的通知: ${notification}`, {
+                toast.success(t('chat.notification_received', { server: serverName, message: notification }), {
                   duration: 3000,
                 });
               }
@@ -129,7 +131,7 @@ export function ChatInterface() {
               [serverName]: toolsList
             }));
           } catch (error) {
-            toast.error(`获取工具列表失败: ${error}`, {
+            toast.error(t('errors.fetch_tools', { error }), {
               duration: 3000,
             });
           }
@@ -140,7 +142,7 @@ export function ChatInterface() {
     if (activeServices.length > 0) {
       void loadToolsForActiveServers();
     }
-  }, [activeServices, mcpServers]);
+  }, [activeServices, mcpServers, t, parseConfig]);
 
   const loadMessages = React.useCallback(async (sessionId: string, pageNum: number = 1) => {
     setLoading(true);
@@ -152,7 +154,7 @@ export function ChatInterface() {
         const welcomeMessage: MessageType = {
           id: uuidv4(),
           session_id: sessionId,
-          content: '你好，欢迎使用MCP Gateway！',
+          content: t('chat.welcome_message'),
           sender: 'bot',
           timestamp: new Date().toISOString(),
         };
@@ -182,7 +184,7 @@ export function ChatInterface() {
       setHasMore(newMessages.length === 20);
       setPage(pageNum);
     } catch (error) {
-      toast.error(`加载消息失败: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+      toast.error(t('errors.load_messages', { error: error instanceof Error ? error.message : 'Unknown error' }), {
         duration: 3000,
       });
       setMessages([]);
@@ -190,7 +192,7 @@ export function ChatInterface() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   React.useEffect(() => {
     if (!sessionId && !isNavigatingRef.current) {
@@ -201,6 +203,8 @@ export function ChatInterface() {
       navigate(`/chat/${newSessionId}`);
       return;
     }
+
+    if (!sessionId) return;
 
     // Clear old messages first
     setMessages([]);
@@ -220,7 +224,7 @@ export function ChatInterface() {
               return prev;
             }
 
-            const newMessage = {
+            const newMessage: MessageType = {
               id: message.id,
               session_id: sessionId,
               content: message.content,
@@ -238,7 +242,7 @@ export function ChatInterface() {
               return prev;
             }
 
-            const newMessage = {
+            const newMessage: MessageType = {
               id: message.id,
               session_id: sessionId,
               content: '',
@@ -267,14 +271,15 @@ export function ChatInterface() {
           return updatedMessages;
         }
         // If no bot message exists or last message is from user, create new one
-        return [...prev, {
+        const newMessage: MessageType = {
           id: uuidv4(),
           session_id: sessionId,
           content: chunk,
           sender: 'bot',
           timestamp: new Date().toISOString(),
           isStreaming: true
-        }];
+        };
+        return [...prev, newMessage];
       });
     });
 

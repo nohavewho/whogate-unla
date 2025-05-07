@@ -6,6 +6,7 @@ import {
   ModalFooter,
   Button,
 } from "@heroui/react";
+import { useTranslation } from 'react-i18next';
 
 interface WechatQRCodeProps {
   isOpen: boolean;
@@ -13,10 +14,12 @@ interface WechatQRCodeProps {
 }
 
 export function WechatQRCode({ isOpen, onOpenChange }: WechatQRCodeProps) {
+  const { t } = useTranslation();
+  
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="sm">
       <ModalContent>
-        <ModalHeader>加入微信社区群</ModalHeader>
+        <ModalHeader>{t('common.join_wechat')}</ModalHeader>
         <ModalBody>
           <div className="flex flex-col items-center justify-center">
             <img
@@ -25,16 +28,16 @@ export function WechatQRCode({ isOpen, onOpenChange }: WechatQRCodeProps) {
               className="w-64 h-64 object-contain"
             />
             <p className="mt-4 text-center text-muted-foreground">
-              扫描二维码添加微信
+              {t('common.scan_qrcode')}
             </p>
             <p className="mt-4 text-center text-muted-foreground">
-              备注mcp-gateway或mcpgw
+              {t('common.add_wechat_note')}
             </p>
           </div>
         </ModalBody>
         <ModalFooter>
           <Button color="primary" onPress={() => onOpenChange(false)}>
-            关闭
+            {t('common.close')}
           </Button>
         </ModalFooter>
       </ModalContent>

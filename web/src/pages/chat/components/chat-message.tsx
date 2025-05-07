@@ -1,6 +1,7 @@
 import { Avatar, Button, Accordion, AccordionItem } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useContext } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from 'rehype-katex';
@@ -20,6 +21,7 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
+  const { t } = useTranslation();
   const isBot = message.sender === 'bot';
   const { messages } = useContext(ChatContext);
 
@@ -30,7 +32,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const handleRunTool = async (tool: ToolCall) => {
     try {
       if (!tool?.function?.name) {
-        toast.error('工具名称格式错误', {
+        toast.error(t('errors.invalid_tool_name'), {
           duration: 3000,
         });
         return;
@@ -39,7 +41,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       // 解析 serverName:toolName 格式
       const [serverName, toolName] = tool.function.name.split(':');
       if (!serverName || !toolName) {
-        toast.error('工具名称格式错误', {
+        toast.error(t('errors.invalid_tool_name'), {
           duration: 3000,
         });
         return;
@@ -48,7 +50,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       const sessionId = mcpService.getSessionId(serverName);
 
       if (!sessionId) {
-        toast.error(`服务器 ${serverName} 未连接`, {
+        toast.error(t('errors.server_not_connected', { server: serverName }), {
           duration: 3000,
         });
         return;
@@ -59,7 +61,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       const result = await mcpService.callTool(serverName, toolName, args);
 
       // 显示工具调用结果
-      toast.success(`工具调用成功: ${result}`, {
+      toast.success(t('chat.tool_call_success', { result }), {
         duration: 3000,
       });
 
@@ -67,7 +69,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       await wsService.sendToolResult(tool.function.name, tool.id, result);
     } catch (error) {
       console.error('工具调用失败:', error);
-      toast.error(`工具调用失败: ${(error as Error).message}`, {
+      toast.error(t('errors.tool_call_failed', { error: (error as Error).message }), {
         duration: 3000,
       });
     }
@@ -78,7 +80,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <Avatar
         size="sm"
         src={isBot ? "https://img.heroui.chat/image/avatar?w=32&h=32&u=1" : undefined}
-        name={isBot ? "MCP" : "You"}
+        name={isBot ? "MCP" : t('chat.you')}
       />
       <div
         className={`px-4 py-2 rounded-lg max-w-[80%] ${
@@ -118,7 +120,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               <Accordion selectionMode="multiple">
                 <AccordionItem
                   key={`${tool.id}-args`}
-                  title="Arguments"
+                  title={t('chat.arguments')}
                   className="px-0"
                 >
                   <pre className="text-sm p-2 bg-secondary rounded overflow-auto">
@@ -128,7 +130,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 {toolResult ? (
                   <AccordionItem
                     key={`${tool.id}-result`}
-                    title="Result"
+                    title={t('chat.result')}
                     className="px-0"
                   >
                     <pre className="text-sm p-2 bg-secondary rounded overflow-auto">
@@ -151,7 +153,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   startContent={<Icon icon="lucide:play" />}
                   onPress={() => handleRunTool(tool)}
                 >
-                  Run Tool
+                  {t('chat.run_tool')}
                 </Button>
               )}
             </div>

@@ -2,6 +2,7 @@ import { Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter
 import { Icon } from '@iconify/react';
 import axios from 'axios';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import api from '../services/api';
 import { toast } from '../utils/toast';
@@ -12,6 +13,7 @@ interface ChangePasswordDialogProps {
 }
 
 export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDialogProps) {
+  const { t } = useTranslation();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,7 +21,7 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
 
   const handleSubmit = async () => {
     if (newPassword !== confirmPassword) {
-      toast.error('两次输入的新密码不一致');
+      toast.error(t('auth.password_mismatch'));
       return;
     }
 
@@ -29,7 +31,7 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
         oldPassword,
         newPassword,
       });
-      toast.success('密码修改成功');
+      toast.success(t('auth.password_change_success'));
       onOpenChange();
       // Clear form
       setOldPassword('');
@@ -39,7 +41,7 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
       if (axios.isAxiosError(error) && error.response?.data?.error) {
         toast.error(error.response.data.error);
       } else {
-        toast.error('修改密码失败，请重试');
+        toast.error(t('auth.password_change_failed'));
       }
     } finally {
       setLoading(false);
@@ -49,29 +51,29 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
       <ModalContent>
-        <ModalHeader>修改密码</ModalHeader>
+        <ModalHeader>{t('auth.change_password')}</ModalHeader>
         <ModalBody>
           <div className="flex flex-col gap-4">
             <Input
-              label="当前密码"
+              label={t('auth.current_password')}
               type="password"
-              placeholder="请输入当前密码"
+              placeholder={t('auth.current_password_placeholder')}
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
               startContent={<Icon icon="lucide:lock" className="text-default-400" />}
             />
             <Input
-              label="新密码"
+              label={t('auth.new_password')}
               type="password"
-              placeholder="请输入新密码"
+              placeholder={t('auth.new_password_placeholder')}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               startContent={<Icon icon="lucide:lock" className="text-default-400" />}
             />
             <Input
-              label="确认新密码"
+              label={t('auth.confirm_password')}
               type="password"
-              placeholder="请再次输入新密码"
+              placeholder={t('auth.confirm_password_placeholder')}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               startContent={<Icon icon="lucide:lock" className="text-default-400" />}
@@ -80,10 +82,10 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
         </ModalBody>
         <ModalFooter>
           <Button color="danger" variant="light" onPress={onOpenChange}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button color="primary" onPress={handleSubmit} isLoading={loading}>
-            确认修改
+            {t('auth.confirm_change')}
           </Button>
         </ModalFooter>
       </ModalContent>
