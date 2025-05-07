@@ -8,6 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { Tool } from '../types/mcp';
+import { t } from '../utils/i18n-utils';
 import { toast } from '../utils/toast';
 
 
@@ -66,9 +67,8 @@ class MCPService {
 
       // Set up error handler
       client.onerror = (error) => {
-        console.error(`MCP client error for ${serverName}:`, error);
         onError?.(error);
-        toast.error(`MCP 服务器 ${serverName} 发生错误: ${error.message}`, {
+        toast.error(t('errors.mcp_server_error', { server: serverName, error: error.message }), {
           duration: 3000,
         });
       };
@@ -88,8 +88,7 @@ class MCPService {
 
       return client;
     } catch (error) {
-      console.error(`Failed to connect to MCP server ${serverName}:`, error);
-      toast.error(`连接 MCP 服务器 ${serverName} 失败`, {
+      toast.error(t('errors.connect_mcp_server', { server: serverName }), {
         duration: 3000,
       });
       throw error;
@@ -99,7 +98,9 @@ class MCPService {
   async reconnect(serverName: string): Promise<Client | null> {
     const config = this.configs.get(serverName);
     if (!config) {
-      console.error(`No config found for server ${serverName}`);
+      toast.error(t('errors.no_server_config', { server: serverName }), {
+        duration: 3000,
+      });
       return null;
     }
 
@@ -117,7 +118,6 @@ class MCPService {
       const result = await client.listTools();
       return result.tools;
     } catch (error) {
-      console.error(`Failed to get tools from ${serverName}:`, error);
       toast.error(`获取工具列表失败: ${(error as Error).message}`, {
         duration: 3000,
       });
@@ -163,7 +163,6 @@ class MCPService {
 
       return result.content[0].text;
     } catch (error) {
-      console.error(`Failed to call tool ${toolName} on ${serverName}:`, error);
       toast.error(`调用工具 ${toolName} 失败: ${(error as Error).message}`, {
         duration: 3000,
       });
@@ -184,7 +183,9 @@ class MCPService {
         this.lastEventIds.delete(serverName);
       }
     } catch (error) {
-      console.error(`Error terminating session for ${serverName}:`, error);
+      toast.error(t('errors.terminate_session', { error: (error as Error).message }), {
+        duration: 3000,
+      });
     }
   }
 
@@ -202,7 +203,9 @@ class MCPService {
           await transport.close();
         }
       } catch (error) {
-        console.error(`Error disconnecting from ${serverName}:`, error);
+        toast.error(t('errors.disconnect_failed', { error: (error as Error).message }), {
+          duration: 3000,
+        });
       }
 
       // Clean up maps

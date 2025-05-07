@@ -68,7 +68,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
       // 将工具调用结果作为新消息发送
       await wsService.sendToolResult(tool.function.name, tool.id, result);
     } catch (error) {
-      console.error('工具调用失败:', error);
       toast.error(t('errors.tool_call_failed', { error: (error as Error).message }), {
         duration: 3000,
       });

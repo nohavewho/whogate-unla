@@ -223,6 +223,12 @@
     "server_not_connected": "服务器 {{server}} 未连接",
     "tool_call_failed": "工具调用失败: {{error}}",
     "fetch_chat_history": "获取聊天历史失败: {{error}}",
-    "load_messages": "加载消息失败: {{error}}"
+    "load_messages": "加载消息失败: {{error}}",
+    "mcp_server_error": "MCP 服务器 {{server}} 发生错误: {{error}}",
+    "connect_mcp_server": "连接 MCP 服务器 {{server}} 失败",
+    "no_server_config": "未找到服务器 {{server}} 的配置",
+    "terminate_session": "终止会话失败: {{error}}",
+    "disconnect_failed": "断开连接失败: {{error}}",
+    "fetch_user_info": "获取用户信息失败: {{error}}"
   }
 } 

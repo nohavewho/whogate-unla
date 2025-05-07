@@ -17,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 
 import { getCurrentUser } from '../api/auth';
+import { toast } from '../utils/toast';
+
 
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -52,15 +54,16 @@ export function Layout({ children }: LayoutProps) {
     const fetchUserInfo = async () => {
       try {
         const response = await getCurrentUser();
-        console.log('User info response:', response);
         setUserInfo(response.data);
       } catch (error) {
-        console.error('Failed to fetch user info:', error);
+        toast.error(t('errors.fetch_user_info', { error: (error as Error).message }), {
+          duration: 3000,
+        });
       }
     };
 
     fetchUserInfo();
-  }, []);
+  }, [t]);
 
   const menuItems = [
     {
