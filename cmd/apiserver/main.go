@@ -129,6 +129,9 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 		mcpHandler := apiserverHandler.NewMCP(db, store, ntf)
 		openapiHandler := apiserverHandler.NewOpenAPI(db, store, ntf)
 
+		// Auth routes
+		protected.POST("/auth/change-password", authH.ChangePassword)
+
 		// Configure routes
 		protected.POST("/mcp-servers", mcpHandler.HandleMCPServerCreate)
 		protected.PUT("/mcp-servers/:name", mcpHandler.HandleMCPServerUpdate)

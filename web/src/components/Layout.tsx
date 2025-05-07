@@ -15,6 +15,8 @@ import {
 import { Icon } from '@iconify/react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 
+import { ChangePasswordDialog } from './ChangePasswordDialog';
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -27,6 +29,7 @@ export function Layout({ children }: LayoutProps) {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark';
   });
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
 
   // Initialize theme on mount
   React.useEffect(() => {
@@ -184,16 +187,11 @@ export function Layout({ children }: LayoutProps) {
               </DropdownTrigger>
               <DropdownMenu aria-label="User Actions">
                 <DropdownItem
-                  key="profile"
-                  startContent={<Icon icon="lucide:user" className="text-xl" />}
+                  key="change-password"
+                  startContent={<Icon icon="lucide:key" className="text-xl" />}
+                  onPress={() => setIsChangePasswordOpen(true)}
                 >
-                  个人信息
-                </DropdownItem>
-                <DropdownItem
-                  key="settings"
-                  startContent={<Icon icon="lucide:settings" className="text-xl" />}
-                >
-                  系统设置
+                  修改密码
                 </DropdownItem>
                 <DropdownItem
                   key="logout"
@@ -214,6 +212,12 @@ export function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog
+        isOpen={isChangePasswordOpen}
+        onOpenChange={() => setIsChangePasswordOpen(false)}
+      />
     </div>
   );
 } 

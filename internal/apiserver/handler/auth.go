@@ -118,3 +118,42 @@ func (h *Handler) IsInitialized(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"initialized": state.IsInitialized})
 }
+
+// ChangePassword handles password change requests
+func (h *Handler) ChangePassword(c *gin.Context) {
+	var req dto.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	// Get the user from the database
+	user, err := h.db.GetUserByUsername(c.Request.Context(), "admin")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	// Compare the old password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.OldPassword)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid old password"})
+		return
+	}
+
+	// Hash the new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	// Update the user's password
+	user.Password = string(hashedPassword)
+	user.UpdatedAt = time.Now()
+	if err := h.db.UpdateUser(c.Request.Context(), user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ChangePasswordResponse{Success: true})
+}
