@@ -22,7 +22,7 @@ type Message struct {
 
 // User represents an admin user
 type User struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
+	ID        uint      `json:"id" gorm:"primaryKey;autoIncrement"`
 	Username  string    `json:"username" gorm:"uniqueIndex"`
 	Password  string    `json:"-" gorm:"not null"` // Password is not exposed in JSON
 	CreatedAt time.Time `json:"createdAt"`
@@ -31,7 +31,7 @@ type User struct {
 
 // InitState represents the initialization state of the system
 type InitState struct {
-	ID            string    `json:"id" gorm:"primaryKey"`
+	ID            uint      `json:"id" gorm:"primaryKey;autoIncrement"`
 	IsInitialized bool      `json:"isInitialized" gorm:"not null"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`

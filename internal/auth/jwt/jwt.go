@@ -14,7 +14,7 @@ var (
 
 // Claims represents the JWT claims
 type Claims struct {
-	UserID   string `json:"user_id"`
+	UserID   uint   `json:"user_id"`
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
@@ -38,7 +38,7 @@ func NewService(config Config) *Service {
 }
 
 // GenerateToken generates a new JWT token
-func (s *Service) GenerateToken(userID, username string) (string, error) {
+func (s *Service) GenerateToken(userID uint, username string) (string, error) {
 	claims := &Claims{
 		UserID:   userID,
 		Username: username,

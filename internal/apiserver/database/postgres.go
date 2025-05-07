@@ -136,7 +136,7 @@ func (db *Postgres) UpdateUser(ctx context.Context, user *User) error {
 }
 
 // DeleteUser deletes a user by ID
-func (db *Postgres) DeleteUser(ctx context.Context, id string) error {
+func (db *Postgres) DeleteUser(ctx context.Context, id uint) error {
 	return db.db.WithContext(ctx).Delete(&User{}, "id = ?", id).Error
 }
 
@@ -148,7 +148,6 @@ func (db *Postgres) GetInitState(ctx context.Context) (*InitState, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// If no record exists, create one with default values
 			state = InitState{
-				ID:            "system",
 				IsInitialized: false,
 				CreatedAt:     time.Now(),
 				UpdatedAt:     time.Now(),

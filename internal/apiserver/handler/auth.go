@@ -85,7 +85,6 @@ func (h *Handler) Initialize(c *gin.Context) {
 
 	// Create the user
 	user := &database.User{
-		ID:        "admin",
 		Username:  req.Username,
 		Password:  string(hashedPassword),
 		CreatedAt: time.Now(),
