@@ -105,6 +105,18 @@ export function Layout({ children }: LayoutProps) {
         maxWidth="full"
         height="4rem"
       >
+        <NavbarContent className={`transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
+          <NavbarItem>
+            <Button
+              isIconOnly
+              variant="light"
+              onPress={() => setIsCollapsed(!isCollapsed)}
+              aria-label={t('common.toggle_sidebar')}
+            >
+              <Icon icon={isCollapsed ? "lucide:chevron-right" : "lucide:chevron-left"} />
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
         <NavbarContent justify="end" className="gap-4">
           <NavbarItem>
             <LanguageSwitcher />
@@ -170,16 +182,15 @@ export function Layout({ children }: LayoutProps) {
             isCollapsed ? "w-20" : "w-64"
           }`}
         >
-          <div className="flex items-center justify-between p-4 border-b border-border h-16">
-            {!isCollapsed && <span className="text-xl font-bold">MCP Admin</span>}
-            <Button
-              isIconOnly
-              variant="light"
-              onPress={() => setIsCollapsed(!isCollapsed)}
-              aria-label={t('common.toggle_sidebar')}
-            >
-              <Icon icon={isCollapsed ? "lucide:chevron-right" : "lucide:chevron-left"} />
-            </Button>
+          <div className="flex items-center justify-center p-4 border-b border-border h-16">
+            {isCollapsed ? (
+              <img src="/logo.png" alt="MCP Logo" className="w-8 h-8" />
+            ) : (
+              <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="MCP Logo" className="w-6 h-6" />
+                <span className="text-xl font-bold">MCP Admin</span>
+              </div>
+            )}
           </div>
 
           <nav className="flex-1 overflow-y-auto p-2">
@@ -226,22 +237,34 @@ export function Layout({ children }: LayoutProps) {
           <div className="p-4 border-t border-border">
             <Dropdown placement="top-end">
               <DropdownTrigger>
-                <Button
-                  variant="light"
-                  className="w-full flex items-center justify-start gap-2"
-                >
-                  <Avatar
-                    size="sm"
-                    name={userInfo?.username || 'User'}
-                    className="bg-primary/10"
-                  />
-                  {!isCollapsed && (
+                {isCollapsed ? (
+                  <Button
+                    isIconOnly
+                    variant="light"
+                    className="w-full"
+                  >
+                    <Avatar
+                      size="sm"
+                      name={userInfo?.username || 'User'}
+                      className="bg-primary/10"
+                    />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="light"
+                    className="w-full flex items-center justify-start gap-2"
+                  >
+                    <Avatar
+                      size="sm"
+                      name={userInfo?.username || 'User'}
+                      className="bg-primary/10"
+                    />
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium">{userInfo?.username || 'User'}</span>
                       <span className="text-xs text-muted-foreground">{userInfo?.role || 'User'}</span>
                     </div>
-                  )}
-                </Button>
+                  </Button>
+                )}
               </DropdownTrigger>
               <DropdownMenu aria-label="User menu">
                 <DropdownItem
