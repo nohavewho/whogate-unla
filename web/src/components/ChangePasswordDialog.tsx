@@ -1,7 +1,7 @@
 import { Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import axios from 'axios';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import api from '../services/api';
@@ -91,4 +91,4 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
       </ModalContent>
     </Modal>
   );
-} 
+}
