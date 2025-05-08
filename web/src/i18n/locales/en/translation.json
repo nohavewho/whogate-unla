@@ -225,6 +225,20 @@
     "server_not_connected": "Server {{server}} is not connected",
     "tool_call_failed": "Tool call failed: {{error}}",
     "fetch_chat_history": "Failed to fetch chat history: {{error}}",
-    "load_messages": "Failed to load messages: {{error}}"
+    "load_messages": "Failed to load messages: {{error}}",
+    "websocket_disconnected": "WebSocket connection disconnected",
+    "websocket_error": "WebSocket error: {{error}}",
+    "invalid_openapi_file": "Please select a valid OpenAPI specification file",
+    "import_openapi_success": "Successfully imported OpenAPI specification",
+    "import_openapi_failed": "Failed to import OpenAPI specification",
+    "get_tools_failed": "Failed to get tools list: {{error}}",
+    "call_tool_failed": "Failed to call tool {{toolName}}: {{error}}",
+    "fetch_mcp_server": "Failed to fetch MCP server",
+    "create_mcp_server": "Failed to create MCP server",
+    "update_mcp_server": "Failed to update MCP server configuration",
+    "delete_mcp_server": "Failed to delete MCP server",
+    "sync_mcp_server": "Failed to sync MCP server",
+    "fetch_chat_messages": "Failed to fetch chat messages",
+    "fetch_chat_sessions": "Failed to fetch chat sessions"
   }
 } 

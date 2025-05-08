@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { toast } from '../utils/toast';
+import { t } from 'i18next';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -49,11 +50,11 @@ export const getMCPServers = async () => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.fetch_mcp_servers'), {
         duration: 3000,
       });
     } else {
-      toast.error('获取 MCP 服务器列表失败', {
+      toast.error(t('errors.fetch_mcp_servers'), {
         duration: 3000,
       });
     }
@@ -67,11 +68,11 @@ export const getMCPServer = async (name: string) => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.fetch_mcp_server'), {
         duration: 3000,
       });
     } else {
-      toast.error('获取 MCP 服务器失败', {
+      toast.error(t('errors.fetch_mcp_server'), {
         duration: 3000,
       });
     }
@@ -89,11 +90,11 @@ export const createMCPServer = async (config: string) => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.create_mcp_server'), {
         duration: 3000,
       });
     } else {
-      toast.error('创建 MCP 服务器失败', {
+      toast.error(t('errors.create_mcp_server'), {
         duration: 3000,
       });
     }
@@ -111,11 +112,11 @@ export const updateMCPServer = async (name: string, config: string) => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.update_mcp_server'), {
         duration: 3000,
       });
     } else {
-      toast.error('更新 MCP 服务器配置失败', {
+      toast.error(t('errors.update_mcp_server'), {
         duration: 3000,
       });
     }
@@ -129,11 +130,11 @@ export const deleteMCPServer = async (name: string) => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.delete_mcp_server'), {
         duration: 3000,
       });
     } else {
-      toast.error('删除 MCP 服务器失败', {
+      toast.error(t('errors.delete_mcp_server'), {
         duration: 3000,
       });
     }
@@ -147,11 +148,11 @@ export const syncMCPServers = async () => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.sync_mcp_server'), {
         duration: 3000,
       });
     } else {
-      toast.error('同步 MCP 服务器失败', {
+      toast.error(t('errors.sync_mcp_server'), {
         duration: 3000,
       });
     }
@@ -170,11 +171,11 @@ export const getChatMessages = async (sessionId: string, page: number = 1, pageS
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.fetch_chat_messages'), {
         duration: 3000,
       });
     } else {
-      toast.error('获取聊天消息失败', {
+      toast.error(t('errors.fetch_chat_messages'), {
         duration: 3000,
       });
     }
@@ -188,11 +189,11 @@ export const getChatSessions = async () => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.fetch_chat_sessions'), {
         duration: 3000,
       });
     } else {
-      toast.error('获取聊天会话列表失败', {
+      toast.error(t('errors.fetch_chat_sessions'), {
         duration: 3000,
       });
     }
@@ -213,11 +214,11 @@ export const importOpenAPI = async (file: File) => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
-      toast.error(error.response.data.error, {
+      toast.error(t('errors.import_openapi_failed'), {
         duration: 3000,
       });
     } else {
-      toast.error('导入 OpenAPI 规范失败', {
+      toast.error(t('errors.import_openapi_failed'), {
         duration: 3000,
       });
     }

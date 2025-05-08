@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone';
 
 import { importOpenAPI } from '../../../services/api';
 import { toast } from "../../../utils/toast.ts";
+import { t } from 'i18next';
 
 interface OpenAPIImportProps {
   onSuccess?: () => void;
@@ -13,7 +14,7 @@ interface OpenAPIImportProps {
 const OpenAPIImport: React.FC<OpenAPIImportProps> = ({ onSuccess }) => {
   const onDrop = useCallback(async (acceptedFiles: globalThis.File[]) => {
     if (acceptedFiles.length === 0) {
-      toast.error('Please select a valid OpenAPI specification file', {
+      toast.error(t('errors.invalid_openapi_file'), {
         duration: 3000,
       });
       return;
@@ -21,12 +22,12 @@ const OpenAPIImport: React.FC<OpenAPIImportProps> = ({ onSuccess }) => {
 
     try {
       await importOpenAPI(acceptedFiles[0]);
-      toast.success('Successfully imported OpenAPI specification', {
+      toast.success(t('errors.import_openapi_success'), {
         duration: 3000,
       });
       onSuccess?.();
     } catch {
-      toast.error('Failed to import OpenAPI specification', {
+      toast.error(t('errors.import_openapi_failed'), {
         duration: 3000,
       })
     }

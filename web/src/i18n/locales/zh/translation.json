@@ -228,6 +228,20 @@
     "no_server_config": "未找到服务器 {{server}} 的配置",
     "terminate_session": "终止会话失败: {{error}}",
     "disconnect_failed": "断开连接失败: {{error}}",
-    "fetch_user_info": "获取用户信息失败: {{error}}"
+    "fetch_user_info": "获取用户信息失败: {{error}}",
+    "websocket_disconnected": "WebSocket 连接已断开",
+    "websocket_error": "WebSocket 发生错误: {{error}}",
+    "invalid_openapi_file": "请选择有效的 OpenAPI 规范文件",
+    "import_openapi_success": "OpenAPI 规范导入成功",
+    "import_openapi_failed": "OpenAPI 规范导入失败",
+    "get_tools_failed": "获取工具列表失败: {{error}}",
+    "call_tool_failed": "调用工具 {{toolName}} 失败: {{error}}",
+    "fetch_mcp_server": "获取 MCP 服务器失败",
+    "create_mcp_server": "创建 MCP 服务器失败",
+    "update_mcp_server": "更新 MCP 服务器配置失败",
+    "delete_mcp_server": "删除 MCP 服务器失败",
+    "sync_mcp_server": "同步 MCP 服务器失败",
+    "fetch_chat_messages": "获取聊天消息失败",
+    "fetch_chat_sessions": "获取聊天会话列表失败"
   }
 } 
