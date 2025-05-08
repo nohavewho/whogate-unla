@@ -85,10 +85,6 @@ func (t *ToolConfig) ToToolSchema() mcp.ToolSchema {
 		property := map[string]any{
 			"type":        arg.Type,
 			"description": arg.Description,
-			"required":    arg.Required,
-		}
-		if arg.Description != "" {
-			property["title"] = arg.Description
 		}
 
 		if arg.Type == "array" {
