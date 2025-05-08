@@ -1,22 +1,34 @@
-import { Card, CardBody, Button } from "@heroui/react";
+import { Card, CardBody, Button } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 
+import { importOpenAPI } from '../../../services/api';
+import { toast } from "../../../utils/toast.ts";
+
 interface OpenAPIImportProps {
-  onSuccess: (content: string) => void;
+  onSuccess?: () => void;
 }
 
 const OpenAPIImport: React.FC<OpenAPIImportProps> = ({ onSuccess }) => {
-  const onDrop = React.useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        onSuccess(content);
-      };
-      reader.readAsText(file);
+  const onDrop = useCallback(async (acceptedFiles: globalThis.File[]) => {
+    if (acceptedFiles.length === 0) {
+      toast.error('Please select a valid OpenAPI specification file', {
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      await importOpenAPI(acceptedFiles[0]);
+      toast.success('Successfully imported OpenAPI specification', {
+        duration: 3000,
+      });
+      onSuccess?.();
+    } catch {
+      toast.error('Failed to import OpenAPI specification', {
+        duration: 3000,
+      })
     }
   }, [onSuccess]);
 

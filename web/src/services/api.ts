@@ -200,4 +200,29 @@ export const getChatSessions = async () => {
   }
 };
 
+export const importOpenAPI = async (file: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post('/openapi/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      toast.error(error.response.data.error, {
+        duration: 3000,
+      });
+    } else {
+      toast.error('导入 OpenAPI 规范失败', {
+        duration: 3000,
+      });
+    }
+    throw error;
+  }
+};
+
 export default api;
