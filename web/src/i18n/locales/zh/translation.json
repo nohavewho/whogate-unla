@@ -27,6 +27,7 @@
     "join_wechat": "加入微信群",
     "join_discord": "加入Discord",
     "view_github": "在GitHub上查看",
+    "view_docs": "查看文档",
     "switch_theme": "切换到{{theme}}模式",
     "light": "浅色",
     "dark": "深色",

@@ -27,6 +27,7 @@
     "join_wechat": "Join WeChat Group",
     "join_discord": "Join Discord",
     "view_github": "View on GitHub",
+    "view_docs": "View Documentation",
     "switch_theme": "Switch to {{theme}} mode",
     "light": "Light",
     "dark": "Dark",
