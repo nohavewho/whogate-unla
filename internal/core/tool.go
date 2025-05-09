@@ -7,7 +7,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
@@ -174,15 +173,7 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 	processArguments(req, tool, args)
 
 	// Execute request
-	proxyURL, err := url.Parse("http://localhost:5559")
-	if err != nil {
-		return "", fmt.Errorf("failed to parse proxy URL: %w", err)
-	}
-	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		},
-	}
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute request: %w", err)
