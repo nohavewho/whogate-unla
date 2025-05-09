@@ -111,6 +111,12 @@ For more usage patterns, configuration examples, and integration guides, please 
 
 This project is licensed under the [MIT License](LICENSE).
 
+## 💬 Join Our WeChat Community
+
+Scan the QR code below to add us on WeChat. Please include a note: `mcp-gateway` or `mcpgw`.
+
+<img src="web/public/wechat-qrcode.png" alt="WeChat QR Code" width="350" height="350" />
+
 ## 📈 Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=mcp-ecosystem/mcp-gateway&type=Date)](https://star-history.com/#mcp-ecosystem/mcp-gateway&Date)

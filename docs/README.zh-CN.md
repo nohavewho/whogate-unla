@@ -111,6 +111,12 @@ docker run -d \
 
 本项目采用 [MIT 协议](../LICENSE)。
 
+## 💬 加入社区微信群
+
+扫描下方二维码添加微信，备注：`mcp-gateway`或`mcpgw`
+
+<img src="../web/public/wechat-qrcode.png" alt="微信群二维码" width="350" height="350" />
+
 ## 📈 Star 历史
 
 [![Star History Chart](https://api.star-history.com/svg?repos=mcp-ecosystem/mcp-gateway&type=Date)](https://star-history.com/#mcp-ecosystem/mcp-gateway&Date)
