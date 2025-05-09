@@ -57,8 +57,10 @@ RUN apt-get update && apt-get install -y \
     && dpkg-reconfigure -f noninteractive tzdata
 
 COPY deploy/docker/allinone/supervisord.conf /etc/supervisor/conf.d/
-
 COPY deploy/docker/allinone/nginx.conf /etc/nginx/nginx.conf
+RUN mkdir -p /app/data
+COPY configs/apiserver.yaml /etc/mcp-gateway/
+COPY configs/mcp-gateway.yaml /etc/mcp-gateway/
 
 COPY --from=builder /app/bin/mcp-gateway /usr/local/bin/
 COPY --from=builder /app/bin/mock-user-svc /usr/local/bin/

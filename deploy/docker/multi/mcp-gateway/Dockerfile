@@ -22,7 +22,9 @@ RUN apt-get update && apt-get install -y \
     && dpkg-reconfigure -f noninteractive tzdata
 
 COPY --from=builder /app/mcp-gateway .
-COPY --from=builder /app/configs /app/configs
+COPY --from=builder /app/configs/mcp-gateway.yaml /etc/mcp-gateway/
+
+# Create data directory
 RUN mkdir -p /app/data
 
 EXPOSE 5235

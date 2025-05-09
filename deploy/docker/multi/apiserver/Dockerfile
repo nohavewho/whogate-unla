@@ -32,9 +32,9 @@ RUN apt-get update && apt-get install -y \
 
 # Copy the binary
 COPY --from=builder /app/apiserver .
+COPY --from=builder /app/configs/apiserver.yaml /etc/mcp-gateway/
 
-# Copy configs
-COPY --from=builder /app/configs /app/configs
+# Create data directory
 RUN mkdir -p /app/data
 
 # Expose port
