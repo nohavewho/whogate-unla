@@ -1,10 +1,13 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
@@ -88,6 +91,20 @@ func processArguments(req *http.Request, tool *config.ToolConfig, args map[strin
 			q := req.URL.Query()
 			q.Add(arg.Name, value)
 			req.URL.RawQuery = q.Encode()
+		case "form-data":
+			var b bytes.Buffer
+			writer := multipart.NewWriter(&b)
+
+			if err := writer.WriteField(arg.Name, value); err != nil {
+				continue
+			}
+
+			if err := writer.Close(); err != nil {
+				continue
+			}
+
+			req.Body = io.NopCloser(&b)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
 		}
 	}
 }
@@ -117,6 +134,7 @@ func processResponse(resp *http.Response, tool *config.ToolConfig, tmplCtx *temp
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	fmt.Println(string(respBody))
 	if tool.ResponseBody == "" {
 		return string(respBody), nil
 	}
@@ -156,7 +174,15 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 	processArguments(req, tool, args)
 
 	// Execute request
-	client := &http.Client{}
+	proxyURL, err := url.Parse("http://localhost:5559")
+	if err != nil {
+		return "", fmt.Errorf("failed to parse proxy URL: %w", err)
+	}
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute request: %w", err)
