@@ -110,3 +110,7 @@ For more usage patterns, configuration examples, and integration guides, please 
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## 📈 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=mcp-ecosystem/mcp-gateway&type=Date)](https://star-history.com/#mcp-ecosystem/mcp-gateway&Date)

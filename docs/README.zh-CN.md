@@ -111,3 +111,7 @@ docker run -d \
 
 本项目采用 [MIT 协议](../LICENSE)。
 
+## 📈 Star 历史
+
+[![Star History Chart](https://api.star-history.com/svg?repos=mcp-ecosystem/mcp-gateway&type=Date)](https://star-history.com/#mcp-ecosystem/mcp-gateway&Date)
+
