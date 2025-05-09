@@ -192,6 +192,13 @@ func preprocessArgs(args map[string]any) map[string]any {
 		case []any:
 			ss, _ := json.Marshal(val)
 			processed[k] = string(ss)
+		case float64:
+			// If the float64 equals its integer conversion, it's an integer
+			if val == float64(int64(val)) {
+				processed[k] = int64(val)
+			} else {
+				processed[k] = val
+			}
 		default:
 			processed[k] = v
 		}
