@@ -35,7 +35,7 @@ func NewSQLite(cfg *config.DatabaseConfig) (Database, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	if err := gormDB.AutoMigrate(&Message{}, &Session{}, &User{}); err != nil {
+	if err := gormDB.AutoMigrate(&Message{}, &Session{}, &User{}, &Tenant{}); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
@@ -143,4 +143,52 @@ func (db *SQLite) ListUsers(ctx context.Context) ([]*User, error) {
 		Order("created_at desc").
 		Find(&users).Error
 	return users, err
+}
+
+// CreateTenant creates a new tenant
+func (db *SQLite) CreateTenant(ctx context.Context, tenant *Tenant) error {
+	return db.db.WithContext(ctx).Create(tenant).Error
+}
+
+// GetTenantByName retrieves a tenant by name
+func (db *SQLite) GetTenantByName(ctx context.Context, name string) (*Tenant, error) {
+	var tenant Tenant
+	err := db.db.WithContext(ctx).
+		Where("name = ?", name).
+		First(&tenant).Error
+	if err != nil {
+		return nil, err
+	}
+	return &tenant, nil
+}
+
+// GetTenantByID retrieves a tenant by ID
+func (db *SQLite) GetTenantByID(ctx context.Context, id uint) (*Tenant, error) {
+	var tenant Tenant
+	err := db.db.WithContext(ctx).
+		Where("id = ?", id).
+		First(&tenant).Error
+	if err != nil {
+		return nil, err
+	}
+	return &tenant, nil
+}
+
+// UpdateTenant updates an existing tenant
+func (db *SQLite) UpdateTenant(ctx context.Context, tenant *Tenant) error {
+	return db.db.WithContext(ctx).Save(tenant).Error
+}
+
+// DeleteTenant deletes a tenant by ID
+func (db *SQLite) DeleteTenant(ctx context.Context, id uint) error {
+	return db.db.WithContext(ctx).Delete(&Tenant{}, "id = ?", id).Error
+}
+
+// ListTenants retrieves all tenants
+func (db *SQLite) ListTenants(ctx context.Context) ([]*Tenant, error) {
+	var tenants []*Tenant
+	err := db.db.WithContext(ctx).
+		Order("created_at desc").
+		Find(&tenants).Error
+	return tenants, err
 }

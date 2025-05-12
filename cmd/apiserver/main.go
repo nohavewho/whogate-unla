@@ -182,6 +182,17 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 			userMgmt.DELETE("/:username", authH.DeleteUser)
 		}
 
+		// Tenant management routes (admin only)
+		tenantMgmt := protected.Group("/auth/tenants")
+		tenantMgmt.Use(apiserverHandler.AdminAuthMiddleware())
+		{
+			tenantMgmt.GET("", authH.ListTenants)
+			tenantMgmt.POST("", authH.CreateTenant)
+			tenantMgmt.PUT("", authH.UpdateTenant)
+			tenantMgmt.DELETE("/:name", authH.DeleteTenant)
+			tenantMgmt.GET("/:name", authH.GetTenantInfo)
+		}
+
 		// Configure routes
 		protected.POST("/mcp-servers", mcpHandler.HandleMCPServerCreate)
 		protected.PUT("/mcp-servers/:name", mcpHandler.HandleMCPServerUpdate)

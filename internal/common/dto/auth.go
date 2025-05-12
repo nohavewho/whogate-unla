@@ -49,3 +49,27 @@ type UserInfo struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
 }
+
+// CreateTenantRequest represents a request to create a new tenant
+type CreateTenantRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Prefix      string `json:"prefix" binding:"required"`
+	Description string `json:"description"`
+}
+
+// UpdateTenantRequest represents a request to update a tenant
+type UpdateTenantRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Prefix      string `json:"prefix,omitempty"`
+	Description string `json:"description,omitempty"`
+	IsActive    *bool  `json:"isActive,omitempty"`
+}
+
+// TenantResponse represents a tenant information response
+type TenantResponse struct {
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	Prefix      string `json:"prefix"`
+	Description string `json:"description"`
+	IsActive    bool   `json:"isActive"`
+}

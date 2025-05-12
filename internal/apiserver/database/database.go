@@ -35,4 +35,12 @@ type Database interface {
 	UpdateUser(ctx context.Context, user *User) error
 	DeleteUser(ctx context.Context, id uint) error
 	ListUsers(ctx context.Context) ([]*User, error)
+
+	// Tenant related operations
+	CreateTenant(ctx context.Context, tenant *Tenant) error
+	GetTenantByName(ctx context.Context, name string) (*Tenant, error)
+	GetTenantByID(ctx context.Context, id uint) (*Tenant, error)
+	UpdateTenant(ctx context.Context, tenant *Tenant) error
+	DeleteTenant(ctx context.Context, id uint) error
+	ListTenants(ctx context.Context) ([]*Tenant, error)
 }

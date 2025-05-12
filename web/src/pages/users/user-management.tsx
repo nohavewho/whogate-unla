@@ -21,7 +21,7 @@ import { Icon } from '@iconify/react';
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import api from '../../services/api';
+import { getUsers, createUser, updateUser, deleteUser, toggleUserStatus } from '../../services/api';
 import { toast } from '../../utils/toast';
 
 interface User {
@@ -51,6 +51,7 @@ export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<string>('');
   const [createForm, setCreateForm] = useState<CreateUserForm>({
     username: '',
     password: '',
@@ -70,17 +71,22 @@ export function UserManagement() {
     onOpen: onUpdateOpen,
     onClose: onUpdateClose,
   } = useDisclosure();
+  const {
+    isOpen: isDeleteOpen,
+    onOpen: onDeleteOpen,
+    onClose: onDeleteClose,
+  } = useDisclosure();
 
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await api.get('/auth/users');
-      setUsers(response.data);
+      const data = await getUsers();
+      setUsers(data);
     } catch {
-      toast.error(t('errors.fetch_users'));
+      // Error already handled in the API function
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -88,38 +94,40 @@ export function UserManagement() {
 
   const handleCreate = async () => {
     try {
-      await api.post('/auth/users', createForm);
-      toast.success(t('users.add_success'));
+      await createUser(createForm);
       onCreateClose();
       fetchUsers();
       setCreateForm({ username: '', password: '', role: 'normal' });
     } catch {
-      toast.error(t('users.add_failed'));
+      // Error already handled in the API function
     }
   };
 
   const handleUpdate = async () => {
     if (!selectedUser) return;
     try {
-      await api.put('/auth/users', updateForm);
-      toast.success(t('users.edit_success'));
+      await updateUser(updateForm);
       onUpdateClose();
       fetchUsers();
       setSelectedUser(null);
       setUpdateForm({ username: '' });
     } catch {
-      toast.error(t('users.edit_failed'));
+      // Error already handled in the API function
     }
   };
 
-  const handleDelete = async (username: string) => {
-    if (!window.confirm(t('users.confirm_delete'))) return;
+  const openDeleteConfirm = (username: string) => {
+    setUserToDelete(username);
+    onDeleteOpen();
+  };
+
+  const handleDelete = async () => {
     try {
-      await api.delete(`/auth/users/${username}`);
-      toast.success(t('users.delete_success'));
+      await deleteUser(userToDelete);
+      onDeleteClose();
       fetchUsers();
     } catch {
-      toast.error(t('users.delete_failed'));
+      // Error already handled in the API function
     }
   };
 
@@ -135,14 +143,10 @@ export function UserManagement() {
 
   const handleToggleStatus = async (user: User) => {
     try {
-      await api.put('/auth/users', {
-        username: user.username,
-        isActive: !user.isActive,
-      });
-      toast.success(t(user.isActive ? 'users.disable_success' : 'users.enable_success'));
+      await toggleUserStatus(user.username, !user.isActive);
       fetchUsers();
     } catch {
-      toast.error(t(user.isActive ? 'users.disable_failed' : 'users.enable_failed'));
+      // Error already handled in the API function
     }
   };
 
@@ -213,7 +217,7 @@ export function UserManagement() {
                       size="sm"
                       color="danger"
                       variant="light"
-                      onPress={() => handleDelete(user.username)}
+                      onPress={() => openDeleteConfirm(user.username)}
                     >
                       {t('users.delete')}
                     </Button>
@@ -313,6 +317,25 @@ export function UserManagement() {
             </Button>
             <Button color="primary" onPress={handleUpdate}>
               {t('common.save')}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">{t('users.delete_title')}</ModalHeader>
+          <ModalBody>
+            <p>{t('users.confirm_delete')}</p>
+            <p className="text-danger font-semibold">{userToDelete}</p>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={onDeleteClose}>
+              {t('common.cancel')}
+            </Button>
+            <Button color="danger" onPress={handleDelete}>
+              {t('users.delete')}
             </Button>
           </ModalFooter>
         </ModalContent>
