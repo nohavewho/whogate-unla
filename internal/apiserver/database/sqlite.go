@@ -40,6 +40,11 @@ func NewSQLite(cfg *config.DatabaseConfig) (Database, error) {
 	}
 
 	db.db = gormDB
+
+	if err := InitDefaultTenant(gormDB); err != nil {
+		return nil, fmt.Errorf("failed to initialize default tenant: %w", err)
+	}
+
 	return db, nil
 }
 

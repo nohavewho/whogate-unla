@@ -171,6 +171,7 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 		// Auth routes
 		protected.POST("/auth/change-password", authH.ChangePassword)
 		protected.GET("/auth/user/info", authH.GetUserInfo)
+		protected.GET("/auth/user", authH.GetUserWithTenants)
 
 		// User management routes (admin only)
 		userMgmt := protected.Group("/auth/users")

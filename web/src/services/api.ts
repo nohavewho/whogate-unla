@@ -44,9 +44,10 @@ api.interceptors.request.use(
 );
 
 // API endpoints
-export const getMCPServers = async () => {
+export const getMCPServers = async (tenantId?: number) => {
   try {
-    const response = await api.get('/mcp-servers');
+    const params = tenantId ? { tenantId } : {};
+    const response = await api.get('/mcp-servers', { params });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
@@ -529,6 +530,19 @@ export const getUserWithTenants = async (username: string) => {
     return response.data;
   } catch (error) {
     toast.error(t('errors.fetch_user'), {
+      duration: 3000,
+    });
+    throw error;
+  }
+};
+
+// Get current user's authorized tenants
+export const getUserAuthorizedTenants = async () => {
+  try {
+    const response = await api.get('/auth/user');
+    return response.data.tenants || [];
+  } catch (error) {
+    toast.error(t('errors.fetch_authorized_tenants'), {
       duration: 3000,
     });
     throw error;

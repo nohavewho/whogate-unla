@@ -56,6 +56,9 @@
     "contact": "联系我们",
     "feedback": "反馈",
     "report": "报告",
+    "join_wechat_community": "加入微信社区",
+    "join_discord_community": "加入Discord社区",
+    "switch_theme_theme": "切换到{{theme}}主题",
     "no_results": "未找到结果"
   },
   "nav": {
@@ -115,7 +118,9 @@
     "sync_success": "配置同步成功",
     "sync_failed": "配置同步失败",
     "import_success": "OpenAPI 规范导入成功",
-    "import_failed": "OpenAPI 规范导入失败"
+    "import_failed": "OpenAPI 规范导入失败",
+    "select_tenant": "选择租户(多选)",
+    "search_tenant": "搜索租户..."
   },
   "chat": {
     "title": "聊天",
@@ -292,6 +297,7 @@
     "fetch_tenant": "获取租户详情失败",
     "create_tenant": "创建租户失败",
     "update_tenant": "更新租户失败",
-    "delete_tenant": "删除租户失败"
+    "delete_tenant": "删除租户失败",
+    "fetch_authorized_tenants": "获取有权限的租户失败"
   }
 } 

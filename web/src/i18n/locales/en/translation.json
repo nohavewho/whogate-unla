@@ -118,7 +118,9 @@
     "sync_success": "Configuration synchronized successfully",
     "sync_failed": "Failed to synchronize configuration",
     "import_success": "OpenAPI specification imported successfully",
-    "import_failed": "Failed to import OpenAPI specification"
+    "import_failed": "Failed to import OpenAPI specification",
+    "select_tenant": "Select Tenants (Multiple)",
+    "search_tenant": "Search tenants..."
   },
   "chat": {
     "title": "Chat",
@@ -272,6 +274,11 @@
     "tool_call_failed": "Tool call failed: {{error}}",
     "fetch_chat_history": "Failed to fetch chat history: {{error}}",
     "load_messages": "Failed to load messages: {{error}}",
+    "mcp_server_error": "Error in MCP server {{server}}: {{error}}",
+    "connect_mcp_server": "Failed to connect to MCP server {{server}}",
+    "no_server_config": "No configuration found for server {{server}}",
+    "terminate_session": "Failed to terminate session: {{error}}",
+    "disconnect_failed": "Failed to disconnect: {{error}}",
     "websocket_disconnected": "WebSocket connection disconnected",
     "websocket_error": "WebSocket error: {{error}}",
     "invalid_openapi_file": "Please select a valid OpenAPI specification file",
@@ -290,6 +297,7 @@
     "fetch_tenant": "Failed to fetch tenant details",
     "create_tenant": "Failed to create tenant",
     "update_tenant": "Failed to update tenant",
-    "delete_tenant": "Failed to delete tenant"
+    "delete_tenant": "Failed to delete tenant",
+    "fetch_authorized_tenants": "Failed to fetch authorized tenants"
   }
 } 
