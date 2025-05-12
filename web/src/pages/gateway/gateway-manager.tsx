@@ -114,7 +114,7 @@ export function GatewayManager() {
     }
   }, []);
 
-  // 获取 MCP servers 列表
+  // Get MCP servers list
   React.useEffect(() => {
     const fetchMCPServers = async () => {
       try {

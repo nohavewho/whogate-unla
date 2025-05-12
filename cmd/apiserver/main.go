@@ -180,6 +180,8 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 			userMgmt.POST("", authH.CreateUser)
 			userMgmt.PUT("", authH.UpdateUser)
 			userMgmt.DELETE("/:username", authH.DeleteUser)
+			userMgmt.GET("/:username", authH.GetUserWithTenants)
+			userMgmt.PUT("/tenants", authH.UpdateUserTenants)
 		}
 
 		// Tenant management routes (admin only)

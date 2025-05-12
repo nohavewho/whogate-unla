@@ -49,3 +49,12 @@ type Tenant struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
+
+// UserTenant represents the relationship between a user and a tenant
+type UserTenant struct {
+	ID        uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID    uint      `json:"userId" gorm:"index:idx_user_tenant,unique;not null"`
+	TenantID  uint      `json:"tenantId" gorm:"index:idx_user_tenant,unique;not null"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}

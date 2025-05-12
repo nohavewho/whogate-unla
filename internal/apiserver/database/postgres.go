@@ -28,7 +28,7 @@ func NewPostgres(cfg *config.DatabaseConfig) (Database, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	if err := gormDB.AutoMigrate(&Message{}, &Session{}, &User{}, &Tenant{}); err != nil {
+	if err := gormDB.AutoMigrate(&Message{}, &Session{}, &User{}, &Tenant{}, &UserTenant{}); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
@@ -191,4 +191,72 @@ func (db *Postgres) ListTenants(ctx context.Context) ([]*Tenant, error) {
 		Order("created_at desc").
 		Find(&tenants).Error
 	return tenants, err
+}
+
+// Transaction implements Database.Transaction
+func (db *Postgres) Transaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	if tx := TransactionFromContext(ctx); tx != nil {
+		return fn(ctx)
+	}
+
+	return db.db.Transaction(func(tx *gorm.DB) error {
+		txCtx := ContextWithTransaction(ctx, tx)
+		return fn(txCtx)
+	})
+}
+
+// AddUserToTenant adds a user to a tenant
+func (db *Postgres) AddUserToTenant(ctx context.Context, userID, tenantID uint) error {
+	dbSession := getDBFromContext(ctx, db.db)
+
+	userTenant := &UserTenant{
+		UserID:    userID,
+		TenantID:  tenantID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	return dbSession.Create(userTenant).Error
+}
+
+// RemoveUserFromTenant removes a user from a tenant
+func (db *Postgres) RemoveUserFromTenant(ctx context.Context, userID, tenantID uint) error {
+	dbSession := getDBFromContext(ctx, db.db)
+
+	return dbSession.Where("user_id = ? AND tenant_id = ?", userID, tenantID).Delete(&UserTenant{}).Error
+}
+
+// GetUserTenants gets all tenants for a user
+func (db *Postgres) GetUserTenants(ctx context.Context, userID uint) ([]*Tenant, error) {
+	dbSession := getDBFromContext(ctx, db.db)
+
+	var tenants []*Tenant
+	err := dbSession.Model(&UserTenant{}).
+		Select("tenants.*").
+		Joins("JOIN tenants ON user_tenants.tenant_id = tenants.id").
+		Where("user_tenants.user_id = ?", userID).
+		Find(&tenants).Error
+
+	return tenants, err
+}
+
+// GetTenantUsers gets all users for a tenant
+func (db *Postgres) GetTenantUsers(ctx context.Context, tenantID uint) ([]*User, error) {
+	dbSession := getDBFromContext(ctx, db.db)
+
+	var users []*User
+	err := dbSession.Model(&UserTenant{}).
+		Select("users.*").
+		Joins("JOIN users ON user_tenants.user_id = users.id").
+		Where("user_tenants.tenant_id = ?", tenantID).
+		Find(&users).Error
+
+	return users, err
+}
+
+// DeleteUserTenants deletes all tenant associations for a user
+func (db *Postgres) DeleteUserTenants(ctx context.Context, userID uint) error {
+	dbSession := getDBFromContext(ctx, db.db)
+
+	return dbSession.Where("user_id = ?", userID).Delete(&UserTenant{}).Error
 }

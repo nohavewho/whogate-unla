@@ -55,7 +55,8 @@
     "about": "关于",
     "contact": "联系我们",
     "feedback": "反馈",
-    "report": "报告"
+    "report": "报告",
+    "no_results": "未找到结果"
   },
   "nav": {
     "dashboard": "仪表盘",
@@ -201,7 +202,14 @@
     "enable_success": "用户启用成功",
     "disable_success": "用户禁用成功",
     "enable_failed": "启用用户失败",
-    "disable_failed": "禁用用户失败"
+    "disable_failed": "禁用用户失败",
+    "select_tenants": "选择租户",
+    "search_tenants": "搜索租户...",
+    "update_tenants_success": "更新用户租户关联成功",
+    "update_tenants_failed": "更新用户租户关联失败",
+    "no_tenants": "未关联任何租户",
+    "manage_tenants": "管理租户",
+    "tenants": "关联租户"
   },
   "tenants": {
     "title": "租户管理",

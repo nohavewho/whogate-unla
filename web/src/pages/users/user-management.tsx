@@ -16,12 +16,17 @@ import {
   Select,
   SelectItem,
   Switch,
+  Checkbox,
+  Chip,
+  Selection,
+  Autocomplete,
+  AutocompleteItem,
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { getUsers, createUser, updateUser, deleteUser, toggleUserStatus } from '../../services/api';
+import { getUsers, createUser, updateUser, deleteUser, toggleUserStatus, getTenants, getUserWithTenants } from '../../services/api';
 import { toast } from '../../utils/toast';
 
 interface User {
@@ -31,12 +36,22 @@ interface User {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  tenants?: Tenant[];
+}
+
+interface Tenant {
+  id: number;
+  name: string;
+  prefix: string;
+  description: string;
+  isActive: boolean;
 }
 
 interface CreateUserForm {
   username: string;
   password: string;
   role: 'admin' | 'normal';
+  tenantIds?: number[];
 }
 
 interface UpdateUserForm {
@@ -44,21 +59,27 @@ interface UpdateUserForm {
   password?: string;
   role?: 'admin' | 'normal';
   isActive?: boolean;
+  tenantIds?: number[];
 }
 
 export function UserManagement() {
   const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<string>('');
+  const [createTenantInputValue, setCreateTenantInputValue] = useState('');
+  const [updateTenantInputValue, setUpdateTenantInputValue] = useState('');
   const [createForm, setCreateForm] = useState<CreateUserForm>({
     username: '',
     password: '',
     role: 'normal',
+    tenantIds: [],
   });
   const [updateForm, setUpdateForm] = useState<UpdateUserForm>({
     username: '',
+    tenantIds: [],
   });
 
   const {
@@ -77,6 +98,15 @@ export function UserManagement() {
     onClose: onDeleteClose,
   } = useDisclosure();
 
+  const fetchTenants = useCallback(async () => {
+    try {
+      const data = await getTenants();
+      setTenants(data);
+    } catch {
+      // Error already handled in the API function
+    }
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     try {
       const data = await getUsers();
@@ -90,14 +120,15 @@ export function UserManagement() {
 
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchTenants();
+  }, [fetchUsers, fetchTenants]);
 
   const handleCreate = async () => {
     try {
       await createUser(createForm);
       onCreateClose();
       fetchUsers();
-      setCreateForm({ username: '', password: '', role: 'normal' });
+      setCreateForm({ username: '', password: '', role: 'normal', tenantIds: [] });
     } catch {
       // Error already handled in the API function
     }
@@ -110,7 +141,7 @@ export function UserManagement() {
       onUpdateClose();
       fetchUsers();
       setSelectedUser(null);
-      setUpdateForm({ username: '' });
+      setUpdateForm({ username: '', tenantIds: [] });
     } catch {
       // Error already handled in the API function
     }
@@ -131,14 +162,20 @@ export function UserManagement() {
     }
   };
 
-  const handleEdit = (user: User) => {
-    setSelectedUser(user);
-    setUpdateForm({
-      username: user.username,
-      role: user.role,
-      isActive: user.isActive,
-    });
-    onUpdateOpen();
+  const handleEdit = async (user: User) => {
+    try {
+      const userData = await getUserWithTenants(user.username);
+      setSelectedUser(userData);
+      setUpdateForm({
+        username: userData.username,
+        role: userData.role,
+        isActive: userData.isActive,
+        tenantIds: userData.tenants?.map((t: Tenant) => t.id) || [],
+      });
+      onUpdateOpen();
+    } catch {
+      // Error already handled in the API function
+    }
   };
 
   const handleToggleStatus = async (user: User) => {
@@ -149,6 +186,89 @@ export function UserManagement() {
       // Error already handled in the API function
     }
   };
+
+  // Create tenant ID to tenant object mapping for easy lookup
+  const tenantsMap = useMemo(() => {
+    const map = new Map<number, Tenant>();
+    tenants.forEach(tenant => {
+      map.set(tenant.id, tenant);
+    });
+    return map;
+  }, [tenants]);
+
+  // Handle tenant selection for Autocomplete component
+  const handleCreateTenantSelect = (key: React.Key | null) => {
+    if (key === null) return;
+    
+    const tenantId = parseInt(key.toString(), 10);
+    // Ensure no duplicate entries
+    if (!createForm.tenantIds?.includes(tenantId)) {
+      setCreateForm({
+        ...createForm,
+        tenantIds: [...(createForm.tenantIds || []), tenantId]
+      });
+      // Clear input after selection
+      setCreateTenantInputValue('');
+    }
+  };
+
+  const handleUpdateTenantSelect = (key: React.Key | null) => {
+    if (key === null) return;
+    
+    const tenantId = parseInt(key.toString(), 10);
+    // Ensure no duplicate entries
+    if (!updateForm.tenantIds?.includes(tenantId)) {
+      setUpdateForm({
+        ...updateForm,
+        tenantIds: [...(updateForm.tenantIds || []), tenantId]
+      });
+      // Clear input after selection
+      setUpdateTenantInputValue('');
+    }
+  };
+
+  // Remove selected tenant
+  const handleRemoveCreateTenant = (tenantId: number) => {
+    setCreateForm({
+      ...createForm,
+      tenantIds: createForm.tenantIds?.filter(id => id !== tenantId) || []
+    });
+  };
+
+  const handleRemoveUpdateTenant = (tenantId: number) => {
+    setUpdateForm({
+      ...updateForm,
+      tenantIds: updateForm.tenantIds?.filter(id => id !== tenantId) || []
+    });
+  };
+
+  // Get tenant display text
+  const getTenantDisplayText = (tenantId: number) => {
+    const tenant = tenantsMap.get(tenantId);
+    return tenant ? `${tenant.name}(${tenant.prefix})` : '';
+  };
+
+  // Define custom filter function
+  const customFilter = (inputValue: string, items: Tenant[]) => {
+    const lowerCaseInput = inputValue.toLowerCase();
+    return items.filter(item => 
+      item.name.toLowerCase().includes(lowerCaseInput) || 
+      item.prefix.toLowerCase().includes(lowerCaseInput)
+    );
+  };
+
+  // Filter out unselected tenants for Autocomplete
+  const createAvailableTenants = useMemo(() => {
+    return tenants.filter(tenant => 
+      !createForm.tenantIds?.includes(tenant.id)
+    );
+  }, [tenants, createForm.tenantIds]);
+  
+  const updateAvailableTenants = useMemo(() => {
+    return tenants.filter(tenant => 
+      !updateForm.tenantIds?.includes(tenant.id)
+    );
+  }, [tenants, updateForm.tenantIds]);
 
   return (
     <div className="p-6">
@@ -230,7 +350,7 @@ export function UserManagement() {
       </Table>
 
       {/* Create User Modal */}
-      <Modal isOpen={isCreateOpen} onClose={onCreateClose}>
+      <Modal isOpen={isCreateOpen} onClose={onCreateClose} size="lg">
         <ModalContent>
           <ModalHeader>{t('users.add')}</ModalHeader>
           <ModalBody>
@@ -263,21 +383,72 @@ export function UserManagement() {
                 <SelectItem key="admin">{t('users.role_admin')}</SelectItem>
                 <SelectItem key="normal">{t('users.role_normal')}</SelectItem>
               </Select>
+
+              {/* Tenant selection section */}
+              {createForm.role === 'normal' && (
+                <div className="mt-2">
+                  <label className="block text-sm font-medium mb-1">{t('users.select_tenants')}</label>
+                  
+                  {/* Display selected tenants */}
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {createForm.tenantIds?.map(tenantId => (
+                      <Chip 
+                        key={tenantId} 
+                        onClose={() => handleRemoveCreateTenant(tenantId)}
+                        variant="flat"
+                      >
+                        {getTenantDisplayText(tenantId)}
+                      </Chip>
+                    ))}
+                  </div>
+                  
+                  <Autocomplete
+                    placeholder={t('users.search_tenants')}
+                    defaultItems={createAvailableTenants}
+                    inputValue={createTenantInputValue}
+                    onInputChange={setCreateTenantInputValue}
+                    onSelectionChange={handleCreateTenantSelect}
+                    menuTrigger="focus"
+                    isClearable
+                    startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+                    listboxProps={{
+                      emptyContent: t('common.no_results')
+                    }}
+                    items={customFilter(createTenantInputValue, createAvailableTenants)}
+                  >
+                    {(tenant) => (
+                      <AutocompleteItem 
+                        key={tenant.id.toString()} 
+                        textValue={`${tenant.name}(${tenant.prefix})`}
+                      >
+                        <div className="flex flex-col">
+                          <span>{tenant.name}</span>
+                          <span className="text-xs text-gray-500">{tenant.prefix}</span>
+                        </div>
+                      </AutocompleteItem>
+                    )}
+                  </Autocomplete>
+                </div>
+              )}
             </div>
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onCreateClose}>
               {t('common.cancel')}
             </Button>
-            <Button color="primary" onPress={handleCreate}>
-              {t('users.add')}
+            <Button
+              color="primary"
+              onPress={handleCreate}
+              isDisabled={!createForm.username || !createForm.password}
+            >
+              {t('common.create')}
             </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
 
       {/* Update User Modal */}
-      <Modal isOpen={isUpdateOpen} onClose={onUpdateClose}>
+      <Modal isOpen={isUpdateOpen} onClose={onUpdateClose} size="lg">
         <ModalContent>
           <ModalHeader>{t('users.edit')}</ModalHeader>
           <ModalBody>
@@ -309,6 +480,65 @@ export function UserManagement() {
                 <SelectItem key="admin">{t('users.role_admin')}</SelectItem>
                 <SelectItem key="normal">{t('users.role_normal')}</SelectItem>
               </Select>
+
+              <div className="flex items-center gap-2">
+                <Switch
+                  isSelected={updateForm.isActive}
+                  onValueChange={(checked) =>
+                    setUpdateForm({ ...updateForm, isActive: checked })
+                  }
+                />
+                <span>
+                  {updateForm.isActive ? t('users.status_enabled') : t('users.status_disabled')}
+                </span>
+              </div>
+
+              {/* Tenant selection section */}
+              {updateForm.role === 'normal' && (
+                <div className="mt-2">
+                  <label className="block text-sm font-medium mb-1">{t('users.select_tenants')}</label>
+                  
+                  {/* Display selected tenants */}
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {updateForm.tenantIds?.map(tenantId => (
+                      <Chip 
+                        key={tenantId} 
+                        onClose={() => handleRemoveUpdateTenant(tenantId)}
+                        variant="flat"
+                      >
+                        {getTenantDisplayText(tenantId)}
+                      </Chip>
+                    ))}
+                  </div>
+                  
+                  <Autocomplete
+                    placeholder={t('users.search_tenants')}
+                    defaultItems={updateAvailableTenants}
+                    inputValue={updateTenantInputValue}
+                    onInputChange={setUpdateTenantInputValue}
+                    onSelectionChange={handleUpdateTenantSelect}
+                    menuTrigger="focus"
+                    isClearable
+                    startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+                    listboxProps={{
+                      emptyContent: t('common.no_results')
+                    }}
+                    items={customFilter(updateTenantInputValue, updateAvailableTenants)}
+                  >
+                    {(tenant) => (
+                      <AutocompleteItem 
+                        key={tenant.id.toString()} 
+                        textValue={`${tenant.name}(${tenant.prefix})`}
+                      >
+                        <div className="flex flex-col">
+                          <span>{tenant.name}</span>
+                          <span className="text-xs text-gray-500">{tenant.prefix}</span>
+                        </div>
+                      </AutocompleteItem>
+                    )}
+                  </Autocomplete>
+                </div>
+              )}
             </div>
           </ModalBody>
           <ModalFooter>
