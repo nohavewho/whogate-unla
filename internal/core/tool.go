@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -132,15 +133,13 @@ func processResponse(resp *http.Response, tool *config.ToolConfig, tmplCtx *temp
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
-
-	fmt.Println(string(respBody))
 	if tool.ResponseBody == "" {
 		return string(respBody), nil
 	}
 
 	var respData map[string]any
 	if err := json.Unmarshal(respBody, &respData); err != nil {
-		// TODO: ignore the error for now, in case the response is not JSON
+		// 非JSON格式的响应，忽略解析错误
 	}
 
 	// Preprocess response data to handle []any type
@@ -156,17 +155,17 @@ func processResponse(resp *http.Response, tool *config.ToolConfig, tmplCtx *temp
 }
 
 // executeTool executes a tool with the given arguments
-func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, request *http.Request, serverCfg map[string]string) (string, error) {
+func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, request *http.Request, serverCfg map[string]string) (*mcp.CallToolResult, error) {
 	// Prepare template context
 	tmplCtx, err := prepareTemplateContext(args, request, serverCfg)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Prepare HTTP request
 	req, err := prepareRequest(tool, tmplCtx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Process arguments
@@ -176,12 +175,15 @@ func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, reque
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to execute request: %w", err)
+		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
-
 	// Process response
-	return processResponse(resp, tool, tmplCtx)
+	callToolResult, err := s.toolRespHandler.Handle(resp, tool, tmplCtx)
+	if err != nil {
+		return nil, err
+	}
+	return callToolResult, nil
 }
 
 func preprocessArgs(args map[string]any) map[string]any {
