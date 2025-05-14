@@ -18,7 +18,7 @@ routers:
       exposeHeaders:
         - "Mcp-Session-Id"
       allowCredentials: true
-  - server: "mock-sse"
+  - server: "mock-user-sse"
     prefix: "/mcp/sse-proxy"
     cors:
       allowOrigins:
@@ -34,7 +34,7 @@ routers:
       exposeHeaders:
         - "Mcp-Session-Id"
       allowCredentials: true
-  - server: "mock-streamable-http"
+  - server: "mock-user-mcp"
     prefix: "/mcp/streamable-http-proxy"
     cors:
       allowOrigins:
@@ -62,9 +62,9 @@ mcpServers:
       AMAP_MAPS_API_KEY: "{{.Request.Headers.Apikey}}"
 
   - type: "sse"
-    name: "mock-sse"
-    url: "http://localhost:8080/sse"
+    name: "mock-user-sse"
+    url: "http://localhost:3000/mcp/user/sse"
 
   - type: "streamable-http"  # unimplemented for now
-    name: "mock-streamable-http"
-    url: "http://localhost:3000/mcp"
+    name: "mock-user-mcp"
+    url: "http://localhost:3000/mcp/user/mcp"
