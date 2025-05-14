@@ -34,6 +34,22 @@ routers:
       exposeHeaders:
         - "Mcp-Session-Id"
       allowCredentials: true
+  - server: "mock-streamable-http"
+    prefix: "/mcp/streamable-http-proxy"
+    cors:
+      allowOrigins:
+        - "*"
+      allowMethods:
+        - "GET"
+        - "POST"
+        - "OPTIONS"
+      allowHeaders:
+        - "Content-Type"
+        - "Authorization"
+        - "Mcp-Session-Id"
+      exposeHeaders:
+        - "Mcp-Session-Id"
+      allowCredentials: true
 
 mcpServers:
   - type: "stdio"
@@ -50,5 +66,5 @@ mcpServers:
     url: "http://localhost:8080/sse"
 
   - type: "streamable-http"  # unimplemented for now
-    name: "mcp-user-streamable-http"
-    url: "http://localhost:5235/mcp/user/mcp"
+    name: "mock-streamable-http"
+    url: "http://localhost:3000/mcp"

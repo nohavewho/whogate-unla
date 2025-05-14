@@ -126,7 +126,12 @@ func InvokeStreamableTool(c *gin.Context, mcpProxyCfg config.MCPServerConfig, pa
 		}
 	}
 
-	// Create Streamable HTTP transport
+	sessionID := c.GetHeader(mcp.HeaderMcpSessionID)
+	if sessionID != "" {
+		headers[mcp.HeaderMcpSessionID] = sessionID
+	}
+
+	// Create Streamable HTTP transport with headers
 	streamableTransport, err := transport.NewStreamableHTTP(
 		mcpProxyCfg.URL,
 		transport.WithHTTPHeaders(headers),

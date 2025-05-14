@@ -175,7 +175,6 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 		// Handle ping request with an empty response
 		s.sendSuccessResponse(c, conn, req, struct{}{}, true)
 	case mcp.ToolsList:
-		// Get the proto type for this prefix
 		protoType, ok := s.state.prefixToProtoType[conn.Meta().Prefix]
 		if !ok {
 			s.sendProtocolError(c, req.Id, "Server configuration not found", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
@@ -246,7 +245,6 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 		}
 		s.sendSuccessResponse(c, conn, req, result, true)
 	case mcp.ToolsCall:
-		// Get the proto type for this prefix
 		protoType, ok := s.state.prefixToProtoType[conn.Meta().Prefix]
 		if !ok {
 			s.sendProtocolError(c, req.Id, "Server configuration not found", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
