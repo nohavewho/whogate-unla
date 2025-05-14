@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
-import { toast } from './toast';
 import { t } from 'i18next';
+
+import { toast } from './toast';
 
 /**
  * Handle API errors and display user-friendly error messages

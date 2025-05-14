@@ -69,7 +69,7 @@ export class WebSocketService {
     return new Promise<void>((resolve) => {
       const token = window.localStorage.getItem('token');
       // Include language parameter in WebSocket URL
-      const lang = localStorage.getItem('i18nextLng') || 'zh';
+      const lang = window.localStorage.getItem('i18nextLng') || 'zh';
       this.ws = new WebSocket(`${import.meta.env.VITE_WS_BASE_URL}/chat?sessionId=${this.sessionId}&token=${token}&lang=${lang}`);
 
       this.ws.onopen = () => {

@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { t } from 'i18next';
-import i18n from '../i18n';
 
-import { toast } from '../utils/toast';
+import i18n from '../i18n';
 import { handleApiError } from '../utils/error-handler';
+import { toast } from '../utils/toast';
 
 // Create an axios instance with default config
 const api = axios.create({
