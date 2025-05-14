@@ -86,7 +86,7 @@ func (h *TextHandler) Handle(resp *http.Response, tool *config.ToolConfig, tmplC
 		tmplCtx.Response.Data = respData
 		tmplCtx.Response.Body = string(respBody)
 
-		rendered, err = renderTemplate(tool.ResponseBody, tmplCtx)
+		rendered, err = template.RenderTemplate(tool.ResponseBody, tmplCtx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to render response body template: %w", err)
 		}
