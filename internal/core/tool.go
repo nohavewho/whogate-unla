@@ -42,6 +42,20 @@ func prepareTemplateContext(args map[string]any, request *http.Request, serverCf
 		}
 	}
 
+	// Process request querystring
+	for k, v := range request.URL.Query() {
+		if len(v) > 0 {
+			tmplCtx.Request.Query[k] = v[0]
+		}
+	}
+
+	// Process request cookies
+	for _, cookie := range request.Cookies() {
+		if cookie.Name != "" {
+			tmplCtx.Request.Cookies[cookie.Name] = cookie.Value
+		}
+	}
+
 	// Only process server config templates if serverCfg is provided
 	if serverCfg != nil {
 		// Process server config templates
