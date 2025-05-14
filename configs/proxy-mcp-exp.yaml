@@ -3,7 +3,23 @@ tenant: "default"
 
 routers:
   - server: "amap-maps"
-    prefix: "/mcp/amap-maps"
+    prefix: "/mcp/stdio-proxy"
+    cors:
+      allowOrigins:
+        - "*"
+      allowMethods:
+        - "GET"
+        - "POST"
+        - "OPTIONS"
+      allowHeaders:
+        - "Content-Type"
+        - "Authorization"
+        - "Mcp-Session-Id"
+      exposeHeaders:
+        - "Mcp-Session-Id"
+      allowCredentials: true
+  - server: "mock-sse"
+    prefix: "/mcp/sse-proxy"
     cors:
       allowOrigins:
         - "*"
@@ -29,9 +45,9 @@ mcpServers:
     env:
       AMAP_MAPS_API_KEY: "{{.Request.Headers.Apikey}}"
 
-  - type: "sse" # unimplemented for now
-    name: "mcp-user-sse"
-    url: "http://localhost:5235/mcp/user/sse"
+  - type: "sse"
+    name: "mock-sse"
+    url: "http://localhost:8080/sse"
 
   - type: "streamable-http"  # unimplemented for now
     name: "mcp-user-streamable-http"

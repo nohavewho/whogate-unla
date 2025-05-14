@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mcp-ecosystem/mcp-gateway/internal/core/mcpproxy"
+
 	"go.uber.org/zap"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
@@ -162,8 +164,16 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 				Name:    "mcp-gateway",
 				Version: "0.1.0",
 			},
+			Capabilities: mcp.ServerCapabilitiesSchema{
+				Tools: mcp.ToolsCapabilitySchema{
+					ListChanged: true,
+				},
+			},
 		}
 		s.sendSuccessResponse(c, conn, req, result, true)
+	case mcp.Ping:
+		// Handle ping request with an empty response
+		s.sendSuccessResponse(c, conn, req, struct{}{}, true)
 	case mcp.ToolsList:
 		// Get the proto type for this prefix
 		protoType, ok := s.state.prefixToProtoType[conn.Meta().Prefix]
@@ -182,7 +192,37 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 				return
 			}
 		case cnst.BackendProtoStdio:
-			tools, err = s.fetchStdioToolList(c.Request.Context(), conn)
+			mcpProxyCfg, ok := s.state.prefixToMCPServerConfig[conn.Meta().Prefix]
+			if !ok {
+				s.sendProtocolError(c, req.Id, "Failed to fetch tools", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
+				return
+			}
+
+			tools, err = mcpproxy.FetchStdioToolList(c.Request.Context(), mcpProxyCfg)
+			if err != nil {
+				s.sendProtocolError(c, req.Id, "Failed to fetch tools", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
+				return
+			}
+		case cnst.BackendProtoSSE:
+			mcpProxyCfg, ok := s.state.prefixToMCPServerConfig[conn.Meta().Prefix]
+			if !ok {
+				s.sendProtocolError(c, req.Id, "Failed to fetch tools", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
+				return
+			}
+
+			tools, err = mcpproxy.FetchSSEToolList(c.Request.Context(), mcpProxyCfg)
+			if err != nil {
+				s.sendProtocolError(c, req.Id, "Failed to fetch tools", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
+				return
+			}
+		case cnst.BackendProtoStreamable:
+			mcpProxyCfg, ok := s.state.prefixToMCPServerConfig[conn.Meta().Prefix]
+			if !ok {
+				s.sendProtocolError(c, req.Id, "Failed to fetch tools", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
+				return
+			}
+
+			tools, err = mcpproxy.FetchStreamableToolList(c.Request.Context(), mcpProxyCfg)
 			if err != nil {
 				s.sendProtocolError(c, req.Id, "Failed to fetch tools", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
 				return
@@ -220,16 +260,54 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 			return
 		}
 
-		var result *mcp.CallToolResult
+		var (
+			result *mcp.CallToolResult
+			err    error
+		)
 		switch protoType {
 		case cnst.BackendProtoHttp:
 			result = s.invokeHTTPTool(c, req, conn, params)
 		case cnst.BackendProtoStdio:
-			result = s.invokeStdioTool(c, req, conn, params)
+			mcpProxyCfg, ok := s.state.prefixToMCPServerConfig[conn.Meta().Prefix]
+			if !ok {
+				errMsg := "Server configuration not found"
+				s.sendProtocolError(c, req.Id, errMsg, http.StatusNotFound, mcp.ErrorCodeMethodNotFound)
+				return
+			}
+			result, err = mcpproxy.InvokeStdioTool(c, mcpProxyCfg, params)
+			if err != nil {
+				s.sendToolExecutionError(c, conn, req, err, true)
+				return
+			}
+		case cnst.BackendProtoSSE:
+			mcpProxyCfg, ok := s.state.prefixToMCPServerConfig[conn.Meta().Prefix]
+			if !ok {
+				errMsg := "Server configuration not found"
+				s.sendProtocolError(c, req.Id, errMsg, http.StatusNotFound, mcp.ErrorCodeMethodNotFound)
+				return
+			}
+			result, err = mcpproxy.InvokeSSETool(c, mcpProxyCfg, params)
+			if err != nil {
+				s.sendToolExecutionError(c, conn, req, err, true)
+				return
+			}
+		case cnst.BackendProtoStreamable:
+			mcpProxyCfg, ok := s.state.prefixToMCPServerConfig[conn.Meta().Prefix]
+			if !ok {
+				errMsg := "Server configuration not found"
+				s.sendProtocolError(c, req.Id, errMsg, http.StatusNotFound, mcp.ErrorCodeMethodNotFound)
+				return
+			}
+			result, err = mcpproxy.InvokeStreamableTool(c, mcpProxyCfg, params)
+			if err != nil {
+				s.sendToolExecutionError(c, conn, req, err, true)
+				return
+			}
 		default:
 			s.sendProtocolError(c, req.Id, "Unsupported protocol type", http.StatusBadRequest, mcp.ErrorCodeInvalidParams)
 			return
 		}
+
 		s.sendSuccessResponse(c, conn, req, result, true)
 	default:
 		s.sendProtocolError(c, req.Id, "Unknown method", http.StatusNotFound, mcp.ErrorCodeMethodNotFound)
