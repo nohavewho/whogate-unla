@@ -1,6 +1,6 @@
 # MCP Gateway
 
-> 🚀 将现有 API 快速转化为 [MCP](https://modelcontextprotocol.io/) 服务，无需改动任何一行代码。
+> 🚀 将现有 MCP Servers 和 APIs 快速转化为 [MCP](https://modelcontextprotocol.io/) 服务，无需改动任何一行代码。
 
 [![English](https://img.shields.io/badge/English-Click-yellow)](../README.md)
 [![简体中文](https://img.shields.io/badge/简体中文-点击查看-orange)](README.zh-CN.md)
@@ -12,8 +12,8 @@
 
 ## 🚀 在 Product Hunt 上支持 MCP Gateway！
 
-**MCP Gateway** 已经在 Product Hunt 上线啦！  
-如果你喜欢这个项目，欢迎来给我们投一票 ❤️  
+**MCP Gateway** 已经在 Product Hunt 上线啦！
+如果你喜欢这个项目，欢迎来给我们投一票 ❤️
 你的支持对我们意义重大，也能让更多人看到它！
 
 <a href="https://www.producthunt.com/posts/mcp-gateway?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-mcp&#0045;gateway" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=958310&theme=light&t=1745767484477" alt="MCP&#0032;Gateway - Turn&#0032;APIs&#0032;into&#0032;MCP&#0032;endpoints&#0044;without&#0032;changing&#0032;a&#0032;line&#0032;of&#0032;code | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
@@ -26,9 +26,9 @@
 
 ## ✨ MCP Gateway 是什么？
 
-**MCP Gateway** 是一个用 Go 编写的轻量高可用网关服务，帮助个人与企业将已有的 API 通过配置方式转换为符合 [MCP 协议](https://modelcontextprotocol.io/) 的服务，无需改动任何代码。
+**MCP Gateway** 是一个用 Go 编写的轻量高可用网关服务，帮助个人与企业将已有的 MCP Servers 和 APIs 通过配置方式转换为符合 [MCP 协议](https://modelcontextprotocol.io/) 的服务，无需改动任何代码。
 
-https://github.com/user-attachments/assets/2a812a14-85cf-45d6-9f37-cc08d8579b33
+https://github.com/user-attachments/assets/69480eda-7aa7-4be7-9bc7-cae57fe16c54
 
 ### 🔧 核心设计理念
 
@@ -139,23 +139,38 @@ docker run -d \
 
 ---
 
-## 📋 待办事项
+## 🚀 核心特性
 
-- [x] RESTful API 到 MCP-Server 的转换
-- [ ] gRPC 到 MCP-Server 的转换
-- [x] 请求/响应体转换
-- [x] 管理界面
-- [x] 会话持久化
+### 🔌 协议与代理能力
+- [x] 支持RESTful API 到 MCP Server 的转换，Client->MCP Gateway->APIs
+- [x] 支持代理MCP服务，Client->MCP Gateway->MCP Servers
+- [ ] gRPC 到 MCP Server 的转换，Client->MCP Gateway->gRPC
+- [ ] WebSocket 到 MCP Server 的转换，Client->MCP Gateway->WebSocket
 - [x] MCP SSE支持
 - [x] MCP Streamable HTTP支持
-- [ ] 可迁移可恢复会话
-- [ ] 前置认证
+- [x] 支持MCP文本、图像、音频结果返回
+
+### 🧠 会话与多租户
+- [x] 会话持久化与恢复支持
+- [x] 支持多租户
+- [ ] 支持MCP分组聚合
+
+### 🛠 配置与管理
+- [x] 自动配置拉取与无缝热重载
+- [x] 配置持久化支持(Disk/SQLite/PostgreSQL/MySQL)
+- [x] 支持配置更新同步机制(OS Signal/HTTP/Redis PubSub)
 - [ ] 配置版本控制
-- [ ] 分布式配置持久化支持
-- [ ] 服务多副本支持
+
+### 🔐 安全与认证
+- [ ] MCP Server前置OAuth认证
+
+### 🖥 用户界面
+- [x] 直观轻量的管理界面
+
+### 📦 部署与运维
+- [x] 服务多副本支持
 - [x] Docker 支持
-- [ ] Kubernetes 集成
-- [ ] Helm 支持
+- [ ] Kubernetes与Helm部署支持
 
 ---
 
