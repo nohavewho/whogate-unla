@@ -5,15 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/client/transport"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
-	"io"
-	"mime/multipart"
-	"net/http"
-	"strings"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 
@@ -32,16 +35,6 @@ func prepareTemplateContext(args map[string]any, request *http.Request, serverCf
 	tmplCtx := template.NewContext()
 	tmplCtx.Args = preprocessArgs(args)
 
-	// Process server config templates
-	for k, v := range serverCfg {
-		rendered, err := renderTemplate(v, tmplCtx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to render config template: %w", err)
-		}
-		serverCfg[k] = rendered
-	}
-	tmplCtx.Config = serverCfg
-
 	// Process request headers
 	for k, v := range request.Header {
 		if len(v) > 0 {
@@ -49,19 +42,17 @@ func prepareTemplateContext(args map[string]any, request *http.Request, serverCf
 		}
 	}
 
-	return tmplCtx, nil
-}
-
-// prepareTemplateContextForMCPBackend prepares the template context with request and config data
-func prepareTemplateContextForMCPBackend(args map[string]any, request *http.Request) (*template.Context, error) {
-	tmplCtx := template.NewContext()
-	tmplCtx.Args = preprocessArgs(args)
-
-	// Process request headers
-	for k, v := range request.Header {
-		if len(v) > 0 {
-			tmplCtx.Request.Headers[k] = v[0]
+	// Only process server config templates if serverCfg is provided
+	if serverCfg != nil {
+		// Process server config templates
+		for k, v := range serverCfg {
+			rendered, err := renderTemplate(v, tmplCtx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to render config template: %w", err)
+			}
+			serverCfg[k] = rendered
 		}
+		tmplCtx.Config = serverCfg
 	}
 
 	return tmplCtx, nil
@@ -171,33 +162,6 @@ func preprocessResponseData(data map[string]any) map[string]any {
 	return processed
 }
 
-// processResponse processes the HTTP response and applies response template if needed
-func processResponse(resp *http.Response, tool *config.ToolConfig, tmplCtx *template.Context) (string, error) {
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
-	}
-	if tool.ResponseBody == "" {
-		return string(respBody), nil
-	}
-
-	var respData map[string]any
-	if err := json.Unmarshal(respBody, &respData); err != nil {
-		// 非JSON格式的响应，忽略解析错误
-	}
-
-	// Preprocess response data to handle []any type
-	respData = preprocessResponseData(respData)
-	tmplCtx.Response.Data = respData
-	tmplCtx.Response.Body = string(respBody)
-
-	rendered, err := renderTemplate(tool.ResponseBody, tmplCtx)
-	if err != nil {
-		return "", fmt.Errorf("failed to render response body template: %w", err)
-	}
-	return rendered, nil
-}
-
 // executeHTTPTool executes a tool with the given arguments
 func (s *Server) executeHTTPTool(tool *config.ToolConfig, args map[string]any, request *http.Request, serverCfg map[string]string) (*mcp.CallToolResult, error) {
 	// Prepare template context
@@ -238,7 +202,7 @@ func (s *Server) executeStdioTool(
 	params mcp.CallToolParams,
 ) (*mcp.CallToolResult, error) {
 	// Prepare template context
-	tmplCtx, err := prepareTemplateContextForMCPBackend(args, request)
+	tmplCtx, err := prepareTemplateContext(args, request, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -257,13 +221,12 @@ func (s *Server) executeStdioTool(
 		return nil, err
 	}
 
-	// Use mcp-go client
-	command := tool.Command
-	cmdArgs := tool.Args
-	stdioClientEnv := mcp.CoverToStdioClientEnv(renderedClientEnv)
-
 	// Create stdio transport
-	stdioTransport := transport.NewStdio(command, stdioClientEnv, cmdArgs...)
+	stdioTransport := transport.NewStdio(
+		tool.Command,
+		utils.MapToEnvList(renderedClientEnv),
+		tool.Args...,
+	)
 
 	// Start the transport
 	if err := stdioTransport.Start(c.Request.Context()); err != nil {
@@ -279,7 +242,7 @@ func (s *Server) executeStdioTool(
 	initRequest.Params.ProtocolVersion = mcpgo.LATEST_PROTOCOL_VERSION
 	initRequest.Params.ClientInfo = mcpgo.Implementation{
 		Name:    "mcp-gateway",
-		Version: "0.1.0",
+		Version: version.Get(),
 	}
 
 	_, err = mcpClient.Initialize(c.Request.Context(), initRequest)
@@ -403,12 +366,11 @@ func (s *Server) fetchStdioToolList(ctx context.Context, conn session.Connection
 	}
 
 	// Create stdio transport with the command and arguments
-	command := stdioCfg.Command
-	args := stdioCfg.Args
-	stdioClientEnv := mcp.CoverToStdioClientEnv(stdioCfg.Env)
-
-	// Create mcp-go stdio transport
-	stdioTransport := transport.NewStdio(command, stdioClientEnv, args...)
+	stdioTransport := transport.NewStdio(
+		stdioCfg.Command,
+		utils.MapToEnvList(stdioCfg.Env),
+		stdioCfg.Args...,
+	)
 
 	// Start the transport
 	if err := stdioTransport.Start(ctx); err != nil {
@@ -424,7 +386,7 @@ func (s *Server) fetchStdioToolList(ctx context.Context, conn session.Connection
 	initRequest.Params.ProtocolVersion = mcpgo.LATEST_PROTOCOL_VERSION
 	initRequest.Params.ClientInfo = mcpgo.Implementation{
 		Name:    "mcp-gateway",
-		Version: "0.1.0",
+		Version: version.Get(),
 	}
 
 	_, err := c.Initialize(ctx, initRequest)
@@ -433,8 +395,7 @@ func (s *Server) fetchStdioToolList(ctx context.Context, conn session.Connection
 	}
 
 	// List available tools
-	toolsRequest := mcpgo.ListToolsRequest{}
-	toolsResult, err := c.ListTools(ctx, toolsRequest)
+	toolsResult, err := c.ListTools(ctx, mcpgo.ListToolsRequest{})
 	if err != nil {
 		return []mcp.ToolSchema{}, fmt.Errorf("failed to list tools: %w", err)
 	}
