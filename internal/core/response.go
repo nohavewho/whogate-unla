@@ -46,6 +46,7 @@ func (s *Server) sendSuccessResponse(c *gin.Context, conn session.Connection, re
 		},
 		Result: result,
 	}
+
 	s.sendResponse(c, req.Id, conn, response, isSSE)
 }
 

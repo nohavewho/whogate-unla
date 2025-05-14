@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
+
+	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
@@ -34,6 +35,21 @@ func prepareTemplateContext(args map[string]any, request *http.Request, serverCf
 		serverCfg[k] = rendered
 	}
 	tmplCtx.Config = serverCfg
+
+	// Process request headers
+	for k, v := range request.Header {
+		if len(v) > 0 {
+			tmplCtx.Request.Headers[k] = v[0]
+		}
+	}
+
+	return tmplCtx, nil
+}
+
+// prepareTemplateContextForMCPBackend prepares the template context with request and config data
+func prepareTemplateContextForMCPBackend(args map[string]any, request *http.Request) (*template.Context, error) {
+	tmplCtx := template.NewContext()
+	tmplCtx.Args = preprocessArgs(args)
 
 	// Process request headers
 	for k, v := range request.Header {
@@ -154,8 +170,8 @@ func processResponse(resp *http.Response, tool *config.ToolConfig, tmplCtx *temp
 	return rendered, nil
 }
 
-// executeTool executes a tool with the given arguments
-func (s *Server) executeTool(tool *config.ToolConfig, args map[string]any, request *http.Request, serverCfg map[string]string) (*mcp.CallToolResult, error) {
+// executeHTTPTool executes a tool with the given arguments
+func (s *Server) executeHTTPTool(tool *config.ToolConfig, args map[string]any, request *http.Request, serverCfg map[string]string) (*mcp.CallToolResult, error) {
 	// Prepare template context
 	tmplCtx, err := prepareTemplateContext(args, request, serverCfg)
 	if err != nil {

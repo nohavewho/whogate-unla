@@ -1,0 +1,38 @@
+name: "proxy-mcp-exp"
+tenant: "default"
+
+routers:
+  - server: "amap-maps"
+    prefix: "/mcp/amap-maps"
+    cors:
+      allowOrigins:
+        - "*"
+      allowMethods:
+        - "GET"
+        - "POST"
+        - "OPTIONS"
+      allowHeaders:
+        - "Content-Type"
+        - "Authorization"
+        - "Mcp-Session-Id"
+      exposeHeaders:
+        - "Mcp-Session-Id"
+      allowCredentials: true
+
+mcpServers:
+  - type: "stdio"
+    name: "amap-maps"
+    command: "npx"
+    args:
+      - "-y"
+      - "@amap/amap-maps-mcp-server"
+    env:
+      AMAP_MAPS_API_KEY: "{{.Request.Headers.Apikey}}"
+
+  - type: "sse" # unimplemented for now
+    name: "mcp-user-sse"
+    url: "http://localhost:5235/mcp/user/sse"
+
+  - type: "streamable-http"  # unimplemented for now
+    name: "mcp-user-streamable-http"
+    url: "http://localhost:5235/mcp/user/mcp"
