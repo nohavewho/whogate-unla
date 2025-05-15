@@ -45,16 +45,35 @@ FROM ubuntu:22.04
 # Set default timezone
 ENV TZ=UTC
 
+# Install essential packages and setup timezone
 RUN apt-get update && apt-get install -y \
     supervisor \
     nginx \
     curl \
     vim \
     tzdata \
+    python3 \
+    python3-pip \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/* \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo ${TZ} > /etc/timezone \
     && dpkg-reconfigure -f noninteractive tzdata
+
+# Install Node.js LTS
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest
+
+# Install pipx
+ENV PIPX_HOME=/opt/pipx
+ENV PIPX_BIN_DIR=/opt/pipx/bin
+ENV PATH=$PIPX_BIN_DIR:$PATH
+RUN python3 -m pip install pipx && \
+    pipx ensurepath
+
+# Install uv
+RUN python3 -m pip install uv
 
 COPY deploy/docker/allinone/supervisord.conf /etc/supervisor/conf.d/
 COPY deploy/docker/allinone/nginx.conf /etc/nginx/nginx.conf
