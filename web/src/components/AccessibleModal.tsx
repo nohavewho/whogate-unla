@@ -1,5 +1,5 @@
 import { Modal, ModalProps } from "@heroui/react";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * AccessibleModal is a wrapper around HeroUI's Modal component that
