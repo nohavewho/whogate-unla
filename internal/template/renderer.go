@@ -40,6 +40,7 @@ func (r *Renderer) Render(tmpl string, ctx *Context) (string, error) {
 			"env":      ctx.Env,
 			"add":      func(a, b int) int { return a + b },
 			"fromJSON": fromJSON,
+			"toJSON":   toJSON,
 		}).Parse(tmpl)
 		if err != nil {
 			return "", err
