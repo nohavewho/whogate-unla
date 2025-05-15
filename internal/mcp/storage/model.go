@@ -11,6 +11,7 @@ import (
 // MCPConfig represents the database model for MCPConfig
 type MCPConfig struct {
 	Name       string `gorm:"primaryKey; column:name"`
+	Tenant     string `gorm:"column:tenant; default:''"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	Routers    string `gorm:"type:text; column:routers; default:''"`
@@ -23,6 +24,7 @@ type MCPConfig struct {
 func (m *MCPConfig) ToMCPConfig() (*config.MCPConfig, error) {
 	cfg := &config.MCPConfig{
 		Name:      m.Name,
+		Tenant:    m.Tenant,
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
 	}
@@ -75,6 +77,7 @@ func FromMCPConfig(cfg *config.MCPConfig) (*MCPConfig, error) {
 
 	return &MCPConfig{
 		Name:       cfg.Name,
+		Tenant:     cfg.Tenant,
 		CreatedAt:  cfg.CreatedAt,
 		UpdatedAt:  cfg.UpdatedAt,
 		Routers:    string(routers),
