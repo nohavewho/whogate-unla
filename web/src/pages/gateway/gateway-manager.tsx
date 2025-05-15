@@ -5,8 +5,8 @@ import yaml from 'js-yaml';
 import { configureMonacoYaml } from 'monaco-yaml';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AccessibleModal } from "../../components/AccessibleModal";
 
+import { AccessibleModal } from "../../components/AccessibleModal";
 import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, syncMCPServers, getUserAuthorizedTenants, getTenant } from '../../services/api';
 import { toast } from '../../utils/toast';
 

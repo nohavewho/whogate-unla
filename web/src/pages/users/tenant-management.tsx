@@ -6,7 +6,6 @@ import {
   TableRow,
   TableCell,
   Button,
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -20,8 +19,8 @@ import { Icon } from '@iconify/react';
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { getTenants, createTenant, updateTenant, deleteTenant } from '../../services/api';
 import { AccessibleModal } from "../../components/AccessibleModal";
+import { getTenants, createTenant, updateTenant, deleteTenant } from '../../services/api';
 
 interface Tenant {
   id: number;

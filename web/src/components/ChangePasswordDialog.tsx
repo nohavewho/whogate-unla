@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import api from '../services/api';
 import { toast } from '../utils/toast';
+
 import { AccessibleModal } from "./AccessibleModal";
 
 interface ChangePasswordDialogProps {

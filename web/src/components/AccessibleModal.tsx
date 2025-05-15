@@ -13,12 +13,12 @@ export function AccessibleModal(props: ModalProps) {
     if (!props.isOpen) return;
 
     // Observer to detect when aria-hidden is applied to ancestors of focused elements
-    const observer = new MutationObserver((mutations) => {
+    const observer = new window.MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (
           mutation.type === "attributes" &&
           mutation.attributeName === "aria-hidden" &&
-          mutation.target instanceof Element  // Changed to Element to handle SVG elements too
+          mutation.target instanceof window.Element  // Changed to Element to handle SVG elements too
         ) {
           const target = mutation.target;
           

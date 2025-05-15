@@ -6,7 +6,6 @@ import {
   TableRow,
   TableCell,
   Button,
-  Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
@@ -19,22 +18,12 @@ import {
   Chip,
   Autocomplete,
   AutocompleteItem,
-  Card,
-  CardBody,
-  CardHeader,
-  Divider,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownTrigger,
-  Spinner,
-  Tooltip
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AccessibleModal } from "../../components/AccessibleModal";
 
+import { AccessibleModal } from "../../components/AccessibleModal";
 import { getUsers, createUser, updateUser, deleteUser, toggleUserStatus, getTenants, getUserWithTenants } from '../../services/api';
 
 interface User {

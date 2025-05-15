@@ -6,6 +6,7 @@ import {
   Button,
 } from "@heroui/react";
 import { useTranslation } from 'react-i18next';
+
 import { AccessibleModal } from "./AccessibleModal";
 
 interface WechatQRCodeProps {
