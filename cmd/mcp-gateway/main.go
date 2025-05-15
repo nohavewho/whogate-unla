@@ -171,7 +171,7 @@ func handleReload(ctx context.Context, logger *zap.Logger, store storage.Store, 
 	logger.Info("Configuration reloaded successfully")
 }
 
-func handleMerge(ctx context.Context, logger *zap.Logger, srv *core.Server, mcpConfig *config.MCPConfig) {
+func handleMerge(_ context.Context, logger *zap.Logger, srv *core.Server, mcpConfig *config.MCPConfig) {
 	logger.Info("Merging MCP configuration")
 	// Validate configurations before merging
 	if err := config.ValidateMCPConfig(mcpConfig); err != nil {
@@ -323,9 +323,15 @@ func run() {
 			}
 
 			return
-		case updateMCPConfig, _ := <-updateCh:
+		case updateMCPConfig := <-updateCh:
 			logger.Info("Received update signal")
-			handleMerge(ctx, logger, srv, updateMCPConfig)
+
+			if updateMCPConfig == nil {
+				logger.Warn("Updated configuration is nil, falling back to full reload")
+				handleReload(ctx, logger, store, srv, cfg)
+			} else {
+				handleMerge(ctx, logger, srv, updateMCPConfig)
+			}
 		case <-ticker.C:
 			logger.Info("Received ticker signal", zap.Bool("reload_switch", cfg.ReloadSwitch))
 			if cfg.ReloadSwitch {
