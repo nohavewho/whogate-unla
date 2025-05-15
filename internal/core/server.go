@@ -74,22 +74,35 @@ func NewServer(logger *zap.Logger, cfg *config.MCPGatewayConfig) (*Server, error
 func (s *Server) RegisterRoutes(router *gin.Engine, cfgs []*config.MCPConfig) error {
 	// Validate configuration before registering routes
 	if err := config.ValidateMCPConfigs(cfgs); err != nil {
+		s.logger.Error("invalid configuration during route registration",
+			zap.Error(err))
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
+	s.logger.Info("registering middleware")
 	router.Use(s.loggerMiddleware())
 	router.Use(s.recoveryMiddleware())
 
 	// Create new state and load configuration
+	s.logger.Debug("initializing server state")
 	newState, err := initState(cfgs)
 	if err != nil {
+		s.logger.Error("failed to initialize server state",
+			zap.Error(err))
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
+
+	// 记录配置信息
+	s.logger.Info("server configuration loaded",
+		zap.Int("server_count", len(newState.prefixToServerConfig)),
+		zap.Int("tool_count", len(newState.toolMap)),
+		zap.Int("router_count", len(newState.prefixToRouterConfig)))
 
 	// Atomically replace the state
 	s.state = newState
 
 	// Register all routes under root path
+	s.logger.Debug("registering root handler")
 	router.NoRoute(s.handleRoot)
 
 	return nil
@@ -100,22 +113,40 @@ func (s *Server) handleRoot(c *gin.Context) {
 	path := c.Request.URL.Path
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 2 {
+		s.logger.Debug("invalid path format",
+			zap.String("path", path),
+			zap.String("remote_addr", c.Request.RemoteAddr))
 		s.sendProtocolError(c, nil, "Invalid path", http.StatusBadRequest, mcp.ErrorCodeInvalidRequest)
 		return
 	}
 	endpoint := parts[len(parts)-1]
 	prefix := "/" + strings.Join(parts[:len(parts)-1], "/")
 
+	// 记录请求路由信息
+	s.logger.Debug("routing request",
+		zap.String("path", path),
+		zap.String("prefix", prefix),
+		zap.String("endpoint", endpoint),
+		zap.String("remote_addr", c.Request.RemoteAddr))
+
 	// Dynamically set CORS
 	if routerCfg, ok := s.state.prefixToRouterConfig[prefix]; ok && routerCfg.CORS != nil {
+		s.logger.Debug("applying CORS middleware",
+			zap.String("prefix", prefix))
 		s.corsMiddleware(routerCfg.CORS)(c)
 		if c.IsAborted() {
+			s.logger.Debug("request aborted by CORS middleware",
+				zap.String("prefix", prefix),
+				zap.String("remote_addr", c.Request.RemoteAddr))
 			return
 		}
 	}
 
 	state := s.state
 	if _, ok := state.prefixToProtoType[prefix]; !ok {
+		s.logger.Warn("invalid prefix",
+			zap.String("prefix", prefix),
+			zap.String("remote_addr", c.Request.RemoteAddr))
 		s.sendProtocolError(c, nil, "Invalid prefix", http.StatusNotFound, mcp.ErrorCodeInvalidRequest)
 		return
 	}
@@ -123,18 +154,29 @@ func (s *Server) handleRoot(c *gin.Context) {
 	c.Status(http.StatusOK)
 	switch endpoint {
 	case "sse":
+		s.logger.Debug("handling SSE endpoint",
+			zap.String("prefix", prefix))
 		s.handleSSE(c)
 	case "message":
+		s.logger.Debug("handling message endpoint",
+			zap.String("prefix", prefix))
 		s.handleMessage(c)
 	case "mcp":
+		s.logger.Debug("handling MCP endpoint",
+			zap.String("prefix", prefix))
 		s.handleMCP(c)
 	default:
+		s.logger.Warn("invalid endpoint",
+			zap.String("endpoint", endpoint),
+			zap.String("prefix", prefix),
+			zap.String("remote_addr", c.Request.RemoteAddr))
 		s.sendProtocolError(c, nil, "Invalid endpoint", http.StatusNotFound, mcp.ErrorCodeInvalidRequest)
 	}
 }
 
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(_ context.Context) error {
+	s.logger.Info("shutting down server")
 	close(s.shutdownCh)
 	return nil
 }
@@ -217,15 +259,27 @@ func initState(cfgs []*config.MCPConfig) (*serverState, error) {
 // UpdateConfig updates the server configuration
 func (s *Server) UpdateConfig(cfgs []*config.MCPConfig) error {
 	// Validate configuration before updating
+	s.logger.Debug("validating updated configuration")
 	if err := config.ValidateMCPConfigs(cfgs); err != nil {
+		s.logger.Error("invalid configuration during update",
+			zap.Error(err))
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
 	// Create new state and load configuration
+	s.logger.Info("updating server configuration")
 	newState, err := initState(cfgs)
 	if err != nil {
+		s.logger.Error("failed to initialize state during update",
+			zap.Error(err))
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
+
+	// 记录配置更新信息
+	s.logger.Info("server configuration updated",
+		zap.Int("server_count", len(newState.prefixToServerConfig)),
+		zap.Int("tool_count", len(newState.toolMap)),
+		zap.Int("router_count", len(newState.prefixToRouterConfig)))
 
 	// Atomically replace the state
 	s.state = newState
@@ -235,20 +289,37 @@ func (s *Server) UpdateConfig(cfgs []*config.MCPConfig) error {
 
 // MergeConfig updates the server configuration incrementally
 func (s *Server) MergeConfig(cfg *config.MCPConfig) error {
+	s.logger.Info("merging configuration")
+
 	newConfig, err := helper.MergeConfigs(s.state.rawConfigs, cfg)
 	if err != nil {
+		s.logger.Error("failed to merge configuration",
+			zap.Error(err))
 		return fmt.Errorf("failed to merge configuration: %w", err)
 	}
 
 	// Validate configuration after merge
+	s.logger.Debug("validating merged configuration")
 	if err := config.ValidateMCPConfig(cfg); err != nil {
+		s.logger.Error("invalid configuration after merge",
+			zap.Error(err))
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
+
 	// Create new state and load configuration
+	s.logger.Debug("initializing state with merged configuration")
 	newState, err := initState(newConfig)
 	if err != nil {
+		s.logger.Error("failed to initialize state with merged configuration",
+			zap.Error(err))
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
+
+	// 记录配置合并信息
+	s.logger.Info("configuration merged successfully",
+		zap.Int("server_count", len(newState.prefixToServerConfig)),
+		zap.Int("tool_count", len(newState.toolMap)),
+		zap.Int("router_count", len(newState.prefixToRouterConfig)))
 
 	// Atomically replace the state
 	s.state = newState

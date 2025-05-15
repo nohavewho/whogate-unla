@@ -40,38 +40,102 @@ func (s *Server) handleSSE(c *gin.Context) {
 		Extra:     nil,
 	}
 
+	s.logger.Info("establishing SSE connection",
+		zap.String("session_id", sessionID),
+		zap.String("prefix", prefix),
+		zap.String("remote_addr", c.Request.RemoteAddr),
+		zap.String("user_agent", c.Request.UserAgent()),
+	)
+
 	conn, err := s.sessions.Register(c.Request.Context(), meta)
 	if err != nil {
+		s.logger.Error("failed to register SSE session",
+			zap.Error(err),
+			zap.String("session_id", sessionID),
+			zap.String("prefix", prefix),
+			zap.String("remote_addr", c.Request.RemoteAddr),
+		)
 		s.sendProtocolError(c, sessionID, "Failed to create SSE connection", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
 		return
 	}
 
+	s.logger.Debug("SSE session registered successfully",
+		zap.String("session_id", sessionID),
+		zap.String("prefix", prefix),
+	)
+
 	// Send the initial endpoint event
-	_, err = fmt.Fprintf(c.Writer, "event: endpoint\ndata: %s\n\n",
-		fmt.Sprintf("%s/message?sessionId=%s", strings.TrimSuffix(c.Request.URL.Path, "/sse"), meta.ID))
+	endpointURL := fmt.Sprintf("%s/message?sessionId=%s", strings.TrimSuffix(c.Request.URL.Path, "/sse"), meta.ID)
+	s.logger.Debug("sending initial endpoint event",
+		zap.String("session_id", sessionID),
+		zap.String("endpoint_url", endpointURL),
+	)
+
+	_, err = fmt.Fprintf(c.Writer, "event: endpoint\ndata: %s\n\n", endpointURL)
 	if err != nil {
+		s.logger.Error("failed to send initial endpoint event",
+			zap.Error(err),
+			zap.String("session_id", sessionID),
+			zap.String("remote_addr", c.Request.RemoteAddr),
+		)
 		s.sendProtocolError(c, sessionID, "Failed to initialize SSE connection", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
 		return
 	}
 	c.Writer.Flush()
 
+	s.logger.Info("SSE connection ready",
+		zap.String("session_id", sessionID),
+		zap.String("prefix", prefix),
+		zap.String("remote_addr", c.Request.RemoteAddr),
+	)
+
 	// Main event loop
 	for {
 		select {
 		case event := <-conn.EventQueue():
+			if event == nil {
+				s.logger.Warn("received nil event for session",
+					zap.String("session_id", sessionID),
+				)
+			} else {
+				s.logger.Debug("sending event to SSE client",
+					zap.String("session_id", sessionID),
+					zap.String("event_type", event.Event),
+					zap.Int("data_size", len(event.Data)),
+				)
+			}
+
 			switch event.Event {
 			case "message":
 				_, err = fmt.Fprintf(c.Writer, "event: message\ndata: %s\n\n", event.Data)
 				if err != nil {
-					s.logger.Error("failed to send SSE message", zap.Error(err))
+					s.logger.Error("failed to send SSE message",
+						zap.Error(err),
+						zap.String("session_id", sessionID),
+						zap.String("remote_addr", c.Request.RemoteAddr),
+					)
 				}
 			default:
-				_, _ = fmt.Fprint(c.Writer, event)
+				_, err = fmt.Fprint(c.Writer, event)
+				if err != nil {
+					s.logger.Error("failed to write SSE event",
+						zap.Error(err),
+						zap.String("session_id", sessionID),
+						zap.String("event_type", event.Event),
+					)
+				}
 			}
 			c.Writer.Flush()
 		case <-c.Request.Context().Done():
+			s.logger.Info("SSE client disconnected",
+				zap.String("session_id", sessionID),
+				zap.String("remote_addr", c.Request.RemoteAddr),
+			)
 			return
 		case <-s.shutdownCh:
+			s.logger.Info("SSE connection closing due to server shutdown",
+				zap.String("session_id", sessionID),
+			)
 			return
 		}
 	}
@@ -79,6 +143,14 @@ func (s *Server) handleSSE(c *gin.Context) {
 
 // sendErrorResponse sends an error response through SSE channel and returns Accepted status
 func (s *Server) sendErrorResponse(c *gin.Context, conn session.Connection, req mcp.JSONRPCRequest, errorMsg string) {
+	s.logger.Error("sending error response via SSE",
+		zap.Any("request_id", req.Id),
+		zap.String("method", req.Method),
+		zap.String("session_id", conn.Meta().ID),
+		zap.String("error_message", errorMsg),
+		zap.String("remote_addr", c.Request.RemoteAddr),
+	)
+
 	response := mcp.JSONRPCErrorSchema{
 		JSONRPCBaseResult: mcp.JSONRPCBaseResult{
 			JSONRPC: mcp.JSPNRPCVersion,
@@ -91,6 +163,11 @@ func (s *Server) sendErrorResponse(c *gin.Context, conn session.Connection, req 
 	}
 	eventData, err := json.Marshal(response)
 	if err != nil {
+		s.logger.Error("failed to marshal error response",
+			zap.Error(err),
+			zap.String("session_id", conn.Meta().ID),
+			zap.Any("request_id", req.Id),
+		)
 		c.String(http.StatusAccepted, mcp.Accepted)
 		return
 	}
@@ -99,20 +176,38 @@ func (s *Server) sendErrorResponse(c *gin.Context, conn session.Connection, req 
 		Data:  eventData,
 	})
 	if err != nil {
+		s.logger.Error("failed to send error message to SSE client",
+			zap.Error(err),
+			zap.String("session_id", conn.Meta().ID),
+			zap.Any("request_id", req.Id),
+		)
 		c.String(http.StatusAccepted, mcp.Accepted)
 		return
 	}
+
+	s.logger.Debug("error response sent via SSE",
+		zap.String("session_id", conn.Meta().ID),
+		zap.Any("request_id", req.Id),
+	)
+
 	c.String(http.StatusAccepted, mcp.Accepted)
 }
 
 // handleMessage processes incoming JSON-RPC messages
 func (s *Server) handleMessage(c *gin.Context) {
-	s.logger.Debug("Received message", zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path))
+	s.logger.Debug("received message request",
+		zap.String("method", c.Request.Method),
+		zap.String("path", c.Request.URL.Path),
+		zap.String("remote_addr", c.Request.RemoteAddr),
+	)
 
 	// Get the session ID from the query parameter
 	sessionId := c.Query("sessionId")
 	if sessionId == "" {
+		s.logger.Warn("missing sessionId parameter",
+			zap.String("path", c.Request.URL.Path),
+			zap.String("remote_addr", c.Request.RemoteAddr),
+		)
 		c.String(http.StatusNotFound, "Missing sessionId parameter")
 		s.sendProtocolError(c, nil, "Missing sessionId parameter", http.StatusBadRequest, mcp.ErrorCodeInvalidRequest)
 		return
@@ -120,14 +215,28 @@ func (s *Server) handleMessage(c *gin.Context) {
 
 	conn, err := s.sessions.Get(c.Request.Context(), sessionId)
 	if err != nil {
+		s.logger.Error("session not found",
+			zap.Error(err),
+			zap.String("session_id", sessionId),
+			zap.String("remote_addr", c.Request.RemoteAddr),
+		)
 		c.String(http.StatusNotFound, "Session not found")
 		return
 	}
+
+	s.logger.Debug("handling message for session",
+		zap.String("session_id", sessionId),
+		zap.String("prefix", conn.Meta().Prefix),
+	)
+
 	s.handlePostMessage(c, conn)
 }
 
 func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 	if conn == nil {
+		s.logger.Error("null SSE connection",
+			zap.String("remote_addr", c.Request.RemoteAddr),
+		)
 		c.String(http.StatusInternalServerError, "SSE connection not established")
 		return
 	}
@@ -135,6 +244,11 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 	// Validate Content-Type header
 	contentType := c.GetHeader("Content-Type")
 	if !strings.Contains(contentType, "application/json") {
+		s.logger.Warn("invalid content type",
+			zap.String("content_type", contentType),
+			zap.String("session_id", conn.Meta().ID),
+			zap.String("remote_addr", c.Request.RemoteAddr),
+		)
 		c.String(http.StatusNotAcceptable, "Unsupported Media Type: Content-Type must be application/json")
 		return
 	}
@@ -144,9 +258,20 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 	// Parse the JSON-RPC message
 	var req mcp.JSONRPCRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		s.logger.Error("failed to parse JSON-RPC request",
+			zap.Error(err),
+			zap.String("session_id", conn.Meta().ID),
+			zap.String("remote_addr", c.Request.RemoteAddr),
+		)
 		c.String(http.StatusBadRequest, "Invalid message")
 		return
 	}
+
+	s.logger.Debug("received JSON-RPC request",
+		zap.String("method", req.Method),
+		zap.Any("id", req.Id),
+		zap.String("session_id", conn.Meta().ID),
+	)
 
 	switch req.Method {
 	case mcp.NotificationInitialized:
