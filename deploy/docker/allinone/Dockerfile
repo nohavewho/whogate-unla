@@ -44,6 +44,7 @@ FROM ubuntu:22.04
 
 # Set default timezone
 ENV TZ=UTC
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install essential packages and setup timezone
 RUN apt-get update && apt-get install -y \
