@@ -59,7 +59,9 @@
     "switch_language": "Switch Language",
     "scan_qrcode": "Scan QR code to add WeChat",
     "add_wechat_note": "Note: mcp-gateway or mcpgw",
-    "no_results": "No results found"
+    "no_results": "No results found",
+    "copy": "Copy",
+    "copied": "Copied: {{text}}"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -211,6 +213,7 @@
     "enable_failed": "Failed to enable user",
     "disable_failed": "Failed to disable user",
     "select_tenants": "Select Tenants",
+    "select_tenant": "Select Tenant",
     "search_tenants": "Search tenants...",
     "update_tenants_success": "User tenant associations updated successfully",
     "update_tenants_failed": "Failed to update user tenant associations",
