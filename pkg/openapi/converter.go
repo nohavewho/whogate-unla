@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/ifuryst/lol"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 )
 
@@ -33,9 +34,11 @@ func (c *Converter) Convert(specData []byte) (*config.MCPConfig, error) {
 		return nil, fmt.Errorf("invalid OpenAPI specification: %w", err)
 	}
 
+	rs := lol.RandomString(4)
+
 	// Create base MCP configuration
 	mcpConfig := &config.MCPConfig{
-		Name:      doc.Info.Title,
+		Name:      doc.Info.Title + "_" + rs,
 		Tenant:    "/default", // Default tenant prefix
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -46,7 +49,7 @@ func (c *Converter) Convert(specData []byte) (*config.MCPConfig, error) {
 
 	// Create server configuration
 	server := config.ServerConfig{
-		Name:         doc.Info.Title,
+		Name:         mcpConfig.Name,
 		Description:  doc.Info.Description,
 		Config:       make(map[string]string),
 		AllowedTools: make([]string, 0),
@@ -59,8 +62,8 @@ func (c *Converter) Convert(specData []byte) (*config.MCPConfig, error) {
 
 	// Create a default router for the server
 	router := config.RouterConfig{
-		Server: doc.Info.Title,
-		Prefix: "/mcp", // TODO: Get prefix from tenant
+		Server: mcpConfig.Name,
+		Prefix: fmt.Sprintf("/mcp/%s", rs), // Generate a random prefix for each router
 		CORS: &config.CORSConfig{
 			AllowOrigins:     []string{"*"},
 			AllowMethods:     []string{"GET", "POST", "OPTIONS"},
