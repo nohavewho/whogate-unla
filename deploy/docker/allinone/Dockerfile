@@ -2,12 +2,6 @@ FROM golang:1.24.1 AS builder
 
 WORKDIR /app
 
-# Install SQLite dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libc6-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY go.mod go.sum ./
 
 RUN go mod download
@@ -40,12 +34,8 @@ COPY web/ .
 
 RUN npm run build
 
-FROM ubuntu:22.04
+FROM ghcr.io/mcp-ecosystem/mcp-gateway/base:latest AS runtime
 
-ENV TZ=UTC
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Define ARGs for package sources
 ARG PIP_INDEX_URL=https://pypi.org/simple
 ARG UV_DEFAULT_INDEX=https://pypi.org/simple
 ARG npm_config_registry=https://registry.npmjs.org/
@@ -54,39 +44,9 @@ ENV PIP_INDEX_URL=${PIP_INDEX_URL} \
     UV_DEFAULT_INDEX=${UV_DEFAULT_INDEX} \
     npm_config_registry=${npm_config_registry}
 
-# Install essential packages and setup timezone
-RUN apt-get update && apt-get install -y \
-    supervisor \
-    nginx \
-    curl \
-    vim \
-    tzdata \
-    python3 \
-    python3-pip \
-    python3-venv \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && echo ${TZ} > /etc/timezone \
-    && dpkg-reconfigure -f noninteractive tzdata
-
-# Install Node.js LTS
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g npm@latest
-
-# Install pipx
-ENV PIPX_HOME=/opt/pipx
-ENV PIPX_BIN_DIR=/opt/pipx/bin
-ENV PATH=$PIPX_BIN_DIR:$PATH
-RUN python3 -m pip install pipx && \
-    pipx ensurepath
-
-# Install uv
-RUN python3 -m pip install uv
-
 # Configure pip and npm to use the specified repositories
 RUN mkdir -p /root/.config/pip && \
-    echo -e "[global]\nindex-url = ${PIP_INDEX_URL}" > /root/.config/pip/pip.conf && \
+    echo "[global]\nindex-url = \${PIP_INDEX_URL}" > /root/.config/pip/pip.conf && \
     npm config set registry ${npm_config_registry} -g
 
 COPY deploy/docker/allinone/supervisord.conf /etc/supervisor/conf.d/
