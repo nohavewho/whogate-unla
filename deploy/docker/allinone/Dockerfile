@@ -42,9 +42,17 @@ RUN npm run build
 
 FROM ubuntu:22.04
 
-# Set default timezone
 ENV TZ=UTC
 ENV DEBIAN_FRONTEND=noninteractive
+
+# Define ARGs for package sources
+ARG PIP_INDEX_URL=https://pypi.org/simple
+ARG UV_DEFAULT_INDEX=https://pypi.org/simple
+ARG npm_config_registry=https://registry.npmjs.org/
+
+ENV PIP_INDEX_URL=${PIP_INDEX_URL} \
+    UV_DEFAULT_INDEX=${UV_DEFAULT_INDEX} \
+    npm_config_registry=${npm_config_registry}
 
 # Install essential packages and setup timezone
 RUN apt-get update && apt-get install -y \
@@ -75,6 +83,11 @@ RUN python3 -m pip install pipx && \
 
 # Install uv
 RUN python3 -m pip install uv
+
+# Configure pip and npm to use the specified repositories
+RUN mkdir -p /root/.config/pip && \
+    echo -e "[global]\nindex-url = ${PIP_INDEX_URL}" > /root/.config/pip/pip.conf && \
+    npm config set registry ${npm_config_registry} -g
 
 COPY deploy/docker/allinone/supervisord.conf /etc/supervisor/conf.d/
 COPY deploy/docker/allinone/nginx.conf /etc/nginx/nginx.conf
