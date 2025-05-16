@@ -14,10 +14,10 @@ type MCPConfig struct {
 	Tenant     string `gorm:"column:tenant; default:''"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
-	Routers    string `gorm:"type:text; column:routers; default:''"`
-	Servers    string `gorm:"type:text; column:servers; default:''"`
-	Tools      string `gorm:"type:text; column:tools; default:''"`
-	McpServers string `gorm:"type:text; column:mcp_servers; default:''"`
+	Routers    string `gorm:"type:text; column:routers"`
+	Servers    string `gorm:"type:text; column:servers"`
+	Tools      string `gorm:"type:text; column:tools"`
+	McpServers string `gorm:"type:text; column:mcp_servers"`
 }
 
 // ToMCPConfig converts the database model to MCPConfig
