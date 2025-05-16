@@ -124,7 +124,19 @@
     "import_success": "OpenAPI 规范导入成功",
     "import_failed": "OpenAPI 规范导入失败",
     "select_tenant": "选择租户(多选)",
-    "search_tenant": "搜索租户..."
+    "search_tenant": "搜索租户...",
+    "view_mode": "视图模式",
+    "card_view": "卡片视图",
+    "table_view": "表格视图",
+    "name": "名称",
+    "description": "描述",
+    "routing": "路由",
+    "tools": "工具",
+    "no_description": "暂无描述",
+    "routes": "个路由",
+    "backends": "个后端",
+    "enabled": "已启用",
+    "total": "总共"
   },
   "chat": {
     "title": "聊天",

@@ -124,7 +124,19 @@
     "import_success": "OpenAPI specification imported successfully",
     "import_failed": "Failed to import OpenAPI specification",
     "select_tenant": "Select Tenants (Multiple)",
-    "search_tenant": "Search tenants..."
+    "search_tenant": "Search tenants...",
+    "view_mode": "View Mode",
+    "card_view": "Card View",
+    "table_view": "Table View",
+    "name": "Name",
+    "description": "Description",
+    "routing": "Routing",
+    "tools": "Tools",
+    "no_description": "No description available",
+    "routes": "routes",
+    "backends": "backends",
+    "enabled": "enabled",
+    "total": "total"
   },
   "chat": {
     "title": "Chat",
