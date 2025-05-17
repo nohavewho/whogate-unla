@@ -72,6 +72,20 @@ interface CorsConfig {
   allowCredentials?: boolean;
 }
 
+interface KeyValueItem {
+  key: string;
+  value: string;
+  description?: string;
+}
+
+interface HeadersFormState {
+  [toolIndex: number]: KeyValueItem[];
+}
+
+interface EnvFormState {
+  [serverIndex: number]: KeyValueItem[];
+}
+
 // 默认配置对象，用于新建或配置为空的情况
 const defaultConfig: GatewayConfig = {
   name: "",
@@ -105,24 +119,6 @@ const defaultMCPConfig: GatewayConfig = {
   }]
 };
 
-// 防抖函数
-function useDebounce<T>(value: T, delay: number): [T, (value: T) => void] {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  const [immediateValue, setImmediateValue] = useState<T>(value);
-  
-  useEffect(() => {
-    const handler = window.setTimeout(() => {
-      setDebouncedValue(immediateValue);
-    }, delay);
-    
-    return () => {
-      window.clearTimeout(handler);
-    };
-  }, [immediateValue, delay]);
-  
-  return [debouncedValue, setImmediateValue];
-}
-
 export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditing }: ConfigEditorProps) {
   const { t } = useTranslation();
   const [isYamlMode, setIsYamlMode] = useState<boolean>(false);
@@ -134,33 +130,83 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isLoadingTenants, setIsLoadingTenants] = useState<boolean>(false);
   
-  // 表单状态 - 使用防抖来避免频繁更新导致的光标重置
+  // 表单状态 - 直接使用普通状态
   const [toolFormState, setToolFormState] = useState<{[toolIndex: number]: {[field: string]: string}}>({});
-  const [debouncedToolForm, updateToolForm] = useDebounce(toolFormState, 500);
-  
-  // 通用配置表单状态
   const [generalFormState, setGeneralFormState] = useState<{name?: string; tenant?: string}>({});
-  const [debouncedGeneralForm, updateGeneralForm] = useDebounce(generalFormState, 500);
-  
-  // 路由配置表单状态
   const [routerFormState, setRouterFormState] = useState<{[routerIndex: number]: {prefix?: string; server?: string}}>({});
-  const [debouncedRouterForm, updateRouterForm] = useDebounce(routerFormState, 500);
-  
-  // 服务器配置表单状态
   const [serverFormState, setServerFormState] = useState<{[serverIndex: number]: {name?: string; description?: string}}>({});
-  const [debouncedServerForm, updateServerForm] = useDebounce(serverFormState, 500);
-  
-  // Headers配置表单状态
-  const [headerFormState, setHeaderFormState] = useState<{[toolIndex: number]: {[keyIndex: string]: {key?: string; value?: string}}}>({});
-  const [debouncedHeaderForm, updateHeaderForm] = useDebounce(headerFormState, 500);
+  const [headerFormState, setHeaderFormState] = useState<HeadersFormState>({});
+  const [mcpServerFormState, setMcpServerFormState] = useState<{[serverIndex: number]: {name?: string; url?: string; command?: string; args?: string}}>({});
+  const [envFormState, setEnvFormState] = useState<EnvFormState>({});
 
   // 添加一个新状态来跟踪选中的HTTP方法
   const [selectedMethod, setSelectedMethod] = useState<{[routerIndex: number]: string}>({});
 
   // 添加新的状态来跟踪输入值
   const [newOrigin, setNewOrigin] = useState<{[routerIndex: number]: string}>({});
-  const [newHeader, setNewHeader] = useState<{[routerIndex: number]: string}>({});
   const [newExposeHeader, setNewExposeHeader] = useState<{[routerIndex: number]: string}>({});
+  const [newHeader, setNewHeader] = useState<{[routerIndex: number]: string}>({});
+
+  // 工具函数声明
+  const addHeader = (toolIndex: number, key: string, value: string = "") => {
+    setHeaderFormState(prev => {
+      const newState = { ...prev } as HeadersFormState;
+      newState[toolIndex] = [...(prev[toolIndex] || []), { key, value }];
+      return newState;
+    });
+  };
+
+  const removeHeader = (toolIndex: number, headerIndex: number) => {
+    setHeaderFormState(prev => {
+      const newState = { ...prev } as HeadersFormState;
+      if (newState[toolIndex]) {
+        newState[toolIndex] = newState[toolIndex].filter((_, i) => i !== headerIndex);
+      }
+      return newState;
+    });
+  };
+
+  const updateHeader = (toolIndex: number, headerIndex: number, updates: Partial<KeyValueItem>) => {
+    setHeaderFormState(prev => {
+      const newState = { ...prev } as HeadersFormState;
+      if (newState[toolIndex]) {
+        newState[toolIndex] = newState[toolIndex].map((item, i) =>
+          i === headerIndex ? { ...item, ...updates } : item
+        );
+      }
+      return newState;
+    });
+  };
+
+  const addEnvVariable = (serverIndex: number, key: string, value: string = "") => {
+    setEnvFormState(prev => {
+      const newState = { ...prev } as EnvFormState;
+      newState[serverIndex] = [...(prev[serverIndex] || []), { key, value }];
+      return newState;
+    });
+  };
+
+  const removeEnvVariable = (serverIndex: number, envIndex: number) => {
+    setEnvFormState(prev => {
+      const newState = { ...prev } as EnvFormState;
+      if (newState[serverIndex]) {
+        newState[serverIndex] = newState[serverIndex].filter((_, i) => i !== envIndex);
+      }
+      return newState;
+    });
+  };
+
+  const updateEnvVariable = (serverIndex: number, envIndex: number, updates: Partial<KeyValueItem>) => {
+    setEnvFormState(prev => {
+      const newState = { ...prev } as EnvFormState;
+      if (newState[serverIndex]) {
+        newState[serverIndex] = newState[serverIndex].map((item, i) =>
+          i === envIndex ? { ...item, ...updates } : item
+        );
+      }
+      return newState;
+    });
+  };
 
   // 使用useCallback包装updateConfig函数
   const updateConfig = useCallback((newData: Partial<GatewayConfig>) => {
@@ -201,6 +247,230 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
     }
   }, [parsedConfig, proxyType, isYamlMode, isEditing, onChange]);
 
+  // 监听表单状态变化并更新配置
+  useEffect(() => {
+    if (!parsedConfig) return;
+
+    // 处理工具表单状态
+    if (Object.keys(toolFormState).length > 0) {
+      const updatedTools = parsedConfig.tools ? [...parsedConfig.tools] : [];
+      let hasChanges = false;
+      
+      Object.entries(toolFormState).forEach(([toolIndexStr, toolData]) => {
+        const toolIndex = parseInt(toolIndexStr);
+        if (isNaN(toolIndex) || !updatedTools[toolIndex]) return;
+        
+        const updatedTool = { ...updatedTools[toolIndex] };
+        let toolChanged = false;
+        
+        Object.entries(toolData).forEach(([field, value]) => {
+          if (field === 'name' && updatedTool.name !== value) {
+            updatedTool.name = value;
+            toolChanged = true;
+          } else if (field === 'description' && updatedTool.description !== value) {
+            updatedTool.description = value;
+            toolChanged = true;
+          } else if (field === 'endpoint' && updatedTool.endpoint !== value) {
+            updatedTool.endpoint = value;
+            toolChanged = true;
+          } else if (field === 'method' && updatedTool.method !== value) {
+            updatedTool.method = value;
+            toolChanged = true;
+          } else if (field === 'requestBody' && updatedTool.requestBody !== value) {
+            updatedTool.requestBody = value;
+            toolChanged = true;
+          } else if (field === 'responseBody' && updatedTool.responseBody !== value) {
+            updatedTool.responseBody = value;
+            toolChanged = true;
+          }
+        });
+        
+        if (toolChanged) {
+          updatedTools[toolIndex] = updatedTool;
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        updateConfig({ tools: updatedTools });
+      }
+    }
+
+    // 处理一般配置表单状态
+    if (Object.keys(generalFormState).length > 0) {
+      let hasChanges = false;
+      const updates: Partial<GatewayConfig> = {};
+      
+      if (generalFormState.name !== undefined && 
+          parsedConfig.name !== generalFormState.name && 
+          (!isEditing || !parsedConfig.name || parsedConfig.name.trim() === '')) {
+        updates.name = generalFormState.name;
+        hasChanges = true;
+      }
+      
+      if (generalFormState.tenant !== undefined && parsedConfig.tenant !== generalFormState.tenant) {
+        updates.tenant = generalFormState.tenant;
+        hasChanges = true;
+        
+        if (parsedConfig.routers && parsedConfig.routers.length > 0) {
+          const selectedTenant = tenants.find(t => t.name === generalFormState.tenant);
+          if (selectedTenant) {
+            const updatedRouters = [...parsedConfig.routers];
+            updatedRouters.forEach((router, index) => {
+              updatedRouters[index] = {
+                ...router,
+                prefix: `${selectedTenant.prefix}/${router.prefix})}`
+              };
+            });
+            updates.routers = updatedRouters;
+          }
+        }
+      }
+      
+      if (hasChanges) {
+        updateConfig(updates);
+      }
+    }
+
+    // 处理路由配置表单状态
+    if (Object.keys(routerFormState).length > 0) {
+      const updatedRouters = parsedConfig.routers ? [...parsedConfig.routers] : [];
+      let hasChanges = false;
+      
+      Object.entries(routerFormState).forEach(([routerIndexStr, routerData]) => {
+        const routerIndex = parseInt(routerIndexStr);
+        if (isNaN(routerIndex) || !updatedRouters[routerIndex]) return;
+        
+        const updatedRouter = { ...updatedRouters[routerIndex] };
+        let routerChanged = false;
+        
+        if (routerData.prefix !== undefined && updatedRouter.prefix !== routerData.prefix) {
+          updatedRouter.prefix = routerData.prefix;
+          routerChanged = true;
+        }
+        
+        if (routerData.server !== undefined && updatedRouter.server !== routerData.server) {
+          updatedRouter.server = routerData.server;
+          routerChanged = true;
+        }
+        
+        if (routerChanged) {
+          updatedRouters[routerIndex] = updatedRouter;
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        updateConfig({ routers: updatedRouters });
+      }
+    }
+
+    // 处理服务器配置表单状态
+    if (Object.keys(serverFormState).length > 0 && parsedConfig.servers) {
+      const updatedServers = [...parsedConfig.servers];
+      let hasChanges = false;
+      
+      Object.entries(serverFormState).forEach(([serverIndexStr, serverData]) => {
+        const serverIndex = parseInt(serverIndexStr);
+        if (isNaN(serverIndex) || !updatedServers[serverIndex]) return;
+        
+        const updatedServer = { ...updatedServers[serverIndex] };
+        let serverChanged = false;
+        
+        if (serverData.name !== undefined && updatedServer.name !== serverData.name) {
+          updatedServer.name = serverData.name;
+          serverChanged = true;
+        }
+        
+        if (serverData.description !== undefined && updatedServer.description !== serverData.description) {
+          updatedServer.description = serverData.description;
+          serverChanged = true;
+        }
+        
+        if (serverChanged) {
+          updatedServers[serverIndex] = updatedServer;
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        updateConfig({ servers: updatedServers });
+      }
+    }
+
+    // 处理Headers配置表单状态
+    if (Object.keys(headerFormState).length > 0) {
+      const updatedTools = parsedConfig.tools ? [...parsedConfig.tools] : [];
+      let hasChanges = false;
+      
+      Object.entries(headerFormState).forEach(([toolIndexStr, headersArray]) => {
+        const toolIndex = parseInt(toolIndexStr);
+        if (isNaN(toolIndex) || !updatedTools[toolIndex]) return;
+        
+        const updatedTool = { ...updatedTools[toolIndex] };
+        const headersObject: Record<string, string> = {};
+        const headersOrder: string[] = [];
+        
+        headersArray.forEach(({ key, value }: KeyValueItem) => {
+          if (key) {
+            headersObject[key] = value;
+            headersOrder.push(key);
+          }
+        });
+        
+        const currentHeaders = updatedTool.headers || {};
+        const currentOrder = updatedTool.headersOrder || Object.keys(currentHeaders);
+        
+        const headersChanged = JSON.stringify(headersObject) !== JSON.stringify(currentHeaders) ||
+                             JSON.stringify(headersOrder) !== JSON.stringify(currentOrder);
+        
+        if (headersChanged) {
+          updatedTool.headers = headersObject;
+          updatedTool.headersOrder = headersOrder;
+          updatedTools[toolIndex] = updatedTool;
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        updateConfig({ tools: updatedTools });
+      }
+    }
+
+    // 处理环境变量表单状态
+    if (Object.keys(envFormState).length > 0 && parsedConfig.mcpServers) {
+      const updatedServers = [...parsedConfig.mcpServers];
+      let hasChanges = false;
+      
+      Object.entries(envFormState).forEach(([serverIndexStr, envArray]) => {
+        const serverIndex = parseInt(serverIndexStr);
+        if (isNaN(serverIndex) || !updatedServers[serverIndex]) return;
+        
+        const updatedServer = { ...updatedServers[serverIndex] };
+        const envObject: Record<string, string> = {};
+        
+        envArray.forEach(({ key, value }: KeyValueItem) => {
+          if (key) {
+            envObject[key] = value;
+          }
+        });
+        
+        const currentEnv = updatedServer.env || {};
+        const envChanged = JSON.stringify(envObject) !== JSON.stringify(currentEnv);
+        
+        if (envChanged) {
+          updatedServer.env = envObject;
+          updatedServers[serverIndex] = updatedServer;
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        updateConfig({ mcpServers: updatedServers });
+      }
+    }
+  }, [toolFormState, generalFormState, routerFormState, serverFormState, headerFormState, envFormState, parsedConfig, updateConfig, tenants, isEditing]);
+
   useEffect(() => {
     try {
       if (!config || config.trim() === '') {
@@ -230,227 +500,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
       setProxyType("http");
     }
   }, [config]);
-
-  // 当表单状态发生防抖变化时，应用更改到实际配置
-  useEffect(() => {
-    if (!parsedConfig || Object.keys(debouncedToolForm).length === 0) return;
-    
-    const updatedTools = parsedConfig.tools ? [...parsedConfig.tools] : [];
-    let hasChanges = false;
-    
-    // 遍历所有工具表单状态
-    Object.entries(debouncedToolForm).forEach(([toolIndexStr, toolData]) => {
-      const toolIndex = parseInt(toolIndexStr);
-      if (isNaN(toolIndex) || !updatedTools[toolIndex]) return;
-      
-      const updatedTool = { ...updatedTools[toolIndex] };
-      let toolChanged = false;
-      
-      // 应用各字段的更改
-      Object.entries(toolData).forEach(([field, value]) => {
-        if (field === 'name' && updatedTool.name !== value) {
-          updatedTool.name = value;
-          toolChanged = true;
-        } else if (field === 'description' && updatedTool.description !== value) {
-          updatedTool.description = value;
-          toolChanged = true;
-        } else if (field === 'endpoint' && updatedTool.endpoint !== value) {
-          updatedTool.endpoint = value;
-          toolChanged = true;
-        } else if (field === 'method' && updatedTool.method !== value) {
-          updatedTool.method = value;
-          toolChanged = true;
-        } else if (field === 'requestBody' && updatedTool.requestBody !== value) {
-          updatedTool.requestBody = value;
-          toolChanged = true;
-        } else if (field === 'responseBody' && updatedTool.responseBody !== value) {
-          updatedTool.responseBody = value;
-          toolChanged = true;
-        } else if (field.startsWith('header_key_') || field.startsWith('header_value_')) {
-          // 处理Header的变更在单独的位置处理
-        }
-      });
-      
-      if (toolChanged) {
-        updatedTools[toolIndex] = updatedTool;
-        hasChanges = true;
-      }
-    });
-    
-    // 如果有变更，更新配置
-    if (hasChanges) {
-      updateConfig({ tools: updatedTools });
-    }
-  }, [debouncedToolForm, parsedConfig, updateConfig]);
-
-  // 处理一般配置的防抖更新
-  useEffect(() => {
-    if (!parsedConfig || Object.keys(debouncedGeneralForm).length === 0) return;
-    
-    let hasChanges = false;
-    const updates: Partial<GatewayConfig> = {};
-    
-    // 只有在创建模式或name为空时才允许修改name
-    if (debouncedGeneralForm.name !== undefined && 
-        parsedConfig.name !== debouncedGeneralForm.name && 
-        (!isEditing || !parsedConfig.name || parsedConfig.name.trim() === '')) {
-      updates.name = debouncedGeneralForm.name;
-      hasChanges = true;
-    }
-    
-    if (debouncedGeneralForm.tenant !== undefined && parsedConfig.tenant !== debouncedGeneralForm.tenant) {
-      updates.tenant = debouncedGeneralForm.tenant;
-      hasChanges = true;
-      
-      // 更新路由前缀，根据选中的租户
-      if (parsedConfig.routers && parsedConfig.routers.length > 0) {
-        const selectedTenant = tenants.find(t => t.name === debouncedGeneralForm.tenant);
-        if (selectedTenant) {
-          const updatedRouters = [...parsedConfig.routers];
-          // 更新每个路由的前缀
-          updatedRouters.forEach((router, index) => {
-            updatedRouters[index] = {
-              ...router,
-              prefix: `${selectedTenant.prefix}/${router.prefix})}`
-            };
-          });
-          updates.routers = updatedRouters;
-        }
-      }
-    }
-    
-    if (hasChanges) {
-      updateConfig(updates);
-    }
-  }, [debouncedGeneralForm, parsedConfig, isEditing, updateConfig, tenants, proxyType]);
-  
-  // 处理路由配置的防抖更新
-  useEffect(() => {
-    if (!parsedConfig || Object.keys(debouncedRouterForm).length === 0) return;
-    
-    const updatedRouters = parsedConfig.routers ? [...parsedConfig.routers] : [];
-    let hasChanges = false;
-    
-    Object.entries(debouncedRouterForm).forEach(([routerIndexStr, routerData]) => {
-      const routerIndex = parseInt(routerIndexStr);
-      if (isNaN(routerIndex) || !updatedRouters[routerIndex]) return;
-      
-      const updatedRouter = { ...updatedRouters[routerIndex] };
-      let routerChanged = false;
-      
-      if (routerData.prefix !== undefined && updatedRouter.prefix !== routerData.prefix) {
-        updatedRouter.prefix = routerData.prefix;
-        routerChanged = true;
-      }
-      
-      if (routerData.server !== undefined && updatedRouter.server !== routerData.server) {
-        updatedRouter.server = routerData.server;
-        routerChanged = true;
-      }
-      
-      if (routerChanged) {
-        updatedRouters[routerIndex] = updatedRouter;
-        hasChanges = true;
-      }
-    });
-    
-    if (hasChanges) {
-      updateConfig({ routers: updatedRouters });
-    }
-  }, [debouncedRouterForm, parsedConfig, updateConfig]);
-  
-  // 处理服务器配置的防抖更新
-  useEffect(() => {
-    if (!parsedConfig || Object.keys(debouncedServerForm).length === 0 || !parsedConfig.servers) return;
-    
-    const updatedServers = [...parsedConfig.servers];
-    let hasChanges = false;
-    
-    Object.entries(debouncedServerForm).forEach(([serverIndexStr, serverData]) => {
-      const serverIndex = parseInt(serverIndexStr);
-      if (isNaN(serverIndex) || !updatedServers[serverIndex]) return;
-      
-      const updatedServer = { ...updatedServers[serverIndex] };
-      let serverChanged = false;
-      
-      if (serverData.name !== undefined && updatedServer.name !== serverData.name) {
-        updatedServer.name = serverData.name;
-        serverChanged = true;
-      }
-      
-      if (serverData.description !== undefined && updatedServer.description !== serverData.description) {
-        updatedServer.description = serverData.description;
-        serverChanged = true;
-      }
-      
-      if (serverChanged) {
-        updatedServers[serverIndex] = updatedServer;
-        hasChanges = true;
-      }
-    });
-    
-    if (hasChanges) {
-      updateConfig({ servers: updatedServers });
-    }
-  }, [debouncedServerForm, parsedConfig, updateConfig]);
-
-  // 处理Headers配置的防抖更新
-  useEffect(() => {
-    if (!parsedConfig || Object.keys(debouncedHeaderForm).length === 0) return;
-    
-    const updatedTools = parsedConfig.tools ? [...parsedConfig.tools] : [];
-    let hasChanges = false;
-    
-    Object.entries(debouncedHeaderForm).forEach(([toolIndexStr, headerData]) => {
-      const toolIndex = parseInt(toolIndexStr);
-      if (isNaN(toolIndex) || !updatedTools[toolIndex]) return;
-      
-      const updatedTool = { ...updatedTools[toolIndex] };
-      const updatedHeaders = { ...(updatedTool.headers || {}) };
-      const updatedHeadersOrder = [...(updatedTool.headersOrder || Object.keys(updatedHeaders))];
-      let headerChanged = false;
-      
-      Object.entries(headerData).forEach(([headerKey, data]) => {
-        // 键格式为 "headerIndex_originalKey"
-        const parts = headerKey.split('_');
-        const headerIndex = parseInt(parts[0]);
-        // 原始Key是从第二部分开始到最后，以防key中包含下划线
-        const originalKey = parts.slice(1).join('_');
-        
-        if (isNaN(headerIndex) || !originalKey) return;
-        
-        if (data.key !== undefined && originalKey !== data.key) {
-          // 键名发生变化
-          const value = data.value !== undefined ? data.value : (updatedHeaders[originalKey] || '');
-          delete updatedHeaders[originalKey];
-          updatedHeaders[data.key] = value;
-          
-          // 更新顺序
-          const orderIndex = updatedHeadersOrder.findIndex(k => k === originalKey);
-          if (orderIndex !== -1) {
-            updatedHeadersOrder[orderIndex] = data.key;
-          }
-          
-          headerChanged = true;
-        } else if (data.value !== undefined) {
-          // 只有值发生变化
-          updatedHeaders[originalKey] = data.value;
-          headerChanged = true;
-        }
-      });
-      
-      if (headerChanged) {
-        updatedTool.headers = updatedHeaders;
-        updatedTool.headersOrder = updatedHeadersOrder;
-        updatedTools[toolIndex] = updatedTool;
-        hasChanges = true;
-      }
-    });
-    
-    if (hasChanges) {
-      updateConfig({ tools: updatedTools });
-    }
-  }, [debouncedHeaderForm, parsedConfig, updateConfig]);
 
   const updateRouter = (index: number, data: Partial<{ server: string; prefix: string; cors?: Record<string, unknown> }>) => {
     if (!parsedConfig) return;
@@ -485,38 +534,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
     }
     updatedServers[index] = { ...updatedServers[index], ...data };
     
-    updateConfig({ mcpServers: updatedServers });
-  };
-
-  const addEnvVariable = () => {
-    if (!newEnvKey.trim() || !parsedConfig) return;
-    
-    const updatedServers = parsedConfig.mcpServers ? [...parsedConfig.mcpServers] : [];
-    if (updatedServers.length === 0) {
-      updatedServers.push({ type: "stdio", name: parsedConfig.name || "", env: {} });
-    }
-    
-    if (!updatedServers[0].env) {
-      updatedServers[0].env = {};
-    }
-    
-    updatedServers[0].env[newEnvKey] = newEnvValue;
-    setEnvKeys([...envKeys, newEnvKey]);
-    setNewEnvKey("");
-    setNewEnvValue("");
-    
-    updateConfig({ mcpServers: updatedServers });
-  };
-
-  const removeEnvVariable = (key: string) => {
-    if (!parsedConfig || !parsedConfig.mcpServers || parsedConfig.mcpServers.length === 0 || !parsedConfig.mcpServers[0].env) return;
-    
-    const updatedServers = [...parsedConfig.mcpServers];
-    const updatedEnv = { ...updatedServers[0].env };
-    delete updatedEnv[key];
-    updatedServers[0].env = updatedEnv;
-    
-    setEnvKeys(envKeys.filter(k => k !== key));
     updateConfig({ mcpServers: updatedServers });
   };
 
@@ -621,13 +638,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                     name: e.target.value
                   }
                 }));
-                updateToolForm({
-                  ...toolFormState,
-                  [index]: {
-                    ...(toolFormState[index] || {}),
-                    name: e.target.value
-                  }
-                });
               }}
             />
             <Input
@@ -641,13 +651,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                     description: e.target.value
                   }
                 }));
-                updateToolForm({
-                  ...toolFormState,
-                  [index]: {
-                    ...(toolFormState[index] || {}),
-                    description: e.target.value
-                  }
-                });
               }}
             />
             <Select
@@ -676,13 +679,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                     endpoint: e.target.value
                   }
                 }));
-                updateToolForm({
-                  ...toolFormState,
-                  [index]: {
-                    ...(toolFormState[index] || {}),
-                    endpoint: e.target.value
-                  }
-                });
               }}
             />
             
@@ -694,58 +690,24 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                   <div key={headerIndex} className="flex items-center gap-2">
                     <Input
                       className="flex-1"
-                      value={(headerFormState[index]?.[`${headerIndex}_${key}`]?.key !== undefined) 
-                        ? headerFormState[index][`${headerIndex}_${key}`].key 
+                      value={(headerFormState[index]?.[headerIndex]?.key !== undefined) 
+                        ? headerFormState[index][headerIndex].key 
                         : key}
                       onChange={(e) => {
-                        setHeaderFormState(prev => ({
-                          ...prev,
-                          [index]: {
-                            ...(prev[index] || {}),
-                            [`${headerIndex}_${key}`]: {
-                              ...(prev[index]?.[`${headerIndex}_${key}`] || {}),
-                              key: e.target.value
-                            }
-                          }
-                        }));
-                        updateHeaderForm({
-                          ...headerFormState,
-                          [index]: {
-                            ...(headerFormState[index] || {}),
-                            [`${headerIndex}_${key}`]: {
-                              ...(headerFormState[index]?.[`${headerIndex}_${key}`] || {}),
-                              key: e.target.value
-                            }
-                          }
+                        updateHeader(index, headerIndex, {
+                          key: e.target.value
                         });
                       }}
                       placeholder="Header名称"
                     />
                     <Input
                       className="flex-1"
-                      value={(headerFormState[index]?.[`${headerIndex}_${key}`]?.value !== undefined)
-                        ? headerFormState[index][`${headerIndex}_${key}`].value
+                      value={(headerFormState[index]?.[headerIndex]?.value !== undefined)
+                        ? headerFormState[index][headerIndex].value
                         : (tool.headers?.[key] || "")}
                       onChange={(e) => {
-                        setHeaderFormState(prev => ({
-                          ...prev,
-                          [index]: {
-                            ...(prev[index] || {}),
-                            [`${headerIndex}_${key}`]: {
-                              ...(prev[index]?.[`${headerIndex}_${key}`] || {}),
-                              value: e.target.value
-                            }
-                          }
-                        }));
-                        updateHeaderForm({
-                          ...headerFormState,
-                          [index]: {
-                            ...(headerFormState[index] || {}),
-                            [`${headerIndex}_${key}`]: {
-                              ...(headerFormState[index]?.[`${headerIndex}_${key}`] || {}),
-                              value: e.target.value
-                            }
-                          }
+                        updateHeader(index, headerIndex, {
+                          value: e.target.value
                         });
                       }}
                       placeholder="Header值"
@@ -753,44 +715,7 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                     <Button
                       isIconOnly
                       color="danger"
-                      onPress={() => {
-                        const updatedTools = parsedConfig?.tools ? [...parsedConfig.tools] : [];
-                        const updatedTool = { ...updatedTools[index] };
-                        const updatedHeaders = updatedTool.headers ? { ...updatedTool.headers } : {};
-                        const updatedHeadersOrder = updatedTool.headersOrder ? [...updatedTool.headersOrder] : Object.keys(updatedHeaders);
-                        
-                        // 删除header
-                        delete updatedHeaders[key];
-                        
-                        // 更新顺序
-                        updatedHeadersOrder.splice(headerIndex, 1);
-                        
-                        updatedTool.headers = updatedHeaders;
-                        updatedTool.headersOrder = updatedHeadersOrder;
-                        updatedTools[index] = updatedTool;
-                        updateConfig({ tools: updatedTools });
-                        
-                        // 清理对应的表单状态
-                        if (headerFormState[index]) {
-                          const updatedHeaderFormState = { ...headerFormState };
-                          
-                          // 删除当前header的表单状态
-                          if (updatedHeaderFormState[index][`${headerIndex}_${key}`]) {
-                            delete updatedHeaderFormState[index][`${headerIndex}_${key}`];
-                          }
-                          
-                          // 更新后续header的索引
-                          for (let i = headerIndex + 1; i < (tool.headersOrder || Object.keys(tool.headers || {})).length; i++) {
-                            const nextKey = (tool.headersOrder || Object.keys(tool.headers || {}))[i];
-                            if (updatedHeaderFormState[index][`${i}_${nextKey}`]) {
-                              updatedHeaderFormState[index][`${i-1}_${nextKey}`] = updatedHeaderFormState[index][`${i}_${nextKey}`];
-                              delete updatedHeaderFormState[index][`${i}_${nextKey}`];
-                            }
-                          }
-                          
-                          setHeaderFormState(updatedHeaderFormState);
-                        }
-                      }}
+                      onPress={() => removeHeader(index, headerIndex)}
                     >
                       ✕
                     </Button>
@@ -836,18 +761,7 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                     }
                     
                     // 添加到配置
-                    const updatedTools = parsedConfig?.tools ? [...parsedConfig.tools] : [];
-                    const updatedTool = { ...updatedTools[index] };
-                    const updatedHeaders = updatedTool.headers ? { ...updatedTool.headers } : {};
-                    const updatedHeadersOrder = updatedTool.headersOrder ? [...updatedTool.headersOrder] : Object.keys(updatedHeaders);
-                    
-                    updatedHeaders[newKey] = "";
-                    updatedHeadersOrder.push(newKey);
-                    
-                    updatedTool.headers = updatedHeaders;
-                    updatedTool.headersOrder = updatedHeadersOrder;
-                    updatedTools[index] = updatedTool;
-                    updateConfig({ tools: updatedTools });
+                    addHeader(index, newKey);
                   }}
                 >
                   添加Header
@@ -876,13 +790,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                       requestBody: e.target.value
                     }
                   }));
-                  updateToolForm({
-                    ...toolFormState,
-                    [index]: {
-                      ...(toolFormState[index] || {}),
-                      requestBody: e.target.value
-                    }
-                  });
                 }}
                 placeholder='例如: {"uid": "{{.Args.uid}}"}'
               ></textarea>
@@ -903,13 +810,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                       responseBody: e.target.value
                     }
                   }));
-                  updateToolForm({
-                    ...toolFormState,
-                    [index]: {
-                      ...(toolFormState[index] || {}),
-                      responseBody: e.target.value
-                    }
-                  });
                 }}
                 placeholder="例如: {{.Response.Body}}"
               ></textarea>
@@ -964,13 +864,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                     name: e.target.value
                   }
                 }));
-                updateServerForm({
-                  ...serverFormState,
-                  [index]: {
-                    ...(serverFormState[index] || {}),
-                    name: e.target.value
-                  }
-                });
               }}
             />
             <Input
@@ -984,13 +877,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                     description: e.target.value
                   }
                 }));
-                updateServerForm({
-                  ...serverFormState,
-                  [index]: {
-                    ...(serverFormState[index] || {}),
-                    description: e.target.value
-                  }
-                });
               }}
             />
             <div>
@@ -1071,8 +957,16 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
             <div key={index} className="flex flex-col gap-2 mb-4 p-3 border rounded-md">
               <Input
                 label={t('gateway.server_name')}
-                value={server.name || ""}
-                onChange={(e) => updateMCPServer(index, { name: e.target.value })}
+                value={mcpServerFormState[index]?.name !== undefined ? mcpServerFormState[index].name : (server.name || "")}
+                onChange={(e) => {
+                  setMcpServerFormState(prev => ({
+                    ...prev,
+                    [index]: {
+                      ...(prev[index] || {}),
+                      name: e.target.value
+                    }
+                  }));
+                }}
               />
               
               <Select
@@ -1090,43 +984,64 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                 <>
                   <Input
                     label={t('gateway.command')}
-                    value={server.command || ''}
-                    onChange={(e) => updateMCPServer(index, { command: e.target.value })}
+                    value={mcpServerFormState[index]?.command !== undefined ? mcpServerFormState[index].command : (server.command || '')}
+                    onChange={(e) => {
+                      setMcpServerFormState(prev => ({
+                        ...prev,
+                        [index]: {
+                          ...(prev[index] || {}),
+                          command: e.target.value
+                        }
+                      }));
+                    }}
                   />
                   
                   <Input
                     label={t('gateway.args')}
-                    value={server.args?.join(' ') || ''}
+                    value={mcpServerFormState[index]?.args !== undefined ? mcpServerFormState[index].args : (server.args?.join(' ') || '')}
                     onChange={(e) => {
-                      const args = e.target.value.split(' ').filter(Boolean);
-                      updateMCPServer(index, { args });
+                      setMcpServerFormState(prev => ({
+                        ...prev,
+                        [index]: {
+                          ...(prev[index] || {}),
+                          args: e.target.value
+                        }
+                      }));
                     }}
                     placeholder="arg1 arg2 arg3"
                   />
                   
                   <div className="mt-2">
                     <h4 className="text-sm font-medium mb-2">{t('gateway.env_variables')}</h4>
-                    {envKeys.map(key => (
-                      <div key={key} className="flex items-center gap-2 mb-2">
+                    {envKeys.map((key, envIndex) => (
+                      <div key={envIndex} className="flex items-center gap-2 mb-2">
                         <Input
                           className="flex-1"
-                          value={key}
-                          isReadOnly
+                          value={(envFormState[index]?.[envIndex]?.key !== undefined) 
+                                 ? envFormState[index][envIndex].key 
+                                 : key}
+                          onChange={(e) => {
+                            updateEnvVariable(index, envIndex, {
+                              key: e.target.value
+                            });
+                          }}
                         />
                         <Input
                           className="flex-1"
-                          value={server.env?.[key] || ''}
+                          value={(envFormState[index]?.[envIndex]?.value !== undefined)
+                                 ? envFormState[index][envIndex].value
+                                 : (server.env?.[key] || "")}
                           onChange={(e) => {
-                            const updatedEnv = { ...(server.env || {}) };
-                            updatedEnv[key] = e.target.value;
-                            updateMCPServer(index, { env: updatedEnv });
+                            updateEnvVariable(index, envIndex, {
+                              value: e.target.value
+                            });
                           }}
                         />
                         <Button
                           color="danger"
                           isIconOnly
                           size="sm"
-                          onPress={() => removeEnvVariable(key)}
+                          onPress={() => removeEnvVariable(index, envIndex)}
                         >
                           ✕
                         </Button>
@@ -1149,7 +1064,7 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                       <Button
                         color="primary"
                         size="sm"
-                        onPress={addEnvVariable}
+                        onPress={() => addEnvVariable(index, newEnvKey, newEnvValue)}
                       >
                         +
                       </Button>
@@ -1161,8 +1076,16 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
               {(server.type === 'sse' || server.type === 'streamable-http') && (
                 <Input
                   label={t('gateway.url')}
-                  value={server.url || ''}
-                  onChange={(e) => updateMCPServer(index, { url: e.target.value })}
+                  value={mcpServerFormState[index]?.url !== undefined ? mcpServerFormState[index].url : (server.url || '')}
+                  onChange={(e) => {
+                    setMcpServerFormState(prev => ({
+                      ...prev,
+                      [index]: {
+                        ...(prev[index] || {}),
+                        url: e.target.value
+                      }
+                    }));
+                  }}
                 />
               )}
             </div>
@@ -1217,13 +1140,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                         prefix: fullPrefix
                       }
                     }));
-                    updateRouterForm({
-                      ...routerFormState,
-                      [index]: {
-                        ...(routerFormState[index] || {}),
-                        prefix: fullPrefix
-                      }
-                    });
                   }}
                   className="flex-1"
                 />
@@ -1240,13 +1156,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                       server: e.target.value
                     }
                   }));
-                  updateRouterForm({
-                    ...routerFormState,
-                    [index]: {
-                      ...(routerFormState[index] || {}),
-                      server: e.target.value
-                    }
-                  });
                 }}
               >
                 {renderServerOptions()}
@@ -1606,6 +1515,60 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
     }
   }, [parsedConfig?.routers, parsedConfig?.tenant, tenants]);
 
+  // 初始化MCP服务器表单状态
+  useEffect(() => {
+    if (parsedConfig?.mcpServers) {
+      const initialFormState: Record<number, any> = parsedConfig.mcpServers.reduce((acc: Record<number, any>, server, idx) => {
+        acc[idx] = {
+          name: server.name || "",
+          url: server.url || "",
+          command: server.command || "",
+          args: server.args?.join(' ') || ""
+        };
+        return acc;
+      }, {});
+      
+      setMcpServerFormState(initialFormState);
+    }
+  }, [parsedConfig?.mcpServers]);
+
+  // 初始化环境变量表单状态
+  useEffect(() => {
+    if (parsedConfig?.mcpServers && parsedConfig.mcpServers.length > 0 && parsedConfig.mcpServers[0]?.env) {
+      const initialEnvState: EnvFormState = {
+        0: [] // 假设我们只处理第一个MCP服务器
+      };
+      
+      // 将所有环境变量添加到表单状态
+      Object.entries(parsedConfig.mcpServers[0].env).forEach(([key, value]) => {
+        initialEnvState[0].push({ key, value: String(value) });
+      });
+      
+      setEnvFormState(initialEnvState);
+      
+      // 更新环境变量键列表
+      setEnvKeys(Object.keys(parsedConfig.mcpServers[0].env));
+    }
+  }, [parsedConfig?.mcpServers]);
+
+  // 初始化Headers表单状态
+  useEffect(() => {
+    if (parsedConfig?.tools) {
+      const initialHeaderState: HeadersFormState = {};
+      
+      parsedConfig.tools.forEach((tool, toolIndex) => {
+        if (tool.headers) {
+          initialHeaderState[toolIndex] = Object.entries(tool.headers).map(([key, value]) => ({
+            key,
+            value: String(value)
+          }));
+        }
+      });
+      
+      setHeaderFormState(initialHeaderState);
+    }
+  }, [parsedConfig?.tools]);
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-end mb-4">
@@ -1673,10 +1636,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                 ...prev,
                 name: e.target.value
               }));
-              updateGeneralForm({
-                ...generalFormState,
-                name: e.target.value
-              });
             }}
             isDisabled={Boolean(isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '')}
             description={(isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '') ? t('gateway.name_locked') : undefined}
@@ -1690,10 +1649,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                 ...prev,
                 tenant: e.target.value
               }));
-              updateGeneralForm({
-                ...generalFormState,
-                tenant: e.target.value
-              });
             }}
             aria-label={t('gateway.tenant')}
             isLoading={isLoadingTenants}
