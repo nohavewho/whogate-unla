@@ -1,4 +1,4 @@
-import { Input, Select, SelectItem, Radio, RadioGroup, Button } from "@heroui/react";
+import { Input, Select, SelectItem, Radio, RadioGroup, Button, Tabs, Tab } from "@heroui/react";
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { useState, useEffect, useCallback } from 'react';
@@ -19,7 +19,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
   const { t } = useTranslation();
   const [isYamlMode, setIsYamlMode] = useState<boolean>(false);
   const [parsedConfig, setParsedConfig] = useState<GatewayConfig | null>(null);
-  const [proxyType, setProxyType] = useState<string>("http");
   const [envKeys, setEnvKeys] = useState<string[]>([]);
   const [newEnvKey, setNewEnvKey] = useState<string>("");
   const [newEnvValue, setNewEnvValue] = useState<string>("");
@@ -105,16 +104,15 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
   // 使用useCallback包装updateConfig函数
   const updateConfig = useCallback((newData: Partial<GatewayConfig>) => {
     if (!parsedConfig) {
-      const baseConfig = proxyType === "mcp" ? defaultMCPConfig : defaultConfig;
+      const baseConfig = defaultConfig;
       const updated = {
         ...baseConfig,
         ...newData
       };
-      
+      setParsedConfig(updated);
       try {
-        const newYaml = yaml.dump(updated);
-        onChange(newYaml);
-        setParsedConfig(updated);
+        const yamlString = yaml.dump(updated);
+        onChange(yamlString);
       } catch (e) {
         console.error("Failed to generate YAML:", e);
       }
@@ -136,76 +134,18 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
     } catch (e) {
       console.error("Failed to generate YAML:", e);
     }
-  }, [parsedConfig, proxyType, isYamlMode, isEditing, onChange]);
-
-  const handleProxyTypeChange = (type: string) => {
-    setProxyType(type);
-    
-    if (type === "http" && parsedConfig) {
-      const newConfig = { ...parsedConfig };
-      delete newConfig.mcpServers;
-      
-      if (!newConfig.servers || newConfig.servers.length === 0) {
-        newConfig.servers = [{
-          name: newConfig.name || "",
-          description: "HTTP Server",
-          allowedTools: []
-        }];
-      }
-      
-      if (!newConfig.tools) {
-        newConfig.tools = [];
-      }
-      
-      if (!newConfig.routers || newConfig.routers.length === 0) {
-        newConfig.routers = [{
-          server: newConfig.servers && newConfig.servers.length > 0 ? newConfig.servers[0].name : "",
-          prefix: `${getRandomLetters(4)}`
-        }];
-      }
-      
-      updateConfig(newConfig);
-    } else if (type === "mcp" && parsedConfig) {
-      const newConfig = { ...parsedConfig };
-      delete newConfig.servers;
-      delete newConfig.tools;
-      
-      if (!newConfig.mcpServers || newConfig.mcpServers.length === 0) {
-        newConfig.mcpServers = [{
-          type: "stdio",
-          name: newConfig.name || "",
-          command: "",
-          args: [],
-          env: {}
-        }];
-      }
-      
-      if (!newConfig.routers || newConfig.routers.length === 0) {
-        const selectedTenant = tenants.find(t => t.name === newConfig.tenant);
-        const prefix = selectedTenant?.name === 'default' ? 
-          '/mcp' : 
-          `${selectedTenant?.prefix || '/' + newConfig.tenant}/mcp`;
-        
-        newConfig.routers = [{
-          server: newConfig.mcpServers && newConfig.mcpServers.length > 0 ? newConfig.mcpServers[0].name : "",
-          prefix: prefix
-        }];
-      }
-      
-      updateConfig(newConfig);
-    }
-  };
+  }, [parsedConfig, isYamlMode, isEditing, onChange]);
 
   const renderServerOptions = () => {
     if (!parsedConfig) return [<SelectItem key="default">{t('common.name')}</SelectItem>];
     
-    if (proxyType === "http" && parsedConfig.servers && parsedConfig.servers.length > 0) {
+    if (parsedConfig.servers && parsedConfig.servers.length > 0) {
       return parsedConfig.servers.map(server => (
         <SelectItem key={server.name || "default"}>
           {server.name || t('common.name')}
         </SelectItem>
       ));
-    } else if (proxyType === "mcp" && parsedConfig.mcpServers && parsedConfig.mcpServers.length > 0) {
+    } else if (parsedConfig.mcpServers && parsedConfig.mcpServers.length > 0) {
       return parsedConfig.mcpServers.map(server => (
         <SelectItem key={server.name || "default"}>
           {server.name || t('common.name')}
@@ -236,22 +176,17 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
   // 初始化路由表单状态
   useEffect(() => {
     if (parsedConfig?.routers) {
-      const selectedTenant = tenants.find(t => t.name === parsedConfig?.tenant);
-      
       const initialFormState: Record<number, any> = parsedConfig.routers.reduce((acc: Record<number, any>, router, idx) => {
-        const tenantPrefix = selectedTenant?.prefix || "";
-        let pathPart = (router.prefix || "").replace(tenantPrefix, "");
-        
         acc[idx] = {
           ...router,
-          prefix: tenantPrefix + pathPart
+          prefix: router.prefix || ""
         };
         return acc;
       }, {});
       
       setRouterFormState(initialFormState);
     }
-  }, [parsedConfig?.routers, parsedConfig?.tenant, tenants]);
+  }, [parsedConfig?.routers]);
 
   // 初始化MCP服务器表单状态
   useEffect(() => {
@@ -532,18 +467,11 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
     try {
       if (!config || config.trim() === '') {
         setParsedConfig(defaultConfig);
-        setProxyType("http");
         return;
       }
 
       const parsed = yaml.load(config) as GatewayConfig;
       setParsedConfig(parsed);
-      
-      if (parsed.mcpServers && parsed.mcpServers.length > 0) {
-        setProxyType("mcp");
-      } else if (parsed.servers && parsed.servers.length > 0) {
-        setProxyType("http");
-      }
       
       if (parsed.mcpServers && parsed.mcpServers.length > 0 && parsed.mcpServers[0]?.env) {
         setEnvKeys(Object.keys(parsed.mcpServers[0].env));
@@ -551,7 +479,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
     } catch (e) {
       console.error("Failed to parse config:", e);
       setParsedConfig(defaultConfig);
-      setProxyType("http");
     }
   }, [config]);
 
@@ -579,92 +506,89 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
 
       {isYamlMode ? (
         <Editor
-          height="90%"
+          height="100%"
           defaultLanguage="yaml"
           value={config}
           onChange={(value) => {
-            if (!value) {
-              onChange('');
-              return;
+            if (value !== undefined) {
+              onChange(value);
             }
-            
-            if (isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '') {
-              try {
-                const parsedValue = yaml.load(value) as GatewayConfig;
-                if (parsedValue.name !== parsedConfig.name) {
-                  parsedValue.name = parsedConfig.name;
-                  const newYaml = yaml.dump(parsedValue);
-                  onChange(newYaml);
-                  return;
-                }
-              } catch (e) {
-                console.error("Failed to parse YAML for name check:", e);
-              }
-            }
-            
-            onChange(value);
           }}
-          theme={isDark ? "vs-dark" : "vs"}
+          theme={isDark ? "vs-dark" : "light"}
           options={editorOptions}
         />
       ) : (
-        <div className="flex flex-col gap-4 h-full overflow-y-auto">
-          <Input 
-            label={t('gateway.name')}
-            value={generalFormState.name !== undefined ? generalFormState.name : (parsedConfig?.name || '')}
-            onChange={(e) => {
-              setGeneralFormState(prev => ({
-                ...prev,
-                name: e.target.value
-              }));
-            }}
-            isDisabled={Boolean(isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '')}
-            description={(isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '') ? t('gateway.name_locked') : undefined}
-          />
-          
-          <Select
-            label={t('gateway.tenant')}
-            selectedKeys={generalFormState.tenant !== undefined ? [generalFormState.tenant] : (parsedConfig?.tenant ? [parsedConfig.tenant] : ['default'])}
-            onChange={(e) => {
-              setGeneralFormState(prev => ({
-                ...prev,
-                tenant: e.target.value
-              }));
-            }}
-            aria-label={t('gateway.tenant')}
-            isLoading={isLoadingTenants}
-          >
-            {tenants.length > 0 ? (
-              tenants.filter(tenant => tenant.isActive).map(tenant => (
-                <SelectItem key={tenant.name} textValue={tenant.name}>
-                  {tenant.name}
-                  {tenant.prefix && <span className="text-tiny text-default-400"> ({tenant.prefix})</span>}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem key="default">default</SelectItem>
-            )}
-          </Select>
-          
-          <div className="mt-2">
-            <h3 className="text-sm font-medium mb-2">{t('gateway.created_at')}: {new Date().toLocaleString()}</h3>
-            <h3 className="text-sm font-medium mb-2">{t('gateway.updated_at')}: {new Date().toLocaleString()}</h3>
-          </div>
-          
-          <div className="border-t pt-4 mt-2">
-            <h3 className="text-sm font-medium mb-2">{t('gateway.proxy_type')}</h3>
-            <RadioGroup
-              value={proxyType}
-              onValueChange={handleProxyTypeChange}
-              orientation="horizontal"
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Input
+              label={t('gateway.name')}
+              value={generalFormState.name !== undefined ? generalFormState.name : (parsedConfig?.name || "")}
+              onChange={(e) => {
+                setGeneralFormState(prev => ({
+                  ...prev,
+                  name: e.target.value
+                }));
+              }}
+              isDisabled={Boolean(isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '')}
+              description={(isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '') ? t('gateway.name_locked') : undefined}
+            />
+            
+            <Select
+              label={t('gateway.tenant')}
+              selectedKeys={generalFormState.tenant !== undefined ? [generalFormState.tenant] : (parsedConfig?.tenant ? [parsedConfig.tenant] : ['default'])}
+              onChange={(e) => {
+                setGeneralFormState(prev => ({
+                  ...prev,
+                  tenant: e.target.value
+                }));
+              }}
+              aria-label={t('gateway.tenant')}
+              isLoading={isLoadingTenants}
             >
-              <Radio value="http">HTTP Proxy</Radio>
-              <Radio value="mcp">MCP Proxy</Radio>
-            </RadioGroup>
+              {tenants.length > 0 ? (
+                tenants.filter(tenant => tenant.isActive).map(tenant => (
+                  <SelectItem key={tenant.name} textValue={tenant.name}>
+                    {tenant.name}
+                    {tenant.prefix && <span className="text-tiny text-default-400"> ({tenant.prefix})</span>}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem key="default">default</SelectItem>
+              )}
+            </Select>
+            
+            <div className="mt-2">
+              <h3 className="text-sm font-medium mb-2">{t('gateway.created_at')}: {new Date().toLocaleString()}</h3>
+              <h3 className="text-sm font-medium mb-2">{t('gateway.updated_at')}: {new Date().toLocaleString()}</h3>
+            </div>
           </div>
-          
-          {proxyType === "http" && (
-            <>
+
+          <Tabs aria-label="Configuration sections" className="w-full" disableAnimation>
+            <Tab key="http-servers" title={t('gateway.http_servers')}>
+              <ServersConfig
+                parsedConfig={parsedConfig || defaultConfig}
+                serverFormState={serverFormState}
+                setServerFormState={setServerFormState}
+                updateConfig={updateConfig}
+              />
+            </Tab>
+            <Tab key="mcp-servers" title={t('gateway.mcp_servers')}>
+              <MCPServersConfig
+                parsedConfig={parsedConfig || defaultMCPConfig}
+                mcpServerFormState={mcpServerFormState}
+                envFormState={envFormState}
+                setMcpServerFormState={setMcpServerFormState}
+                updateConfig={updateConfig}
+                addEnvVariable={addEnvVariable}
+                removeEnvVariable={removeEnvVariable}
+                updateEnvVariable={updateEnvVariable}
+                newEnvKey={newEnvKey}
+                newEnvValue={newEnvValue}
+                setNewEnvKey={setNewEnvKey}
+                setNewEnvValue={setNewEnvValue}
+              />
+            </Tab>
+            <Tab key="tools" title={t('gateway.tools')}>
               <ToolsConfig
                 parsedConfig={parsedConfig || defaultConfig}
                 toolFormState={toolFormState}
@@ -675,49 +599,26 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                 removeHeader={removeHeader}
                 updateHeader={updateHeader}
               />
-              
-              <ServersConfig
+            </Tab>
+            <Tab key="routers" title={t('gateway.routers')}>
+              <RouterConfig
                 parsedConfig={parsedConfig || defaultConfig}
-                serverFormState={serverFormState}
-                setServerFormState={setServerFormState}
+                routerFormState={routerFormState}
+                setRouterFormState={setRouterFormState}
                 updateConfig={updateConfig}
+                tenants={tenants}
+                selectedMethod={selectedMethod}
+                setSelectedMethod={setSelectedMethod}
+                newOrigin={newOrigin}
+                setNewOrigin={setNewOrigin}
+                newExposeHeader={newExposeHeader}
+                setNewExposeHeader={setNewExposeHeader}
+                newHeader={newHeader}
+                setNewHeader={setNewHeader}
+                renderServerOptions={renderServerOptions}
               />
-            </>
-          )}
-          
-          {proxyType === "mcp" && (
-            <MCPServersConfig
-              parsedConfig={parsedConfig || defaultMCPConfig}
-              mcpServerFormState={mcpServerFormState}
-              envFormState={envFormState}
-              setMcpServerFormState={setMcpServerFormState}
-              updateConfig={updateConfig}
-              addEnvVariable={addEnvVariable}
-              removeEnvVariable={removeEnvVariable}
-              updateEnvVariable={updateEnvVariable}
-              newEnvKey={newEnvKey}
-              newEnvValue={newEnvValue}
-              setNewEnvKey={setNewEnvKey}
-              setNewEnvValue={setNewEnvValue}
-            />
-          )}
-          
-          <RouterConfig
-            parsedConfig={parsedConfig || (proxyType === "mcp" ? defaultMCPConfig : defaultConfig)}
-            routerFormState={routerFormState}
-            setRouterFormState={setRouterFormState}
-            updateConfig={updateConfig}
-            tenants={tenants}
-            selectedMethod={selectedMethod}
-            setSelectedMethod={setSelectedMethod}
-            newOrigin={newOrigin}
-            setNewOrigin={setNewOrigin}
-            newExposeHeader={newExposeHeader}
-            setNewExposeHeader={setNewExposeHeader}
-            newHeader={newHeader}
-            setNewHeader={setNewHeader}
-            renderServerOptions={renderServerOptions}
-          />
+            </Tab>
+          </Tabs>
         </div>
       )}
     </div>
