@@ -6,7 +6,7 @@ import { GatewayConfig, CorsConfig, Tenant } from '../types';
 interface RouterConfigProps {
   parsedConfig: GatewayConfig;
   routerFormState: {[routerIndex: number]: {prefix?: string; server?: string}};
-  setRouterFormState: (state: {[routerIndex: number]: {prefix?: string; server?: string}}) => void;
+  setRouterFormState: (state: {[routerIndex: number]: {prefix?: string; server?: string}} | ((prev: {[routerIndex: number]: {prefix?: string; server?: string}}) => {[routerIndex: number]: {prefix?: string; server?: string}})) => void;
   updateConfig: (newData: Partial<GatewayConfig>) => void;
   tenants: Tenant[];
   selectedMethod: {[routerIndex: number]: string};
@@ -336,7 +336,7 @@ export function RouterConfig({
                 const pathPart = e.target.value.trim();
                 const fullPrefix = `${selectedTenant?.prefix}${pathPart}`;
                 
-                setRouterFormState(prev => ({
+                setRouterFormState((prev: {[routerIndex: number]: {prefix?: string; server?: string}}) => ({
                   ...prev,
                   [index]: {
                     ...(prev[index] || {}),
@@ -352,7 +352,7 @@ export function RouterConfig({
               className="flex-1"
               aria-label={t('gateway.server')}
               onChange={(e) => {
-                setRouterFormState(prev => ({
+                setRouterFormState((prev: {[routerIndex: number]: {prefix?: string; server?: string}}) => ({
                   ...prev,
                   [index]: {
                     ...(prev[index] || {}),
@@ -420,7 +420,7 @@ export function RouterConfig({
       {/* 添加路由按钮 */}
       <Button
         color="primary"
-        className="mt-2"
+        className="mt-2 w-full"
         onPress={() => {
           const updatedRouters = [...routers];
           const serverName = parsedConfig?.servers?.[0]?.name || parsedConfig?.mcpServers?.[0]?.name || "";

@@ -171,7 +171,8 @@
     "allow_headers": "允许的头部",
     "expose_headers": "暴露的头部",
     "credentials": "允许携带凭证",
-    "http_method": "HTTP方法"
+    "http_method": "HTTP方法",
+    "add_server": "添加服务器"
   },
   "chat": {
     "title": "聊天",

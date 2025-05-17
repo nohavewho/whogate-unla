@@ -211,7 +211,7 @@ export function ToolsConfig({
       {/* 添加工具按钮 */}
       <Button
         color="primary"
-        className="mt-2"
+        className="mt-2 w-full"
         onPress={() => {
           const updatedTools = parsedConfig?.tools ? [...parsedConfig.tools] : [];
           updatedTools.push({ 

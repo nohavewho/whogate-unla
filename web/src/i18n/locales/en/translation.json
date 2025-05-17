@@ -161,7 +161,9 @@
     "command": "Command",
     "args": "Arguments",
     "env_variables": "Environment Variables",
-    "url": "URL"
+    "url": "URL",
+    "http_method": "HTTP Method",
+    "add_server": "Add Server"
   },
   "chat": {
     "title": "Chat",

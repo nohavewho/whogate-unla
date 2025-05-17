@@ -6,7 +6,7 @@ import { GatewayConfig } from '../types';
 interface ServersConfigProps {
   parsedConfig: GatewayConfig;
   serverFormState: {[serverIndex: number]: {name?: string; description?: string}};
-  setServerFormState: (state: {[serverIndex: number]: {name?: string; description?: string}}) => void;
+  setServerFormState: (state: {[serverIndex: number]: {name?: string; description?: string}} | ((prev: {[serverIndex: number]: {name?: string; description?: string}}) => {[serverIndex: number]: {name?: string; description?: string}})) => void;
   updateConfig: (newData: Partial<GatewayConfig>) => void;
 }
 
@@ -19,37 +19,67 @@ export function ServersConfig({
   const { t } = useTranslation();
   const servers = parsedConfig?.servers || [{ name: "", description: "", allowedTools: [] }];
 
+  const addServer = () => {
+    const newServer = {
+      name: "",
+      description: "",
+      allowedTools: []
+    };
+    updateConfig({
+      servers: [...servers, newServer]
+    });
+  };
+
+  const removeServer = (index: number) => {
+    const updatedServers = servers.filter((_, i) => i !== index);
+    updateConfig({
+      servers: updatedServers
+    });
+  };
+
   return (
     <div className="border-t pt-4 mt-2">
       <h3 className="text-sm font-medium mb-2">{t('gateway.server_config')}</h3>
       {servers.map((server, index) => (
         <div key={index} className="flex flex-col gap-2 mb-4 p-3 border rounded-md">
-          <Input
-            label={t('gateway.server_name')}
-            value={serverFormState[index]?.name !== undefined ? serverFormState[index].name : (server.name || "")}
-            onChange={(e) => {
-              setServerFormState(prev => ({
-                ...prev,
-                [index]: {
-                  ...(prev[index] || {}),
-                  name: e.target.value
-                }
-              }));
-            }}
-          />
-          <Input
-            label={t('gateway.description')}
-            value={serverFormState[index]?.description !== undefined ? serverFormState[index].description : (server.description || "")}
-            onChange={(e) => {
-              setServerFormState(prev => ({
-                ...prev,
-                [index]: {
-                  ...(prev[index] || {}),
-                  description: e.target.value
-                }
-              }));
-            }}
-          />
+          <div className="flex justify-between items-center">
+            <div className="flex-1 flex flex-row gap-4">
+              <Input
+                label={t('gateway.server_name')}
+                value={serverFormState[index]?.name !== undefined ? serverFormState[index].name : (server.name || "")}
+                onChange={(e) => {
+                  setServerFormState((prev) => ({
+                    ...prev,
+                    [index]: {
+                      ...(prev[index] || {}),
+                      name: e.target.value
+                    }
+                  }));
+                }}
+              />
+              <Input
+                label={t('gateway.description')}
+                value={serverFormState[index]?.description !== undefined ? serverFormState[index].description : (server.description || "")}
+                onChange={(e) => {
+                  setServerFormState((prev) => ({
+                    ...prev,
+                    [index]: {
+                      ...(prev[index] || {}),
+                      description: e.target.value
+                    }
+                  }));
+                }}
+              />
+            </div>
+            <Button
+              color="danger"
+              isIconOnly
+              className="ml-2"
+              onPress={() => removeServer(index)}
+            >
+              ✕
+            </Button>
+          </div>
           <div>
             <h4 className="text-sm font-medium mb-2">{t('gateway.allowed_tools')}</h4>
             <div className="flex flex-wrap gap-1">
@@ -111,6 +141,14 @@ export function ServersConfig({
           </div>
         </div>
       ))}
+      <Button
+        size="sm"
+        color="primary"
+        onPress={addServer}
+        className="w-full"
+      >
+        {t('gateway.add_server')}
+      </Button>
     </div>
   );
 } 
