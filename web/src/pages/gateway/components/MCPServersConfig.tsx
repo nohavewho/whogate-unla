@@ -134,60 +134,75 @@ export function MCPServersConfig({
               
               <div className="mt-2">
                 <h4 className="text-sm font-medium mb-2">{t('gateway.env_variables')}</h4>
-                {Object.keys(server.env || {}).map((key, envIndex) => (
-                  <div key={envIndex} className="flex items-center gap-2 mb-2">
-                    <Input
-                      className="flex-1"
-                      value={(envFormState[index]?.[envIndex]?.key !== undefined) 
-                             ? envFormState[index][envIndex].key 
-                             : key}
-                      onChange={(e) => {
-                        updateEnvVariable(index, envIndex, {
-                          key: e.target.value
-                        });
-                      }}
-                    />
-                    <Input
-                      className="flex-1"
-                      value={(envFormState[index]?.[envIndex]?.value !== undefined)
-                             ? envFormState[index][envIndex].value
-                             : (server.env?.[key] || "")}
-                      onChange={(e) => {
-                        updateEnvVariable(index, envIndex, {
-                          value: e.target.value
-                        });
-                      }}
-                    />
-                    <Button
-                      color="danger"
-                      isIconOnly
-                      size="sm"
-                      onPress={() => removeEnvVariable(index, envIndex)}
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
-                
-                <div className="flex items-center gap-2 mt-2">
-                  <Input
-                    className="flex-1"
-                    placeholder="KEY"
-                    value={newEnvKey}
-                    onChange={(e) => setNewEnvKey(e.target.value)}
-                  />
-                  <Input
-                    className="flex-1"
-                    placeholder="VALUE"
-                    value={newEnvValue}
-                    onChange={(e) => setNewEnvValue(e.target.value)}
-                  />
+                <div className="flex flex-col gap-2">
+                  {(envFormState[index] || []).map((env, envIndex) => (
+                    <div key={envIndex} className="flex items-center gap-2">
+                      <Input
+                        className="flex-1"
+                        value={env.key}
+                        onChange={(e) => {
+                          updateEnvVariable(index, envIndex, {
+                            key: e.target.value
+                          });
+                        }}
+                        placeholder="环境变量名称"
+                      />
+                      <Input
+                        className="flex-1"
+                        value={env.value}
+                        onChange={(e) => {
+                          updateEnvVariable(index, envIndex, {
+                            value: e.target.value
+                          });
+                        }}
+                        placeholder="环境变量值"
+                      />
+                      <Button
+                        color="danger"
+                        isIconOnly
+                        onPress={() => removeEnvVariable(index, envIndex)}
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ))}
+                  
                   <Button
                     color="primary"
                     size="sm"
-                    onPress={() => addEnvVariable(index, newEnvKey, newEnvValue)}
+                    className="mt-1"
+                    onPress={() => {
+                      let newKey = "API_KEY";
+                      let count = 1;
+                      
+                      const commonEnvVars = [
+                        "AUTH_TOKEN", 
+                        "OPENAI_API_KEY", 
+                        "ANTHROPIC_API_KEY", 
+                        "GITHUB_TOKEN", 
+                        "MODEL_NAME"
+                      ];
+                      
+                      const existingKeys = (envFormState[index] || []).map(env => env.key);
+                      
+                      for (const envVar of commonEnvVars) {
+                        if (!existingKeys.includes(envVar)) {
+                          newKey = envVar;
+                          break;
+                        }
+                      }
+                      
+                      if (existingKeys.includes(newKey)) {
+                        while (existingKeys.includes(`ENV_VAR_${count}`)) {
+                          count++;
+                        }
+                        newKey = `ENV_VAR_${count}`;
+                      }
+                      
+                      addEnvVariable(index, newKey);
+                    }}
                   >
-                    +
+                    添加环境变量
                   </Button>
                 </div>
               </div>

@@ -140,7 +140,6 @@ export function ToolsConfig({
                     "Accept", 
                     "X-API-Key", 
                     "User-Agent", 
-                    "Cache-Control"
                   ];
                   
                   const existingKeys = tool.headersOrder || Object.keys(tool.headers || {});
