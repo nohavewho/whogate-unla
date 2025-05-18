@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { getTenants } from '../../../services/api';
 import { getRandomLetters } from "../../../utils/utils";
-import { defaultConfig, defaultMCPConfig } from '../constants/defaultConfig';
+import { defaultConfig } from '../constants/defaultConfig';
 import { ConfigEditorProps, GatewayConfig, HeadersFormState, EnvFormState, KeyValueItem, Tenant } from '../types';
 
 import { MCPServersConfig } from './MCPServersConfig';
@@ -188,7 +188,7 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
     }
   }, [parsedConfig?.routers]);
 
-  // 初始化MCP服务器表单状态
+  // 初始化MCP服务表单状态
   useEffect(() => {
     if (parsedConfig?.mcpServers) {
       const initialFormState: Record<number, any> = parsedConfig.mcpServers.reduce((acc: Record<number, any>, server, idx) => {
@@ -564,6 +564,18 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
           </div>
 
           <Tabs aria-label="Configuration sections" className="w-full" disableAnimation>
+            <Tab key="tools" title={t('gateway.tools')}>
+              <ToolsConfig
+                parsedConfig={parsedConfig || defaultConfig}
+                toolFormState={toolFormState}
+                headerFormState={headerFormState}
+                setToolFormState={setToolFormState}
+                updateConfig={updateConfig}
+                addHeader={addHeader}
+                removeHeader={removeHeader}
+                updateHeader={updateHeader}
+              />
+            </Tab>
             <Tab key="http-servers" title={t('gateway.http_servers')}>
               <ServersConfig
                 parsedConfig={parsedConfig || defaultConfig}
@@ -574,7 +586,7 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
             </Tab>
             <Tab key="mcp-servers" title={t('gateway.mcp_servers')}>
               <MCPServersConfig
-                parsedConfig={parsedConfig || defaultMCPConfig}
+                parsedConfig={parsedConfig || defaultConfig}
                 mcpServerFormState={mcpServerFormState}
                 envFormState={envFormState}
                 setMcpServerFormState={setMcpServerFormState}
@@ -586,18 +598,6 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
                 newEnvValue={newEnvValue}
                 setNewEnvKey={setNewEnvKey}
                 setNewEnvValue={setNewEnvValue}
-              />
-            </Tab>
-            <Tab key="tools" title={t('gateway.tools')}>
-              <ToolsConfig
-                parsedConfig={parsedConfig || defaultConfig}
-                toolFormState={toolFormState}
-                headerFormState={headerFormState}
-                setToolFormState={setToolFormState}
-                updateConfig={updateConfig}
-                addHeader={addHeader}
-                removeHeader={removeHeader}
-                updateHeader={updateHeader}
               />
             </Tab>
             <Tab key="routers" title={t('gateway.routers')}>

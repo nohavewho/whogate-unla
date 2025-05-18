@@ -876,7 +876,7 @@ export function GatewayManager() {
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         size="3xl"
-        className="w-[70%] h-[70%]"
+        className="w-[70%] h-[80%]"
         scrollBehavior="inside"
       >
         <ModalContent>
@@ -909,7 +909,7 @@ export function GatewayManager() {
         isOpen={isCreateOpen}
         onOpenChange={onCreateOpenChange}
         size="3xl"
-        className="w-[70%] h-[70%]"
+        className="w-[70%] h-[80%]"
         scrollBehavior="inside"
       >
         <ModalContent>

@@ -35,24 +35,56 @@ export function MCPServersConfig({
   const { t } = useTranslation();
   const mcpServers = parsedConfig?.mcpServers || [{ type: "stdio", name: "", command: "", args: [], env: {} }];
 
+  const addServer = () => {
+    const newServer = {
+      type: "stdio",
+      name: "",
+      command: "",
+      args: [],
+      env: {}
+    };
+    updateConfig({
+      mcpServers: [...mcpServers, newServer]
+    });
+  };
+
+  const removeServer = (index: number) => {
+    const updatedServers = mcpServers.filter((_, i) => i !== index);
+    updateConfig({
+      mcpServers: updatedServers
+    });
+  };
+
   return (
     <div className="border-t pt-4 mt-2">
       <h3 className="text-sm font-medium mb-2">{t('gateway.mcp_server_config')}</h3>
       {mcpServers.map((server, index) => (
         <div key={index} className="flex flex-col gap-2 mb-4 p-3 border rounded-md">
-          <Input
-            label={t('gateway.server_name')}
-            value={mcpServerFormState[index]?.name !== undefined ? mcpServerFormState[index].name : (server.name || "")}
-            onChange={(e) => {
-              setMcpServerFormState(prev => ({
-                ...prev,
-                [index]: {
-                  ...(prev[index] || {}),
-                  name: e.target.value
-                }
-              }));
-            }}
-          />
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              <Input
+                label={t('gateway.server_name')}
+                value={mcpServerFormState[index]?.name !== undefined ? mcpServerFormState[index].name : (server.name || "")}
+                onChange={(e) => {
+                  setMcpServerFormState(prev => ({
+                    ...prev,
+                    [index]: {
+                      ...(prev[index] || {}),
+                      name: e.target.value
+                    }
+                  }));
+                }}
+              />
+            </div>
+            <Button
+              color="danger"
+              isIconOnly
+              className="ml-2"
+              onPress={() => removeServer(index)}
+            >
+              ✕
+            </Button>
+          </div>
           
           <Select
             label={t('gateway.mcp_type')}
@@ -179,6 +211,14 @@ export function MCPServersConfig({
           )}
         </div>
       ))}
+      <Button
+        size="sm"
+        color="primary"
+        onPress={addServer}
+        className="w-full"
+      >
+        {t('gateway.add_mcp_server')}
+      </Button>
     </div>
   );
 } 
