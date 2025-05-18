@@ -1,49 +1,67 @@
 import { Input, Select, SelectItem, Button, Switch, Chip } from "@heroui/react";
+import { useState } from "react";
 import { useTranslation } from 'react-i18next';
 
 import { GatewayConfig, CorsConfig, Tenant } from '../types';
 
 interface RouterConfigProps {
   parsedConfig: GatewayConfig;
-  routerFormState: {[routerIndex: number]: {prefix?: string; server?: string}};
-  setRouterFormState: (state: {[routerIndex: number]: {prefix?: string; server?: string}} | ((prev: {[routerIndex: number]: {prefix?: string; server?: string}}) => {[routerIndex: number]: {prefix?: string; server?: string}})) => void;
   updateConfig: (newData: Partial<GatewayConfig>) => void;
   tenants: Tenant[];
-  selectedMethod: {[routerIndex: number]: string};
-  setSelectedMethod: (state: {[routerIndex: number]: string}) => void;
-  newOrigin: {[routerIndex: number]: string};
-  setNewOrigin: (state: {[routerIndex: number]: string}) => void;
-  newExposeHeader: {[routerIndex: number]: string};
-  setNewExposeHeader: (state: {[routerIndex: number]: string}) => void;
-  newHeader: {[routerIndex: number]: string};
-  setNewHeader: (state: {[routerIndex: number]: string}) => void;
-  renderServerOptions: () => JSX.Element[];
 }
 
 export function RouterConfig({
   parsedConfig,
-  routerFormState,
-  setRouterFormState,
   updateConfig,
   tenants,
-  selectedMethod,
-  setSelectedMethod,
-  newOrigin,
-  setNewOrigin,
-  newExposeHeader,
-  setNewExposeHeader,
-  newHeader,
-  setNewHeader,
-  renderServerOptions
 }: RouterConfigProps) {
   const { t } = useTranslation();
   const selectedTenant = tenants.find(t => t.name === parsedConfig?.tenant);
   const routers = parsedConfig?.routers || [{ server: "", prefix: "/" }];
 
+  // Add state for input values
+  const [originInput, setOriginInput] = useState("");
+  const [headerInput, setHeaderInput] = useState("");
+  const [exposeHeaderInput, setExposeHeaderInput] = useState("");
+
+  const updateRouter = (index: number, field: string, value: string) => {
+    const updatedRouters = [...routers];
+    updatedRouters[index] = {
+      ...updatedRouters[index],
+      [field]: value
+    };
+    updateConfig({ routers: updatedRouters });
+  };
+
   const renderCorsConfig = (router: { cors?: Record<string, unknown> }, index: number) => {
     const corsConfig = router.cors as CorsConfig;
     if (!corsConfig) return null;
-    
+
+    const updateCors = (updates: Partial<CorsConfig>) => {
+      const updatedCors = { ...corsConfig, ...updates };
+      const updatedRouters = routers.map((r, i) =>
+        i === index ? { ...r, cors: updatedCors } : r
+      );
+      updateConfig({ routers: updatedRouters });
+    };
+
+    const addCorsItem = (field: keyof CorsConfig, value: string) => {
+      if (!value?.trim()) return;
+      const currentValues = corsConfig[field] as string[] || [];
+      if (!currentValues.includes(value.trim())) {
+        updateCors({
+          [field]: [...currentValues, value.trim()]
+        });
+      }
+    };
+
+    const removeCorsItem = (field: keyof CorsConfig, itemIndex: number) => {
+      const currentValues = corsConfig[field] as string[] || [];
+      updateCors({
+        [field]: currentValues.filter((_, i) => i !== itemIndex)
+      });
+    };
+
     return (
       <div className="mt-2 pl-4 border-l-2 border-gray-200">
         {/* 允许的源 */}
@@ -51,74 +69,48 @@ export function RouterConfig({
           <h4 className="text-sm font-medium mb-1">{t('gateway.allow_origins')}</h4>
           <div className="flex flex-wrap gap-1 mb-1">
             {(corsConfig.allowOrigins || []).map((origin: string, originIndex: number) => (
-              <Chip 
+              <Chip
                 key={originIndex}
-                onClose={() => {
-                  const updatedCors = {...corsConfig};
-                  updatedCors.allowOrigins = (updatedCors.allowOrigins || []).filter((_: string, i: number) => i !== originIndex);
-                  updateConfig({
-                    routers: routers.map((r, i) => 
-                      i === index ? { ...r, cors: updatedCors } : r
-                    )
-                  });
-                }}
+                onClose={() => removeCorsItem('allowOrigins', originIndex)}
               >
                 {origin}
               </Chip>
             ))}
           </div>
           <div className="flex gap-2">
-            <Input 
+            <Input
               size="sm"
               placeholder="例如: https://example.com 或 *"
               className="flex-1"
-              value={newOrigin[index] || ''}
-              onChange={(e) => {
-                setNewOrigin({
-                  ...newOrigin,
-                  [index]: e.target.value
-                });
+              value={originInput}
+              onChange={(e) => setOriginInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  addCorsItem('allowOrigins', originInput);
+                  setOriginInput('');
+                }
               }}
             />
             <Button
               size="sm"
               onPress={() => {
-                if (newOrigin[index]?.trim()) {
-                  const updatedCors = {...corsConfig};
-                  updatedCors.allowOrigins = [...(updatedCors.allowOrigins || []), newOrigin[index].trim()];
-                  updateConfig({
-                    routers: routers.map((r, i) => 
-                      i === index ? { ...r, cors: updatedCors } : r
-                    )
-                  });
-                  setNewOrigin({
-                    ...newOrigin,
-                    [index]: ''
-                  });
-                }
+                addCorsItem('allowOrigins', originInput);
+                setOriginInput('');
               }}
             >
               {t('common.add')}
             </Button>
           </div>
         </div>
-        
+
         {/* 允许的方法 */}
         <div className="mb-3">
           <h4 className="text-sm font-medium mb-1">{t('gateway.allow_methods')}</h4>
           <div className="flex flex-wrap gap-1 mb-1">
             {(corsConfig.allowMethods || []).map((method: string, methodIndex: number) => (
-              <Chip 
+              <Chip
                 key={methodIndex}
-                onClose={() => {
-                  const updatedCors = {...corsConfig};
-                  updatedCors.allowMethods = (updatedCors.allowMethods || []).filter((_: string, i: number) => i !== methodIndex);
-                  updateConfig({
-                    routers: routers.map((r, i) => 
-                      i === index ? { ...r, cors: updatedCors } : r
-                    )
-                  });
-                }}
+                onClose={() => removeCorsItem('allowMethods', methodIndex)}
               >
                 {method}
               </Chip>
@@ -130,73 +122,41 @@ export function RouterConfig({
               className="flex-1"
               id={`method-select-${index}`}
               aria-label={t('gateway.http_method')}
-              selectedKeys={selectedMethod[index] ? [selectedMethod[index]] : []}
-              onChange={(e) => {
-                setSelectedMethod({
-                  ...selectedMethod,
-                  [index]: e.target.value
-                });
-              }}
+              onChange={(e) => addCorsItem('allowMethods', e.target.value)}
             >
               {['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'].map(method => (
                 <SelectItem key={method}>{method}</SelectItem>
               ))}
             </Select>
-            <Button
-              size="sm"
-              onPress={() => {
-                if (selectedMethod[index]) {
-                  const method = selectedMethod[index];
-                  const updatedCors = {...corsConfig};
-                  if (!(updatedCors.allowMethods || []).includes(method)) {
-                    updatedCors.allowMethods = [...(updatedCors.allowMethods || []), method];
-                    updateConfig({
-                      routers: routers.map((r, i) => 
-                        i === index ? { ...r, cors: updatedCors } : r
-                      )
-                    });
-                  }
-                }
-              }}
-            >
-              {t('common.add')}
-            </Button>
           </div>
         </div>
-        
+
         {/* 允许的头部 */}
         <div className="mb-3">
           <h4 className="text-sm font-medium mb-1">{t('gateway.allow_headers')}</h4>
           <div className="flex flex-wrap gap-1 mb-1">
             {(corsConfig.allowHeaders || []).map((header: string, headerIndex: number) => (
-              <Chip 
+              <Chip
                 key={headerIndex}
-                onClose={() => {
-                  const updatedCors = {...corsConfig};
-                  updatedCors.allowHeaders = (updatedCors.allowHeaders || []).filter((_: string, i: number) => i !== headerIndex);
-                  updateConfig({
-                    routers: routers.map((r, i) => 
-                      i === index ? { ...r, cors: updatedCors } : r
-                    )
-                  });
-                }}
+                onClose={() => removeCorsItem('allowHeaders', headerIndex)}
               >
                 {header}
               </Chip>
             ))}
           </div>
           <div className="flex gap-2">
-            <Input 
+            <Input
               size="sm"
               placeholder="例如: Content-Type"
               className="flex-1"
+              value={headerInput}
+              onChange={(e) => setHeaderInput(e.target.value)}
               list={`common-headers-${index}`}
-              value={newHeader[index] || ''}
-              onChange={(e) => {
-                setNewHeader({
-                  ...newHeader,
-                  [index]: e.target.value
-                });
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  addCorsItem('allowHeaders', headerInput);
+                  setHeaderInput('');
+                }
               }}
             />
             <datalist id={`common-headers-${index}`}>
@@ -210,59 +170,41 @@ export function RouterConfig({
             <Button
               size="sm"
               onPress={() => {
-                if (newHeader[index]?.trim()) {
-                  const updatedCors = {...corsConfig};
-                  updatedCors.allowHeaders = [...(updatedCors.allowHeaders || []), newHeader[index].trim()];
-                  updateConfig({
-                    routers: routers.map((r, i) => 
-                      i === index ? { ...r, cors: updatedCors } : r
-                    )
-                  });
-                  setNewHeader({
-                    ...newHeader,
-                    [index]: ''
-                  });
-                }
+                addCorsItem('allowHeaders', headerInput);
+                setHeaderInput('');
               }}
             >
               {t('common.add')}
             </Button>
           </div>
         </div>
-        
+
         {/* 暴露的头部 */}
         <div className="mb-3">
           <h4 className="text-sm font-medium mb-1">{t('gateway.expose_headers')}</h4>
           <div className="flex flex-wrap gap-1 mb-1">
             {(corsConfig.exposeHeaders || []).map((header: string, headerIndex: number) => (
-              <Chip 
+              <Chip
                 key={headerIndex}
-                onClose={() => {
-                  const updatedCors = {...corsConfig};
-                  updatedCors.exposeHeaders = (updatedCors.exposeHeaders || []).filter((_: string, i: number) => i !== headerIndex);
-                  updateConfig({
-                    routers: routers.map((r, i) => 
-                      i === index ? { ...r, cors: updatedCors } : r
-                    )
-                  });
-                }}
+                onClose={() => removeCorsItem('exposeHeaders', headerIndex)}
               >
                 {header}
               </Chip>
             ))}
           </div>
           <div className="flex gap-2">
-            <Input 
+            <Input
               size="sm"
               placeholder="例如: Content-Length"
               className="flex-1"
+              value={exposeHeaderInput}
+              onChange={(e) => setExposeHeaderInput(e.target.value)}
               list={`common-expose-headers-${index}`}
-              value={newExposeHeader[index] || ''}
-              onChange={(e) => {
-                setNewExposeHeader({
-                  ...newExposeHeader,
-                  [index]: e.target.value
-                });
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  addCorsItem('exposeHeaders', exposeHeaderInput);
+                  setExposeHeaderInput('');
+                }
               }}
             />
             <datalist id={`common-expose-headers-${index}`}>
@@ -273,40 +215,21 @@ export function RouterConfig({
             <Button
               size="sm"
               onPress={() => {
-                if (newExposeHeader[index]?.trim()) {
-                  const updatedCors = {...corsConfig};
-                  updatedCors.exposeHeaders = [...(updatedCors.exposeHeaders || []), newExposeHeader[index].trim()];
-                  updateConfig({
-                    routers: routers.map((r, i) => 
-                      i === index ? { ...r, cors: updatedCors } : r
-                    )
-                  });
-                  setNewExposeHeader({
-                    ...newExposeHeader,
-                    [index]: ''
-                  });
-                }
+                addCorsItem('exposeHeaders', exposeHeaderInput);
+                setExposeHeaderInput('');
               }}
             >
               {t('common.add')}
             </Button>
           </div>
         </div>
-        
+
         {/* 允许携带凭证 */}
         <div className="mb-3 flex items-center gap-2">
-          <Switch 
+          <Switch
             size="sm"
             isSelected={Boolean(corsConfig.allowCredentials)}
-            onValueChange={(isSelected) => {
-              const updatedCors = {...corsConfig};
-              updatedCors.allowCredentials = isSelected;
-              updateConfig({
-                routers: routers.map((r, i) => 
-                  i === index ? { ...r, cors: updatedCors } : r
-                )
-              });
-            }}
+            onValueChange={(isSelected) => updateCors({ allowCredentials: isSelected })}
           />
           <span className="text-sm">{t('gateway.credentials')}</span>
         </div>
@@ -322,11 +245,7 @@ export function RouterConfig({
           <div className="flex gap-2">
             <Input
               label={t('gateway.prefix')}
-              value={
-                routerFormState[index]?.prefix !== undefined 
-                  ? routerFormState[index].prefix.replace(selectedTenant?.prefix || "", "")
-                  : (router.prefix || "").replace(selectedTenant?.prefix || "", "")
-              }
+              value={(router.prefix || "").replace(selectedTenant?.prefix || "", "")}
               startContent={
                 <div className="pointer-events-none flex items-center">
                   <span className="text-default-400 text-small">{selectedTenant?.prefix}</span>
@@ -335,33 +254,29 @@ export function RouterConfig({
               onChange={(e) => {
                 const pathPart = e.target.value.trim();
                 const fullPrefix = `${selectedTenant?.prefix}${pathPart}`;
-                
-                setRouterFormState((prev: {[routerIndex: number]: {prefix?: string; server?: string}}) => ({
-                  ...prev,
-                  [index]: {
-                    ...(prev[index] || {}),
-                    prefix: fullPrefix
-                  }
-                }));
+                updateRouter(index, 'prefix', fullPrefix);
               }}
               className="flex-1"
             />
             <Select
               label={t('gateway.server')}
-              selectedKeys={routerFormState[index]?.server !== undefined ? [routerFormState[index].server] : (router.server ? [router.server] : [])}
+              selectedKeys={router.server ? [router.server] : []}
               className="flex-1"
               aria-label={t('gateway.server')}
-              onChange={(e) => {
-                setRouterFormState((prev: {[routerIndex: number]: {prefix?: string; server?: string}}) => ({
-                  ...prev,
-                  [index]: {
-                    ...(prev[index] || {}),
-                    server: e.target.value
-                  }
-                }));
-              }}
+              onChange={(e) => updateRouter(index, 'server', e.target.value)}
             >
-              {renderServerOptions()}
+              <>
+                {(parsedConfig?.servers || []).map(server => (
+                  <SelectItem key={server.name}>
+                    {server.name}
+                  </SelectItem>
+                ))}
+                {(parsedConfig?.mcpServers || []).map(server => (
+                  <SelectItem key={server.name}>
+                    {server.name}
+                  </SelectItem>
+                ))}
+              </>
             </Select>
             <Button
               isIconOnly
@@ -379,17 +294,17 @@ export function RouterConfig({
               ✕
             </Button>
           </div>
-          
+
           {/* CORS配置部分 */}
           <div className="mt-3">
             <div className="flex items-center gap-2">
-              <Switch 
+              <Switch
                 size="sm"
                 isSelected={Boolean(router.cors)}
                 onValueChange={(isSelected) => {
                   if (isSelected) {
                     updateConfig({
-                      routers: routers.map((r, i) => 
+                      routers: routers.map((r, i) =>
                         i === index ? {
                           ...r,
                           cors: {
@@ -412,7 +327,7 @@ export function RouterConfig({
               />
               <span className="text-sm font-medium">{t('gateway.enable_cors')}</span>
             </div>
-            
+
             {router.cors && renderCorsConfig(router, index)}
           </div>
         </div>
@@ -424,10 +339,10 @@ export function RouterConfig({
         onPress={() => {
           const updatedRouters = [...routers];
           const serverName = parsedConfig?.servers?.[0]?.name || parsedConfig?.mcpServers?.[0]?.name || "";
-          
-          updatedRouters.push({ 
+
+          updatedRouters.push({
             server: serverName,
-            prefix: '/' + Math.random().toString(36).substring(2, 6)
+            prefix: selectedTenant?.prefix + '/' + Math.random().toString(36).substring(2, 6)
           });
           updateConfig({ routers: updatedRouters });
         }}
@@ -436,4 +351,4 @@ export function RouterConfig({
       </Button>
     </div>
   );
-} 
+}

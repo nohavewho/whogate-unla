@@ -9,11 +9,3 @@ export const defaultConfig: GatewayConfig = {
   tools: [],
   mcpServers: []
 };
-
-// Default MCP configuration object
-export const defaultMCPConfig: GatewayConfig = {
-  name: "",
-  tenant: "default",
-  routers: [],
-  mcpServers: []
-}; 

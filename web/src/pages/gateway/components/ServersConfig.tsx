@@ -5,19 +5,37 @@ import { GatewayConfig } from '../types';
 
 interface ServersConfigProps {
   parsedConfig: GatewayConfig;
-  serverFormState: {[serverIndex: number]: {name?: string; description?: string}};
-  setServerFormState: (state: {[serverIndex: number]: {name?: string; description?: string}} | ((prev: {[serverIndex: number]: {name?: string; description?: string}}) => {[serverIndex: number]: {name?: string; description?: string}})) => void;
   updateConfig: (newData: Partial<GatewayConfig>) => void;
 }
 
 export function ServersConfig({
   parsedConfig,
-  serverFormState,
-  setServerFormState,
   updateConfig
 }: ServersConfigProps) {
   const { t } = useTranslation();
   const servers = parsedConfig?.servers || [{ name: "", description: "", allowedTools: [] }];
+
+  const updateServer = (index: number, field: 'name' | 'description', value: string) => {
+    const updatedServers = [...servers];
+    const oldName = updatedServers[index].name;
+    updatedServers[index] = {
+      ...updatedServers[index],
+      [field]: value
+    };
+
+    // If server name changed, update router references
+    if (field === 'name' && oldName !== value && parsedConfig.routers) {
+      const updatedRouters = parsedConfig.routers.map(router => {
+        if (router.server === oldName) {
+          return { ...router, server: value };
+        }
+        return router;
+      });
+      updateConfig({ servers: updatedServers, routers: updatedRouters });
+    } else {
+      updateConfig({ servers: updatedServers });
+    }
+  };
 
   const addServer = () => {
     const newServer = {
@@ -46,29 +64,13 @@ export function ServersConfig({
             <div className="flex-1 flex flex-row gap-4">
               <Input
                 label={t('gateway.server_name')}
-                value={serverFormState[index]?.name !== undefined ? serverFormState[index].name : (server.name || "")}
-                onChange={(e) => {
-                  setServerFormState((prev) => ({
-                    ...prev,
-                    [index]: {
-                      ...(prev[index] || {}),
-                      name: e.target.value
-                    }
-                  }));
-                }}
+                value={server.name || ""}
+                onChange={(e) => updateServer(index, 'name', e.target.value)}
               />
               <Input
                 label={t('gateway.description')}
-                value={serverFormState[index]?.description !== undefined ? serverFormState[index].description : (server.description || "")}
-                onChange={(e) => {
-                  setServerFormState((prev) => ({
-                    ...prev,
-                    [index]: {
-                      ...(prev[index] || {}),
-                      description: e.target.value
-                    }
-                  }));
-                }}
+                value={server.description || ""}
+                onChange={(e) => updateServer(index, 'description', e.target.value)}
               />
             </div>
             <Button
@@ -84,13 +86,13 @@ export function ServersConfig({
             <h4 className="text-sm font-medium mb-2">{t('gateway.allowed_tools')}</h4>
             <div className="flex flex-wrap gap-1">
               {server.allowedTools && server.allowedTools.map((tool, toolIndex) => (
-                <Chip 
+                <Chip
                   key={toolIndex}
                   onClose={() => {
                     const updated = [...server.allowedTools];
                     updated.splice(toolIndex, 1);
                     updateConfig({
-                      servers: servers.map((s, i) => 
+                      servers: servers.map((s, i) =>
                         i === index ? { ...s, allowedTools: updated } : s
                       )
                     });
@@ -106,7 +108,7 @@ export function ServersConfig({
                 {(parsedConfig?.tools || [])
                   .filter(tool => !server.allowedTools?.includes(tool.name || ""))
                   .map(tool => (
-                    <Button 
+                    <Button
                       key={tool.name}
                       size="sm"
                       variant="flat"
@@ -115,10 +117,10 @@ export function ServersConfig({
                       onPress={() => {
                         if (tool.name && server.allowedTools && !server.allowedTools.includes(tool.name)) {
                           updateConfig({
-                            servers: servers.map((s, i) => 
-                              i === index ? { 
-                                ...s, 
-                                allowedTools: [...s.allowedTools, tool.name] 
+                            servers: servers.map((s, i) =>
+                              i === index ? {
+                                ...s,
+                                allowedTools: [...s.allowedTools, tool.name]
                               } : s
                             )
                           });
@@ -129,7 +131,7 @@ export function ServersConfig({
                     </Button>
                   ))
                 }
-                {(parsedConfig?.tools || []).length > 0 && 
+                {(parsedConfig?.tools || []).length > 0 &&
                  (parsedConfig?.tools || []).every(tool => server.allowedTools?.includes(tool.name || "")) && (
                   <span className="text-sm text-gray-500">{t('gateway.tools')} {t('common.already')} {t('common.all')} {t('common.add')}</span>
                 )}
@@ -151,4 +153,4 @@ export function ServersConfig({
       </Button>
     </div>
   );
-} 
+}

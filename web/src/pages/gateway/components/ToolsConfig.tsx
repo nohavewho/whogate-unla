@@ -1,70 +1,154 @@
 import { Input, Select, SelectItem, Button } from "@heroui/react";
 import { useTranslation } from 'react-i18next';
 
-import { GatewayConfig, HeadersFormState, KeyValueItem } from '../types';
+import { GatewayConfig } from '../types';
 
 interface ToolsConfigProps {
   parsedConfig: GatewayConfig;
-  toolFormState: {[toolIndex: number]: {[field: string]: string}};
-  headerFormState: HeadersFormState;
-  setToolFormState: (state: {[toolIndex: number]: {[field: string]: string}}) => void;
   updateConfig: (newData: Partial<GatewayConfig>) => void;
-  addHeader: (toolIndex: number, key: string, value?: string) => void;
-  removeHeader: (toolIndex: number, headerIndex: number) => void;
-  updateHeader: (toolIndex: number, headerIndex: number, updates: Partial<KeyValueItem>) => void;
 }
 
 export function ToolsConfig({
   parsedConfig,
-  toolFormState,
-  headerFormState,
-  setToolFormState,
-  updateConfig,
-  addHeader,
-  removeHeader,
-  updateHeader
+  updateConfig
 }: ToolsConfigProps) {
   const { t } = useTranslation();
+  const tools = parsedConfig?.tools || [];
+
+  const updateTool = (index: number, field: string, value: string) => {
+    const updatedTools = [...tools];
+    const oldName = updatedTools[index].name;
+    updatedTools[index] = {
+      ...updatedTools[index],
+      [field]: value
+    };
+
+    // If tool name changed, update server references
+    if (field === 'name' && oldName !== value && parsedConfig.servers) {
+      const updatedServers = parsedConfig.servers.map(server => {
+        if (server.allowedTools) {
+          const updatedAllowedTools = server.allowedTools.map(toolName =>
+            toolName === oldName ? value : toolName
+          );
+          return { ...server, allowedTools: updatedAllowedTools };
+        }
+        return server;
+      });
+      updateConfig({ tools: updatedTools, servers: updatedServers });
+    } else {
+      updateConfig({ tools: updatedTools });
+    }
+  };
+
+  const updateHeader = (toolIndex: number, headerIndex: number, field: 'key' | 'value', value: string) => {
+    const updatedTools = [...tools];
+    const tool = updatedTools[toolIndex];
+    const headers = { ...tool.headers };
+    const headersOrder = [...(tool.headersOrder || Object.keys(headers))];
+
+    if (field === 'key') {
+      const oldKey = headersOrder[headerIndex];
+      const newKey = value;
+      if (oldKey !== newKey) {
+        // Update header key
+        headers[newKey] = headers[oldKey];
+        delete headers[oldKey];
+        headersOrder[headerIndex] = newKey;
+      }
+    } else {
+      // Update header value
+      headers[headersOrder[headerIndex]] = value;
+    }
+
+    updatedTools[toolIndex] = {
+      ...tool,
+      headers,
+      headersOrder
+    };
+
+    updateConfig({ tools: updatedTools });
+  };
+
+  const addHeader = (toolIndex: number) => {
+    const updatedTools = [...tools];
+    const tool = updatedTools[toolIndex];
+    const headers = { ...tool.headers };
+    const headersOrder = [...(tool.headersOrder || Object.keys(headers))];
+
+    let newKey = "Content-Type";
+    let count = 1;
+    
+    const commonHeaders = [
+      "Authorization", 
+      "Accept", 
+      "X-API-Key", 
+      "User-Agent", 
+    ];
+    
+    for (const header of commonHeaders) {
+      if (!headersOrder.includes(header)) {
+        newKey = header;
+        break;
+      }
+    }
+    
+    if (headersOrder.includes(newKey)) {
+      while (headersOrder.includes(`X-Header-${count}`)) {
+        count++;
+      }
+      newKey = `X-Header-${count}`;
+    }
+    
+    headers[newKey] = "";
+    headersOrder.push(newKey);
+
+    updatedTools[toolIndex] = {
+      ...tool,
+      headers,
+      headersOrder
+    };
+
+    updateConfig({ tools: updatedTools });
+  };
+
+  const removeHeader = (toolIndex: number, headerIndex: number) => {
+    const updatedTools = [...tools];
+    const tool = updatedTools[toolIndex];
+    const headers = { ...tool.headers };
+    const headersOrder = [...(tool.headersOrder || Object.keys(headers))];
+
+    const keyToRemove = headersOrder[headerIndex];
+    delete headers[keyToRemove];
+    headersOrder.splice(headerIndex, 1);
+
+    updatedTools[toolIndex] = {
+      ...tool,
+      headers,
+      headersOrder
+    };
+
+    updateConfig({ tools: updatedTools });
+  };
 
   return (
     <div className="border-t pt-4 mt-2">
       <h3 className="text-sm font-medium mb-2">{t('gateway.tools_config')}</h3>
-      {(parsedConfig?.tools || []).map((tool, index) => (
+      {tools.map((tool, index) => (
         <div key={index} className="flex flex-col gap-2 mb-4 p-3 border rounded-md">
           <Input
             label={t('gateway.tool_name')}
-            value={(toolFormState[index]?.name !== undefined) ? toolFormState[index]?.name : (tool.name || "")}
-            onChange={(e) => {
-              setToolFormState(prev => ({
-                ...prev,
-                [index]: {
-                  ...(prev[index] || {}),
-                  name: e.target.value
-                }
-              }));
-            }}
+            value={tool.name || ""}
+            onChange={(e) => updateTool(index, 'name', e.target.value)}
           />
           <Input
             label={t('gateway.description')}
-            value={(toolFormState[index]?.description !== undefined) ? toolFormState[index]?.description : (tool.description || "")}
-            onChange={(e) => {
-              setToolFormState(prev => ({
-                ...prev,
-                [index]: {
-                  ...(prev[index] || {}),
-                  description: e.target.value
-                }
-              }));
-            }}
+            value={tool.description || ""}
+            onChange={(e) => updateTool(index, 'description', e.target.value)}
           />
           <Select
             label={t('gateway.method')}
             selectedKeys={[tool.method || "GET"]}
-            onChange={(e) => {
-              const updatedTools = parsedConfig?.tools ? [...parsedConfig.tools] : [];
-              updatedTools[index] = { ...tool, method: e.target.value };
-              updateConfig({ tools: updatedTools });
-            }}
+            onChange={(e) => updateTool(index, 'method', e.target.value)}
             aria-label={t('gateway.method')}
           >
             <SelectItem key="GET">GET</SelectItem>
@@ -74,16 +158,8 @@ export function ToolsConfig({
           </Select>
           <Input
             label={t('gateway.endpoint')}
-            value={(toolFormState[index]?.endpoint !== undefined) ? toolFormState[index]?.endpoint : (tool.endpoint || "")}
-            onChange={(e) => {
-              setToolFormState(prev => ({
-                ...prev,
-                [index]: {
-                  ...(prev[index] || {}),
-                  endpoint: e.target.value
-                }
-              }));
-            }}
+            value={tool.endpoint || ""}
+            onChange={(e) => updateTool(index, 'endpoint', e.target.value)}
           />
           
           {/* Headers 配置 */}
@@ -94,26 +170,14 @@ export function ToolsConfig({
                 <div key={headerIndex} className="flex items-center gap-2">
                   <Input
                     className="flex-1"
-                    value={(headerFormState[index]?.[headerIndex]?.key !== undefined) 
-                      ? headerFormState[index][headerIndex].key 
-                      : key}
-                    onChange={(e) => {
-                      updateHeader(index, headerIndex, {
-                        key: e.target.value
-                      });
-                    }}
+                    value={key}
+                    onChange={(e) => updateHeader(index, headerIndex, 'key', e.target.value)}
                     placeholder="Header名称"
                   />
                   <Input
                     className="flex-1"
-                    value={(headerFormState[index]?.[headerIndex]?.value !== undefined)
-                      ? headerFormState[index][headerIndex].value
-                      : (tool.headers?.[key] || "")}
-                    onChange={(e) => {
-                      updateHeader(index, headerIndex, {
-                        value: e.target.value
-                      });
-                    }}
+                    value={tool.headers?.[key] || ""}
+                    onChange={(e) => updateHeader(index, headerIndex, 'value', e.target.value)}
                     placeholder="Header值"
                   />
                   <Button
@@ -131,35 +195,7 @@ export function ToolsConfig({
                 color="primary"
                 size="sm"
                 className="mt-1"
-                onPress={() => {
-                  let newKey = "Content-Type";
-                  let count = 1;
-                  
-                  const commonHeaders = [
-                    "Authorization", 
-                    "Accept", 
-                    "X-API-Key", 
-                    "User-Agent", 
-                  ];
-                  
-                  const existingKeys = tool.headersOrder || Object.keys(tool.headers || {});
-                  
-                  for (const header of commonHeaders) {
-                    if (!existingKeys.includes(header)) {
-                      newKey = header;
-                      break;
-                    }
-                  }
-                  
-                  if (existingKeys.includes(newKey)) {
-                    while (existingKeys.includes(`X-Header-${count}`)) {
-                      count++;
-                    }
-                    newKey = `X-Header-${count}`;
-                  }
-                  
-                  addHeader(index, newKey);
-                }}
+                onPress={() => addHeader(index)}
               >
                 添加Header
               </Button>
@@ -172,16 +208,8 @@ export function ToolsConfig({
             <textarea
               className="w-full border rounded p-2"
               rows={5}
-              value={(toolFormState[index]?.requestBody !== undefined) ? toolFormState[index]?.requestBody : (tool.requestBody || "")}
-              onChange={(e) => {
-                setToolFormState(prev => ({
-                  ...prev,
-                  [index]: {
-                    ...(prev[index] || {}),
-                    requestBody: e.target.value
-                  }
-                }));
-              }}
+              value={tool.requestBody || ""}
+              onChange={(e) => updateTool(index, 'requestBody', e.target.value)}
               placeholder='例如: {"uid": "{{.Args.uid}}"}'
             ></textarea>
           </div>
@@ -192,16 +220,8 @@ export function ToolsConfig({
             <textarea
               className="w-full border rounded p-2"
               rows={5}
-              value={(toolFormState[index]?.responseBody !== undefined) ? toolFormState[index]?.responseBody : (tool.responseBody || "")}
-              onChange={(e) => {
-                setToolFormState(prev => ({
-                  ...prev,
-                  [index]: {
-                    ...(prev[index] || {}),
-                    responseBody: e.target.value
-                  }
-                }));
-              }}
+              value={tool.responseBody || ""}
+              onChange={(e) => updateTool(index, 'responseBody', e.target.value)}
               placeholder="例如: {{.Response.Body}}"
             ></textarea>
           </div>
@@ -212,7 +232,7 @@ export function ToolsConfig({
         color="primary"
         className="mt-2 w-full"
         onPress={() => {
-          const updatedTools = parsedConfig?.tools ? [...parsedConfig.tools] : [];
+          const updatedTools = [...tools];
           updatedTools.push({ 
             name: "", 
             description: "", 

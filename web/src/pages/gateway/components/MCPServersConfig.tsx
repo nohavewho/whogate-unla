@@ -1,39 +1,155 @@
 import { Input, Select, SelectItem, Button } from "@heroui/react";
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 
-import { GatewayConfig, EnvFormState, KeyValueItem } from '../types';
+import { GatewayConfig } from '../types';
 
 interface MCPServersConfigProps {
   parsedConfig: GatewayConfig;
-  mcpServerFormState: {[serverIndex: number]: {name?: string; url?: string; command?: string; args?: string}};
-  envFormState: EnvFormState;
-  setMcpServerFormState: (state: {[serverIndex: number]: {name?: string; url?: string; command?: string; args?: string}}) => void;
   updateConfig: (newData: Partial<GatewayConfig>) => void;
-  addEnvVariable: (serverIndex: number, key: string, value?: string) => void;
-  removeEnvVariable: (serverIndex: number, envIndex: number) => void;
-  updateEnvVariable: (serverIndex: number, envIndex: number, updates: Partial<KeyValueItem>) => void;
-  newEnvKey: string;
-  newEnvValue: string;
-  setNewEnvKey: (value: string) => void;
-  setNewEnvValue: (value: string) => void;
 }
 
 export function MCPServersConfig({
   parsedConfig,
-  mcpServerFormState,
-  envFormState,
-  setMcpServerFormState,
-  updateConfig,
-  addEnvVariable,
-  removeEnvVariable,
-  updateEnvVariable,
-  newEnvKey,
-  newEnvValue,
-  setNewEnvKey,
-  setNewEnvValue
+  updateConfig
 }: MCPServersConfigProps) {
   const { t } = useTranslation();
   const mcpServers = parsedConfig?.mcpServers || [{ type: "stdio", name: "", command: "", args: [], env: {} }];
+  const [commandInputs, setCommandInputs] = useState<{ [key: number]: string }>({});
+
+  // Initialize command inputs when mcpServers changes
+  useEffect(() => {
+    const initialInputs = mcpServers.reduce((acc, server, index) => {
+      acc[index] = `${server.command || ''} ${server.args?.join(' ') || ''}`.trim();
+      return acc;
+    }, {} as { [key: number]: string });
+    setCommandInputs(initialInputs);
+  }, [mcpServers]);
+
+  const updateServer = (index: number, field: string, value: string) => {
+    const updatedServers = [...mcpServers];
+    const oldName = updatedServers[index].name;
+    
+    if (field === 'command') {
+      // Split the command string by whitespace and update both command and args
+      const parts = value.trim().split(/\s+/);
+      updatedServers[index] = {
+        ...updatedServers[index],
+        command: parts[0] || '',
+        args: parts.slice(1)
+      };
+    } else {
+      updatedServers[index] = {
+        ...updatedServers[index],
+        [field]: value
+      };
+    }
+
+    // If server name changed, update router references
+    if (field === 'name' && oldName !== value && parsedConfig.routers) {
+      const updatedRouters = parsedConfig.routers.map(router => {
+        if (router.server === oldName) {
+          return { ...router, server: value };
+        }
+        return router;
+      });
+      updateConfig({ mcpServers: updatedServers, routers: updatedRouters });
+    } else {
+      updateConfig({ mcpServers: updatedServers });
+    }
+  };
+
+  const handleCommandInputChange = (index: number, value: string) => {
+    setCommandInputs(prev => ({
+      ...prev,
+      [index]: value
+    }));
+  };
+
+  const handleCommandInputBlur = (index: number) => {
+    updateServer(index, 'command', commandInputs[index]);
+  };
+
+  const updateEnvVariable = (serverIndex: number, envIndex: number, field: 'key' | 'value', value: string) => {
+    const updatedServers = [...mcpServers];
+    const server = updatedServers[serverIndex];
+    const env = { ...server.env };
+    const envKeys = Object.keys(env);
+    const key = envKeys[envIndex];
+
+    if (field === 'key') {
+      if (key !== value) {
+        env[value] = env[key];
+        delete env[key];
+      }
+    } else {
+      env[key] = value;
+    }
+
+    updatedServers[serverIndex] = {
+      ...server,
+      env
+    };
+
+    updateConfig({ mcpServers: updatedServers });
+  };
+
+  const addEnvVariable = (serverIndex: number) => {
+    const updatedServers = [...mcpServers];
+    const server = updatedServers[serverIndex];
+    const env = { ...server.env };
+
+    let newKey = "API_KEY";
+    let count = 1;
+
+    const commonEnvVars = [
+      "AUTH_TOKEN",
+      "OPENAI_API_KEY",
+      "ANTHROPIC_API_KEY",
+      "GITHUB_TOKEN",
+      "MODEL_NAME"
+    ];
+
+    const existingKeys = Object.keys(env);
+
+    for (const envVar of commonEnvVars) {
+      if (!existingKeys.includes(envVar)) {
+        newKey = envVar;
+        break;
+      }
+    }
+
+    if (existingKeys.includes(newKey)) {
+      while (existingKeys.includes(`ENV_VAR_${count}`)) {
+        count++;
+      }
+      newKey = `ENV_VAR_${count}`;
+    }
+
+    env[newKey] = "";
+
+    updatedServers[serverIndex] = {
+      ...server,
+      env
+    };
+
+    updateConfig({ mcpServers: updatedServers });
+  };
+
+  const removeEnvVariable = (serverIndex: number, envIndex: number) => {
+    const updatedServers = [...mcpServers];
+    const server = updatedServers[serverIndex];
+    const env = { ...server.env };
+    const key = Object.keys(env)[envIndex];
+    delete env[key];
+
+    updatedServers[serverIndex] = {
+      ...server,
+      env
+    };
+
+    updateConfig({ mcpServers: updatedServers });
+  };
 
   const addServer = () => {
     const newServer = {
@@ -64,16 +180,8 @@ export function MCPServersConfig({
             <div className="flex-1">
               <Input
                 label={t('gateway.server_name')}
-                value={mcpServerFormState[index]?.name !== undefined ? mcpServerFormState[index].name : (server.name || "")}
-                onChange={(e) => {
-                  setMcpServerFormState(prev => ({
-                    ...prev,
-                    [index]: {
-                      ...(prev[index] || {}),
-                      name: e.target.value
-                    }
-                  }));
-                }}
+                value={server.name || ""}
+                onChange={(e) => updateServer(index, 'name', e.target.value)}
               />
             </div>
             <Button
@@ -85,76 +193,45 @@ export function MCPServersConfig({
               ✕
             </Button>
           </div>
-          
+
           <Select
             label={t('gateway.mcp_type')}
             selectedKeys={[server.type || "stdio"]}
-            onChange={(e) => updateConfig({
-              mcpServers: mcpServers.map((s, i) => 
-                i === index ? { ...s, type: e.target.value } : s
-              )
-            })}
+            onChange={(e) => updateServer(index, 'type', e.target.value)}
             aria-label={t('gateway.mcp_type')}
           >
             <SelectItem key="stdio">stdio</SelectItem>
             <SelectItem key="sse">sse</SelectItem>
             <SelectItem key="streamable-http">streamable-http</SelectItem>
           </Select>
-          
+
           {(server.type === 'stdio' || !server.type) && (
             <>
               <Input
                 label={t('gateway.command')}
-                value={mcpServerFormState[index]?.command !== undefined ? mcpServerFormState[index].command : (server.command || '')}
-                onChange={(e) => {
-                  setMcpServerFormState(prev => ({
-                    ...prev,
-                    [index]: {
-                      ...(prev[index] || {}),
-                      command: e.target.value
-                    }
-                  }));
-                }}
+                value={commandInputs[index] || ''}
+                onChange={(e) => handleCommandInputChange(index, e.target.value)}
+                onBlur={() => handleCommandInputBlur(index)}
+                placeholder="command arg1 arg2 arg3"
+                type="text"
+                inputMode="text"
               />
-              
-              <Input
-                label={t('gateway.args')}
-                value={mcpServerFormState[index]?.args !== undefined ? mcpServerFormState[index].args : (server.args?.join(' ') || '')}
-                onChange={(e) => {
-                  setMcpServerFormState(prev => ({
-                    ...prev,
-                    [index]: {
-                      ...(prev[index] || {}),
-                      args: e.target.value
-                    }
-                  }));
-                }}
-                placeholder="arg1 arg2 arg3"
-              />
-              
+
               <div className="mt-2">
                 <h4 className="text-sm font-medium mb-2">{t('gateway.env_variables')}</h4>
                 <div className="flex flex-col gap-2">
-                  {(envFormState[index] || []).map((env, envIndex) => (
+                  {Object.entries(server.env || {}).map(([key, value], envIndex) => (
                     <div key={envIndex} className="flex items-center gap-2">
                       <Input
                         className="flex-1"
-                        value={env.key}
-                        onChange={(e) => {
-                          updateEnvVariable(index, envIndex, {
-                            key: e.target.value
-                          });
-                        }}
+                        value={key}
+                        onChange={(e) => updateEnvVariable(index, envIndex, 'key', e.target.value)}
                         placeholder="环境变量名称"
                       />
                       <Input
                         className="flex-1"
-                        value={env.value}
-                        onChange={(e) => {
-                          updateEnvVariable(index, envIndex, {
-                            value: e.target.value
-                          });
-                        }}
+                        value={String(value)}
+                        onChange={(e) => updateEnvVariable(index, envIndex, 'value', e.target.value)}
                         placeholder="环境变量值"
                       />
                       <Button
@@ -166,41 +243,12 @@ export function MCPServersConfig({
                       </Button>
                     </div>
                   ))}
-                  
+
                   <Button
                     color="primary"
                     size="sm"
                     className="mt-1"
-                    onPress={() => {
-                      let newKey = "API_KEY";
-                      let count = 1;
-                      
-                      const commonEnvVars = [
-                        "AUTH_TOKEN", 
-                        "OPENAI_API_KEY", 
-                        "ANTHROPIC_API_KEY", 
-                        "GITHUB_TOKEN", 
-                        "MODEL_NAME"
-                      ];
-                      
-                      const existingKeys = (envFormState[index] || []).map(env => env.key);
-                      
-                      for (const envVar of commonEnvVars) {
-                        if (!existingKeys.includes(envVar)) {
-                          newKey = envVar;
-                          break;
-                        }
-                      }
-                      
-                      if (existingKeys.includes(newKey)) {
-                        while (existingKeys.includes(`ENV_VAR_${count}`)) {
-                          count++;
-                        }
-                        newKey = `ENV_VAR_${count}`;
-                      }
-                      
-                      addEnvVariable(index, newKey);
-                    }}
+                    onPress={() => addEnvVariable(index)}
                   >
                     添加环境变量
                   </Button>
@@ -208,20 +256,12 @@ export function MCPServersConfig({
               </div>
             </>
           )}
-          
+
           {(server.type === 'sse' || server.type === 'streamable-http') && (
             <Input
               label={t('gateway.url')}
-              value={mcpServerFormState[index]?.url !== undefined ? mcpServerFormState[index].url : (server.url || '')}
-              onChange={(e) => {
-                setMcpServerFormState(prev => ({
-                  ...prev,
-                  [index]: {
-                    ...(prev[index] || {}),
-                    url: e.target.value
-                  }
-                }));
-              }}
+              value={server.url || ''}
+              onChange={(e) => updateServer(index, 'url', e.target.value)}
             />
           )}
         </div>
@@ -236,4 +276,4 @@ export function MCPServersConfig({
       </Button>
     </div>
   );
-} 
+}

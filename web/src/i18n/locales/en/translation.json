@@ -272,7 +272,7 @@
     "prefix_placeholder": "e.g. /tenant1 or /tenant2/abc (root / not allowed)",
     "description": "Description",
     "status": "Status",
-    "created_at": "Created At", 
+    "created_at": "Created At",
     "actions": "Actions",
     "status_enabled": "Enabled",
     "status_disabled": "Disabled",
@@ -302,15 +302,11 @@
     "invalid_url": "Invalid URL",
     "network_error": "Network error, please check your connection",
     "server_error": "Server error, please try again later",
-    "unauthorized": "Unauthorized, please login",
-    "forbidden": "Forbidden, you don't have permission",
-    "not_found": "Not found",
     "timeout": "Request timeout",
     "unknown": "Unknown error",
     "check_system_status": "Failed to check system status",
     "fetch_mcp_servers": "Failed to fetch MCP servers",
     "invalid_yaml": "Invalid YAML format",
-    "parse_config": "Failed to parse configuration for {{name}}",
     "fetch_users": "Failed to fetch user list",
     "fetch_user": "Failed to fetch user details",
     "invalid_tool_name": "Invalid tool name format",
@@ -359,4 +355,4 @@
     "tenant_not_found": "Tenant with the specified prefix does not exist",
     "validate_router_prefix_failed": "Failed to validate router prefix"
   }
-} 
+}
