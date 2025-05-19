@@ -1,15 +1,15 @@
 import { Card, CardBody, Button, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Autocomplete, AutocompleteItem, Tabs, Tab, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Modal } from "@heroui/react";
 import { Icon } from '@iconify/react';
-import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import { configureMonacoYaml } from 'monaco-yaml';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AccessibleModal } from "../../components/AccessibleModal";
-import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, syncMCPServers, getUserAuthorizedTenants, getTenant } from '../../services/api';
+import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, exportMCPServer, syncMCPServers, getUserAuthorizedTenants, getTenant } from '../../services/api';
+import type { Gateway } from '../../types/gateway';
 import { toast } from '../../utils/toast';
 
+import { ConfigEditor } from './components/ConfigEditor';
 import OpenAPIImport from './components/OpenAPIImport';
 
 declare global {
@@ -24,36 +24,6 @@ declare global {
       };
     };
   }
-}
-
-interface Gateway {
-  name: string;
-  config: string;
-  parsedConfig?: {
-    routers: Array<{
-      server: string;
-      prefix: string;
-    }>;
-    servers: Array<{
-      name: string;
-      namespace: string;
-      description: string;
-      allowedTools: string[];
-    }>;
-    tools: Array<{
-      name: string;
-      description: string;
-      method: string;
-    }>;
-    mcpServers?: Array<{
-      type: string;
-      name: string;
-      command?: string;
-      args?: string[];
-      env?: Record<string, string>;
-      url?: string;
-    }>;
-  };
 }
 
 interface ServerConfig {
@@ -207,14 +177,17 @@ export function GatewayManager() {
           routerPrefix = '/' + routerPrefix;
         }
         routerPrefix = routerPrefix.endsWith('/') ? routerPrefix.slice(0, -1) : routerPrefix;
-
-        // Allow exact match
-        if (routerPrefix === tenantPrefix) {
-          continue;
+        // Router prefix must start with tenant prefix followed by a slash and not be empty
+        if (!routerPrefix.startsWith(tenantPrefix + '/')) {
+          toast.error(t('errors.router_prefix_error'), {
+            duration: 3000,
+          });
+          return false;
         }
 
-        // Router prefix must start with tenant prefix followed by a slash
-        if (!routerPrefix.startsWith(tenantPrefix + '/')) {
+        // Check if there is content after tenant prefix
+        const remainingPath = routerPrefix.slice(tenantPrefix.length + 1);
+        if (!remainingPath) {
           toast.error(t('errors.router_prefix_error'), {
             duration: 3000,
           });
@@ -264,6 +237,16 @@ export function GatewayManager() {
       toast.success(t('gateway.delete_success'));
     } catch {
       toast.error(t('gateway.delete_failed'));
+    }
+  };
+
+   const handleExport = async (server: Gateway) => {
+    try {
+      toast.success(t('gateway.exporting'));
+      await exportMCPServer(server);
+      toast.success(t('gateway.export_success'));
+    } catch {
+      toast.error(t('gateway.export_failed'));
     }
   };
 
@@ -563,6 +546,15 @@ export function GatewayManager() {
                           onPress={() => handleDelete(server)}
                         >
                           {t('gateway.delete')}
+                        </DropdownItem>
+                        <DropdownItem
+                          key="export"
+                          className="text-green-500"
+                          color="primary"
+                          startContent={<Icon icon="lucide:download" />}
+                          onPress={() => handleExport(server)}
+                        >
+                          {t('gateway.export')}
                         </DropdownItem>
                       </DropdownMenu>
                     </Dropdown>
@@ -870,24 +862,24 @@ export function GatewayManager() {
         )}
       </div>
 
-      <AccessibleModal
+      <Modal
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         size="3xl"
-        className="w-[70%] h-[70%]"
+        className="w-[70%] h-[80%]"
+        scrollBehavior="inside"
       >
-        <ModalContent className="h-[70%]">
+        <ModalContent>
           {(onClose) => (
             <>
               <ModalHeader>{t('gateway.edit_config')}</ModalHeader>
-              <ModalBody className="flex-1">
-                <Editor
-                  height="100%"
-                  defaultLanguage="yaml"
-                  value={editConfig}
-                  onChange={(value) => setEditConfig(value || '')}
-                  theme={isDark ? "vs-dark" : "vs"}
-                  options={editorOptions}
+              <ModalBody>
+                <ConfigEditor 
+                  config={editConfig}
+                  onChange={(value) => setEditConfig(value)}
+                  isDark={isDark} 
+                  editorOptions={editorOptions}
+                  isEditing={true}
                 />
               </ModalBody>
               <ModalFooter>
@@ -901,26 +893,26 @@ export function GatewayManager() {
             </>
           )}
         </ModalContent>
-      </AccessibleModal>
+      </Modal>
 
-      <AccessibleModal
+      <Modal
         isOpen={isCreateOpen}
         onOpenChange={onCreateOpenChange}
         size="3xl"
-        className="w-[70%] h-[70%]"
+        className="w-[70%] h-[80%]"
+        scrollBehavior="inside"
       >
-        <ModalContent className="h-[70%]">
+        <ModalContent>
           {(onClose) => (
             <>
               <ModalHeader>{t('gateway.add_config')}</ModalHeader>
-              <ModalBody className="flex-1">
-                <Editor
-                  height="100%"
-                  defaultLanguage="yaml"
-                  value={newConfig}
-                  onChange={(value) => setNewConfig(value || '')}
-                  theme={isDark ? "vs-dark" : "vs"}
-                  options={editorOptions}
+              <ModalBody className="overflow-y-auto">
+                <ConfigEditor 
+                  config={newConfig}
+                  onChange={(value) => setNewConfig(value)}
+                  isDark={isDark} 
+                  editorOptions={editorOptions}
+                  isEditing={false}
                 />
               </ModalBody>
               <ModalFooter>
@@ -934,9 +926,9 @@ export function GatewayManager() {
             </>
           )}
         </ModalContent>
-      </AccessibleModal>
+      </Modal>
 
-      <AccessibleModal isOpen={isImportOpen} onOpenChange={onImportOpenChange} size="2xl">
+      <Modal isOpen={isImportOpen} onOpenChange={onImportOpenChange} size="2xl">
         <ModalContent>
           <ModalHeader>{t('gateway.import_openapi')}</ModalHeader>
           <ModalBody>
@@ -948,7 +940,7 @@ export function GatewayManager() {
             </Button>
           </ModalFooter>
         </ModalContent>
-      </AccessibleModal>
+      </Modal>
 
       <Modal
         isOpen={isRoutingModalOpen}
