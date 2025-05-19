@@ -1,6 +1,6 @@
 import { Input, Select, SelectItem, Button } from "@heroui/react";
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect } from 'react';
 
 import { GatewayConfig } from '../types';
 
@@ -14,7 +14,10 @@ export function MCPServersConfig({
   updateConfig
 }: MCPServersConfigProps) {
   const { t } = useTranslation();
-  const mcpServers = parsedConfig?.mcpServers || [{ type: "stdio", name: "", command: "", args: [], env: {} }];
+  const mcpServers = useMemo(() => 
+    parsedConfig?.mcpServers || [{ type: "stdio", name: "", command: "", args: [], env: {} }],
+    [parsedConfig?.mcpServers]
+  );
   const [commandInputs, setCommandInputs] = useState<{ [key: number]: string }>({});
 
   // Initialize command inputs when mcpServers changes
