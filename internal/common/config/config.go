@@ -93,7 +93,7 @@ func LoadConfig[T Type](filename string) (*T, string, error) {
 	}
 
 	// Validate durations after unmarshalling
-	if mcpCfg, ok := any(cfg).(*MCPGatewayConfig); ok {
+	if mcpCfg, ok := any(&cfg).(*MCPGatewayConfig); ok {
 		if mcpCfg.ReloadInterval <= time.Second {
 			mcpCfg.ReloadInterval = 600 * time.Second
 		}
