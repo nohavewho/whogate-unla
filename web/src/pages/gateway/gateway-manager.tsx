@@ -10,6 +10,7 @@ import { toast } from '../../utils/toast';
 
 import { ConfigEditor } from './components/ConfigEditor';
 import OpenAPIImport from './components/OpenAPIImport';
+import type { Gateway } from '../../types/gateway';
 
 declare global {
   interface Window {
