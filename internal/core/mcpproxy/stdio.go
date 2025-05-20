@@ -45,7 +45,6 @@ func (t *StdioTransport) Start(ctx context.Context, tmplCtx *template.Context) e
 		utils.MapToEnvList(renderedClientEnv),
 		t.cfg.Args...,
 	)
-	fmt.Println("debug:", utils.MapToEnvList(renderedClientEnv), t.cfg.Command, t.cfg.Args)
 
 	// Start the transport
 	if err := stdioTransport.Start(ctx); err != nil {

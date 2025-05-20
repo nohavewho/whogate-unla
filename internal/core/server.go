@@ -147,8 +147,7 @@ func (s *Server) handleRoot(c *gin.Context) {
 		}
 	}
 
-	state := s.state
-	if _, ok := state.prefixToProtoType[prefix]; !ok {
+	if _, ok := s.state.prefixToProtoType[prefix]; !ok {
 		s.logger.Warn("invalid prefix",
 			zap.String("prefix", prefix),
 			zap.String("remote_addr", c.Request.RemoteAddr))
