@@ -303,7 +303,10 @@ func (s *Server) initState(ctx context.Context, cfgs []*config.MCPConfig, oldSta
 					return nil, fmt.Errorf("failed to create transport for server %s: %w", mcpServer.Name, err)
 				}
 			}
+
+			// Handle server startup based on policy and preinstalled flag
 			if mcpServer.Policy == cnst.PolicyOnStart {
+				// If PolicyOnStart is set, just start the server and keep it running
 				go func(prefix string, mcpServer config.MCPServerConfig, transport mcpproxy.Transport) {
 					if transport.IsRunning() {
 						s.logger.Info("server already started",
@@ -324,6 +327,44 @@ func (s *Server) initState(ctx context.Context, cfgs []*config.MCPConfig, oldSta
 							zap.String("prefix", prefix),
 							zap.String("command", mcpServer.Command),
 							zap.Strings("args", mcpServer.Args))
+					}
+				}(prefix, mcpServer, transport)
+			} else if mcpServer.Preinstalled {
+				// If Preinstalled is set but not PolicyOnStart, verify installation by starting and stopping
+				go func(prefix string, mcpServer config.MCPServerConfig, transport mcpproxy.Transport) {
+					if transport.IsRunning() {
+						s.logger.Info("server already started, don't need to preinstall",
+							zap.String("prefix", prefix),
+							zap.String("command", mcpServer.Command),
+							zap.Strings("args", mcpServer.Args))
+						return
+					}
+
+					if err := transport.Start(ctx, template.NewContext()); err != nil {
+						s.logger.Error("failed to start server for preinstall",
+							zap.String("prefix", prefix),
+							zap.String("command", mcpServer.Command),
+							zap.Strings("args", mcpServer.Args),
+							zap.Error(err))
+					} else {
+						s.logger.Info("server started for preinstall",
+							zap.String("prefix", prefix),
+							zap.String("command", mcpServer.Command),
+							zap.Strings("args", mcpServer.Args))
+
+						// Stop the server after successful start
+						if err := transport.Stop(ctx); err != nil {
+							s.logger.Error("failed to stop server for preinstall",
+								zap.String("prefix", prefix),
+								zap.String("command", mcpServer.Command),
+								zap.Strings("args", mcpServer.Args),
+								zap.Error(err))
+						} else {
+							s.logger.Info("server stopped for preinstall",
+								zap.String("prefix", prefix),
+								zap.String("command", mcpServer.Command),
+								zap.Strings("args", mcpServer.Args))
+						}
 					}
 				}(prefix, mcpServer, transport)
 			}

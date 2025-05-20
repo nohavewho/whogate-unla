@@ -166,7 +166,8 @@
     "add_server": "Add Server",
     "startup_policy": "Startup Policy",
     "policy_on_demand": "Connect on Demand",
-    "policy_on_start": "Connect on Start"
+    "policy_on_start": "Connect on Start",
+    "preinstalled": "Pre-install on Gateway Start"
   },
   "chat": {
     "title": "Chat",

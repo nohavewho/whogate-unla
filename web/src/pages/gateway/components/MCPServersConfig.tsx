@@ -1,4 +1,4 @@
-import { Input, Select, SelectItem, Button } from "@heroui/react";
+import { Input, Select, SelectItem, Button, Switch } from "@heroui/react";
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -29,7 +29,7 @@ export function MCPServersConfig({
     setCommandInputs(initialInputs);
   }, [mcpServers]);
 
-  const updateServer = (index: number, field: string, value: string) => {
+  const updateServer = (index: number, field: string, value: any) => {
     const updatedServers = [...mcpServers];
     const oldName = updatedServers[index].name;
     
@@ -160,7 +160,8 @@ export function MCPServersConfig({
       name: "",
       command: "",
       args: [],
-      env: {}
+      env: {},
+      preinstalled: false
     };
     updateConfig({
       mcpServers: [...mcpServers, newServer]
@@ -220,6 +221,14 @@ export function MCPServersConfig({
 
           {(server.type === 'stdio' || !server.type) && (
             <>
+              <Switch
+                isSelected={server.preinstalled}
+                onValueChange={(value) => updateServer(index, 'preinstalled', value)}
+                size="sm"
+              >
+                {t('gateway.preinstalled')}
+              </Switch>
+
               <Input
                 label={t('gateway.command')}
                 value={commandInputs[index] || ''}

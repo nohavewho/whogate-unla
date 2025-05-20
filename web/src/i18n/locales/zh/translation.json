@@ -173,6 +173,7 @@
     "startup_policy": "启动策略",
     "policy_on_demand": "按需连接",
     "policy_on_start": "启动时连接",
+    "preinstalled": "当MCP Gateway服务启动时预安装MCP Server",
     "arguments_config": "参数配置",
     "argument_name": "参数名称",
     "argument_position": "位置",
