@@ -29,22 +29,28 @@ export function MCPServersConfig({
     setCommandInputs(initialInputs);
   }, [mcpServers]);
 
-  const updateServer = (index: number, field: string, value: any) => {
+  const updateServer = (index: number, field: 'name' | 'type' | 'policy' | 'command' | 'url' | 'preinstalled', value: string | boolean) => {
     const updatedServers = [...mcpServers];
     const oldName = updatedServers[index].name;
     
     if (field === 'command') {
       // Split the command string by whitespace and update both command and args
-      const parts = value.trim().split(/\s+/);
+      const commandValue = value as string;
+      const parts = commandValue.trim().split(/\s+/);
       updatedServers[index] = {
         ...updatedServers[index],
         command: parts[0] || '',
         args: parts.slice(1)
       };
+    } else if (field === 'preinstalled') {
+      updatedServers[index] = {
+        ...updatedServers[index],
+        [field]: value as boolean
+      };
     } else {
       updatedServers[index] = {
         ...updatedServers[index],
-        [field]: value
+        [field]: value as string
       };
     }
 
@@ -52,7 +58,7 @@ export function MCPServersConfig({
     if (field === 'name' && oldName !== value && parsedConfig.routers) {
       const updatedRouters = parsedConfig.routers.map(router => {
         if (router.server === oldName) {
-          return { ...router, server: value };
+          return { ...router, server: value as string };
         }
         return router;
       });
