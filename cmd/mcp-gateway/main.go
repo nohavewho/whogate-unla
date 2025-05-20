@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,7 +20,6 @@ import (
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
 
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -243,38 +241,14 @@ func run() {
 			zap.Error(err))
 	}
 
-	// Validate configurations before merging
-	if err := config.ValidateMCPConfigs(mcpConfigs); err != nil {
-		var validationErr *config.ValidationError
-		if errors.As(err, &validationErr) {
-			logger.Fatal("Configuration validation failed",
-				zap.String("error", validationErr.Error()))
-		}
-		logger.Fatal("failed to validate configurations",
-			zap.Error(err))
-	}
-
-	mcpCfgs, err := helper.MergeConfigs(mcpConfigs)
-	if err != nil {
-		logger.Fatal("failed to merge MCP configurations",
-			zap.Error(err))
-	}
-
 	srv, err := core.NewServer(logger, cfg)
 	if err != nil {
 		logger.Fatal("failed to create server",
 			zap.Error(err))
 	}
 
-	router := gin.Default()
-	// add health_check url for k8s readiness probe
-	router.GET("/health_check", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "ok",
-			"message": "Health check passed.",
-		})
-	})
-	if err := srv.RegisterRoutes(ctx, router, mcpCfgs); err != nil {
+	err = srv.RegisterRoutes(ctx, mcpConfigs)
+	if err != nil {
 		logger.Fatal("failed to register routes",
 			zap.Error(err))
 	}
@@ -290,13 +264,7 @@ func run() {
 			zap.Error(err))
 	}
 
-	go func() {
-		logger.Info("Starting main server", zap.Int("port", cfg.Port))
-		if err := router.Run(fmt.Sprintf(":%d", cfg.Port)); err != nil {
-			logger.Fatal("failed to start main server",
-				zap.Error(err))
-		}
-	}()
+	srv.Start()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
