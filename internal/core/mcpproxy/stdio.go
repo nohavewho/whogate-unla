@@ -78,7 +78,11 @@ func (t *StdioTransport) Stop(_ context.Context) error {
 	}
 
 	if t.client != nil {
-		return t.client.Close()
+		err := t.client.Close()
+		if err != nil {
+			return err
+		}
+		t.client = nil
 	}
 
 	return nil
