@@ -260,7 +260,14 @@
     "mcp_servers": "MCP 服务",
     "servers": "服务器",
     "routers": "路由",
-    "tools": "工具"
+    "tools": "工具",
+    "request_body": "请求体",
+    "response_body": "响应体",
+    "request_body_placeholder": "例如: {\"uid\": \"{{.Args.uid}}\"}",
+    "response_body_placeholder": "例如: {{.Response.Body}}",
+    "origin_placeholder": "例如: https://example.com 或 *",
+    "header_placeholder": "例如: Content-Type",
+    "expose_header_placeholder": "例如: Content-Length"
   },
   "chat": {
     "title": "聊天",

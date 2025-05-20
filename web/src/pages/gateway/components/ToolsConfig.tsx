@@ -350,25 +350,25 @@ export function ToolsConfig({
           
           {/* Request Body */}
           <div className="mt-2 border-t pt-2">
-            <h4 className="text-sm font-medium mb-2">请求体 (Request Body)</h4>
+            <h4 className="text-sm font-medium mb-2">{t('gateway.request_body')}</h4>
             <textarea
               className="w-full border rounded p-2"
               rows={5}
               value={tool.requestBody || ""}
               onChange={(e) => updateTool(index, 'requestBody', e.target.value)}
-              placeholder='例如: {"uid": "{{.Args.uid}}"}'
+              placeholder={t('gateway.request_body_placeholder')}
             ></textarea>
           </div>
           
           {/* Response Body */}
           <div className="mt-2 border-t pt-2">
-            <h4 className="text-sm font-medium mb-2">响应体 (Response Body)</h4>
+            <h4 className="text-sm font-medium mb-2">{t('gateway.response_body')}</h4>
             <textarea
               className="w-full border rounded p-2"
               rows={5}
               value={tool.responseBody || ""}
               onChange={(e) => updateTool(index, 'responseBody', e.target.value)}
-              placeholder="例如: {{.Response.Body}}"
+              placeholder={t('gateway.response_body_placeholder')}
             ></textarea>
           </div>
         </div>
