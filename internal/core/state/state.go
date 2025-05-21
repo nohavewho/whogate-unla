@@ -1,4 +1,4 @@
-package core
+package state
 
 import (
 	"context"
@@ -13,29 +13,42 @@ import (
 )
 
 type (
+	uriPrefix string
+	toolName  string
+
 	// State contains all the read-only shared state
 	State struct {
-		rawConfigs              []*config.MCPConfig
-		toolMap                 map[string]*config.ToolConfig
-		prefixToTools           map[string][]mcp.ToolSchema
-		prefixToServerConfig    map[string]*config.ServerConfig
-		prefixToRouterConfig    map[string]*config.RouterConfig
-		prefixToMCPServerConfig map[string]config.MCPServerConfig
-		prefixToProtoType       map[string]cnst.ProtoType
-		prefixToTransport       map[string]mcpproxy.Transport
+		rawConfigs []*config.MCPConfig
+		runtime    map[uriPrefix]runtimeUnit
+		metrics    metrics
+	}
+
+	runtimeUnit struct {
+		protoType cnst.ProtoType
+		router    *config.RouterConfig
+		server    *config.ServerConfig
+		mcpServer *config.MCPServerConfig
+		transport mcpproxy.Transport
+
+		tools       map[toolName]*config.ToolConfig
+		toolSchemas []mcp.ToolSchema
+	}
+
+	metrics struct {
+		totalTools      int
+		missingTools    int
+		httpServers     int
+		mcpServers      int
+		idleHTTPServers int
+		idleMCPServers  int
 	}
 )
 
 func NewState() *State {
 	return &State{
-		rawConfigs:              make([]*config.MCPConfig, 0),
-		toolMap:                 make(map[string]*config.ToolConfig),
-		prefixToTools:           make(map[string][]mcp.ToolSchema),
-		prefixToServerConfig:    make(map[string]*config.ServerConfig),
-		prefixToRouterConfig:    make(map[string]*config.RouterConfig),
-		prefixToMCPServerConfig: make(map[string]config.MCPServerConfig),
-		prefixToProtoType:       make(map[string]cnst.ProtoType),
-		prefixToTransport:       make(map[string]mcpproxy.Transport),
+		rawConfigs: make([]*config.MCPConfig, 0),
+		runtime:    make(map[uriPrefix]runtimeUnit),
+		metrics:    metrics{},
 	}
 }
 
@@ -46,59 +59,73 @@ func BuildStateFromConfig(ctx context.Context, cfgs []*config.MCPConfig, oldStat
 	newState.rawConfigs = cfgs
 
 	for _, cfg := range cfgs {
+		toolMap := make(map[toolName]*config.ToolConfig)
 		// Initialize tool map and list for MCP servers
 		for _, tool := range cfg.Tools {
-			newState.toolMap[tool.Name] = &tool
+			newState.metrics.totalTools++
+			toolMap[toolName(tool.Name)] = &tool
 		}
 
 		// Build prefix to tools mapping for MCP servers
 		prefixMap := make(map[string]string)
 		for _, router := range cfg.Routers {
 			prefixMap[router.Server] = router.Prefix
-			newState.prefixToRouterConfig[router.Prefix] = &router
+			newState.setRouter(router.Prefix, &router)
 		}
 
 		// Process regular HTTP servers
 		for _, server := range cfg.Servers {
+			newState.metrics.httpServers++
 			prefix, ok := prefixMap[server.Name]
 			if !ok {
+				newState.metrics.idleHTTPServers++
 				logger.Warn("failed to find prefix for server", zap.String("server", server.Name))
 				continue
 			}
 
-			// Filter tools based on MCP server's allowed tools
-			var allowedTools []mcp.ToolSchema
-			for _, toolName := range server.AllowedTools {
-				tool, ok := newState.toolMap[toolName]
+			var (
+				allowedToolSchemas []mcp.ToolSchema
+				allowedTools       = make(map[toolName]*config.ToolConfig)
+			)
+			for _, ss := range server.AllowedTools {
+				tool, ok := toolMap[toolName(ss)]
 				if ok {
-					allowedTools = append(allowedTools, tool.ToToolSchema())
+					allowedToolSchemas = append(allowedToolSchemas, tool.ToToolSchema())
+					allowedTools[toolName(ss)] = tool
 				} else {
+					newState.metrics.missingTools++
 					logger.Warn("failed to find allowed tool for server", zap.String("server", server.Name),
-						zap.String("tool", toolName))
+						zap.String("tool", ss))
 				}
 			}
-			newState.prefixToTools[prefix] = allowedTools
-			newState.prefixToServerConfig[prefix] = &server
-			newState.prefixToProtoType[prefix] = cnst.BackendProtoHttp
+			runtime := newState.getRuntime(prefix)
+			runtime.protoType = cnst.BackendProtoHttp
+			runtime.server = &server
+			runtime.tools = allowedTools
+			runtime.toolSchemas = allowedToolSchemas
+			newState.runtime[uriPrefix(prefix)] = runtime
 		}
 
 		// Process MCP servers
 		for _, mcpServer := range cfg.McpServers {
+			newState.metrics.mcpServers++
 			prefix, exists := prefixMap[mcpServer.Name]
 			if !exists {
+				newState.metrics.idleMCPServers++
+				logger.Warn("failed to find prefix for mcp server", zap.String("server", mcpServer.Name))
 				continue // Skip MCP servers without router prefix
 			}
 
-			// Map prefix to MCP server config
-			newState.prefixToMCPServerConfig[prefix] = mcpServer
+			runtime := newState.getRuntime(prefix)
+			runtime.mcpServer = &mcpServer
 
 			// Check if we already have transport with the same configuration
 			var transport mcpproxy.Transport
 			if oldState != nil {
-				if oldTransport, exists := oldState.prefixToTransport[prefix]; exists {
+				if oldRuntime, exists := oldState.runtime[uriPrefix(prefix)]; exists {
 					// Compare configurations to see if we need to create a new transport
-					oldConfig := oldState.prefixToMCPServerConfig[prefix]
-					if oldConfig.Type == mcpServer.Type &&
+					oldConfig := oldRuntime.mcpServer
+					if oldConfig != nil && oldConfig.Type == mcpServer.Type &&
 						oldConfig.Command == mcpServer.Command &&
 						oldConfig.URL == mcpServer.URL &&
 						len(oldConfig.Args) == len(mcpServer.Args) {
@@ -112,7 +139,7 @@ func BuildStateFromConfig(ctx context.Context, cfgs []*config.MCPConfig, oldStat
 						}
 						if argsMatch {
 							// Reuse existing transport
-							transport = oldTransport
+							transport = oldRuntime.transport
 						}
 					}
 				}
@@ -135,35 +162,38 @@ func BuildStateFromConfig(ctx context.Context, cfgs []*config.MCPConfig, oldStat
 				// If Preinstalled is set but not PolicyOnStart, verify installation by starting and stopping
 				go startMCPServer(ctx, logger, prefix, mcpServer, transport, true)
 			}
-			newState.prefixToTransport[prefix] = transport
+			runtime.transport = transport
 
 			// Map protocol type based on server type
 			switch mcpServer.Type {
 			case cnst.BackendProtoStdio.String():
-				newState.prefixToProtoType[prefix] = cnst.BackendProtoStdio
+				runtime.protoType = cnst.BackendProtoStdio
 			case cnst.BackendProtoSSE.String():
-				newState.prefixToProtoType[prefix] = cnst.BackendProtoSSE
+				runtime.protoType = cnst.BackendProtoSSE
 			case cnst.BackendProtoStreamable.String():
-				newState.prefixToProtoType[prefix] = cnst.BackendProtoStreamable
+				runtime.protoType = cnst.BackendProtoStreamable
 			}
+			newState.runtime[uriPrefix(prefix)] = runtime
 		}
 	}
 
 	if oldState != nil {
-		for prefix, oldTransport := range oldState.prefixToTransport {
-			if _, stillExists := newState.prefixToTransport[prefix]; !stillExists {
-				mcpSvrCfg := oldState.prefixToMCPServerConfig[prefix]
-				if oldTransport == nil {
-					logger.Info("transport already stopped", zap.String("prefix", prefix),
-						zap.String("command", mcpSvrCfg.Command), zap.Strings("args", mcpSvrCfg.Args))
+		for prefix, oldRuntime := range oldState.runtime {
+			if _, stillExists := newState.runtime[prefix]; !stillExists {
+				if oldRuntime.mcpServer == nil {
 					continue
 				}
-				logger.Info("shutting down unused transport", zap.String("prefix", prefix),
-					zap.String("command", mcpSvrCfg.Command), zap.Strings("args", mcpSvrCfg.Args))
-				if err := oldTransport.Stop(ctx); err != nil {
-					logger.Warn("failed to close old transport", zap.String("prefix", prefix),
-						zap.Error(err), zap.String("command", mcpSvrCfg.Command),
-						zap.Strings("args", mcpSvrCfg.Args))
+				if oldRuntime.transport == nil {
+					logger.Info("transport already stopped", zap.String("prefix", string(prefix)),
+						zap.String("command", oldRuntime.mcpServer.Command), zap.Strings("args", oldRuntime.mcpServer.Args))
+					continue
+				}
+				logger.Info("shutting down unused transport", zap.String("prefix", string(prefix)),
+					zap.String("command", oldRuntime.mcpServer.Command), zap.Strings("args", oldRuntime.mcpServer.Args))
+				if err := oldRuntime.transport.Stop(ctx); err != nil {
+					logger.Warn("failed to close old transport", zap.String("prefix", string(prefix)),
+						zap.Error(err), zap.String("command", oldRuntime.mcpServer.Command),
+						zap.Strings("args", oldRuntime.mcpServer.Args))
 				}
 			}
 		}
@@ -211,52 +241,4 @@ func startMCPServer(ctx context.Context, logger *zap.Logger, prefix string, mcpS
 			}
 		}
 	}
-}
-
-func (s *State) GetCORS(prefix string) *config.CORSConfig {
-	routerCfg, ok := s.prefixToRouterConfig[prefix]
-	if ok {
-		return routerCfg.CORS
-	}
-	return nil
-}
-
-func (s *State) GetRouterCount() int {
-	return len(s.prefixToRouterConfig)
-}
-
-func (s *State) GetToolCount() int {
-	return len(s.toolMap)
-}
-
-func (s *State) GetServerCount() int {
-	return len(s.prefixToServerConfig)
-}
-
-func (s *State) GetTool(name string) *config.ToolConfig {
-	return s.toolMap[name]
-}
-
-func (s *State) GetToolSchemas(prefix string) []mcp.ToolSchema {
-	return s.prefixToTools[prefix]
-}
-
-func (s *State) GetServerConfig(prefix string) *config.ServerConfig {
-	return s.prefixToServerConfig[prefix]
-}
-
-func (s *State) GetProtoType(prefix string) cnst.ProtoType {
-	return s.prefixToProtoType[prefix]
-}
-
-func (s *State) GetTransport(prefix string) mcpproxy.Transport {
-	return s.prefixToTransport[prefix]
-}
-
-func (s *State) GetTransports() map[string]mcpproxy.Transport {
-	return s.prefixToTransport
-}
-
-func (s *State) GetRawConfigs() []*config.MCPConfig {
-	return s.rawConfigs
 }

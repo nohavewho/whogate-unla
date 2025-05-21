@@ -239,7 +239,7 @@ func (s *Server) callHTTPTool(c *gin.Context, req mcp.JSONRPCRequest, conn sessi
 		zap.String("remote_addr", c.Request.RemoteAddr))
 
 	// Find the tool in the precomputed map
-	tool := s.state.GetTool(params.Name)
+	tool := s.state.GetTool(conn.Meta().Prefix, params.Name)
 	if tool == nil {
 		s.logger.Warn("tool not found",
 			zap.String("tool", params.Name),
