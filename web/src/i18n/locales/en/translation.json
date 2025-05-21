@@ -275,7 +275,15 @@
     "sse_url": "SSE URL",
     "streamable_http_url": "Streamable HTTP URL",
     "tenant_name": "Tenant",
-    "confirm_delete": "Are you sure you want to delete gateway '{{name}}'?"
+    "confirm_delete": "Are you sure you want to delete gateway '{{name}}'?",
+    "remove_argument": "Remove Argument",
+    "remove_tool": "Remove Tool",
+    "tools_already_all_added": "Tools already all added",
+    "tools_none_available": "No tools available",
+    "remove_server": "Remove Server",
+    "add_origin": "Add Origin",
+    "add_method": "Add Method",
+    "add_expose_header": "Add Expose Header"
   },
   "chat": {
     "title": "Chat",

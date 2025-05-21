@@ -277,7 +277,16 @@
     "sse_url": "SSE URL",
     "streamable_http_url": "Streamable HTTP URL",
     "tenant_name": "租户",
-    "confirm_delete": "确定要删除网关 '{{name}}' 吗？"
+    "confirm_delete": "确定要删除网关 '{{name}}' 吗？",
+    "remove_argument": "删除参数",
+    "remove_tool": "删除工具",
+    "tools_already_all_added": "工具已全部添加",
+    "tools_none_available": "暂无可用工具",
+    "remove_server": "删除服务",
+    "add_origin": "添加源",
+    "add_method": "添加方法",
+    "add_header": "添加头部",
+    "add_expose_header": "添加暴露头部"
   },
   "chat": {
     "title": "聊天",
