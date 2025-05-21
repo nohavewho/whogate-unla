@@ -160,18 +160,29 @@ func ValidateMCPConfigs(configs []*MCPConfig) error {
 
 // MergeConfigs merges a new configuration with existing configurations
 // It will update the existing config if it exists, or append the new config if it doesn't exist
+// If the new config has DeletedAt set, it will remove the config from the list
 func MergeConfigs(existingConfigs []*MCPConfig, newConfig *MCPConfig) []*MCPConfig {
 	// Create a copy of existing configs
-	configs := make([]*MCPConfig, len(existingConfigs))
-	copy(configs, existingConfigs)
+	configs := make([]*MCPConfig, 0, len(existingConfigs))
 
-	// Find and update the config in configs
+	// If the new config has DeletedAt set, we need to remove it from the list
+	if !newConfig.DeletedAt.IsZero() {
+		for _, existingCfg := range existingConfigs {
+			if existingCfg.Name != newConfig.Name {
+				configs = append(configs, existingCfg)
+			}
+		}
+		return configs
+	}
+
+	// Otherwise, handle normal update/append case
 	found := false
-	for i, existingCfg := range configs {
+	for _, existingCfg := range existingConfigs {
 		if existingCfg.Name == newConfig.Name {
-			configs[i] = newConfig
+			configs = append(configs, newConfig)
 			found = true
-			break
+		} else {
+			configs = append(configs, existingCfg)
 		}
 	}
 	if !found {
