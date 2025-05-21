@@ -73,7 +73,10 @@
     "gateway": "Gateway",
     "chat": "Chat",
     "users": "Users",
-    "tenants": "Tenants"
+    "tenants": "Tenants",
+    "tools_config": "Tools Configuration",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL"
   },
   "auth": {
     "login": "Login",
@@ -115,7 +118,7 @@
     "enabled_tools": "Enabled Tools",
     "all_tools": "All Tools",
     "mcp_config": "MCP Configuration",
-    "backend_config": "Backend Configuration",
+    "backend_config": "MCP URL",
     "add_success": "Gateway created successfully",
     "add_failed": "Failed to create gateway",
     "edit_success": "Configuration saved successfully",
@@ -267,7 +270,9 @@
     "response_body_placeholder": "Example: {{.Response.Body}}",
     "origin_placeholder": "Example: https://example.com or *",
     "header_placeholder": "Example: Content-Type",
-    "expose_header_placeholder": "Example: Content-Length"
+    "expose_header_placeholder": "Example: Content-Length",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL"
   },
   "chat": {
     "title": "Chat",

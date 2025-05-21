@@ -73,6 +73,7 @@ export function GatewayManager() {
   const [isRoutingModalOpen, setIsRoutingModalOpen] = React.useState(false);
   const [isToolsModalOpen, setIsToolsModalOpen] = React.useState(false);
   const [currentModalServer, setCurrentModalServer] = React.useState<Gateway | null>(null);
+  const [copiedStates, setCopiedStates] = React.useState<{ [key: string]: boolean }>({});
 
   // Listen for theme changes
   React.useEffect(() => {
@@ -265,9 +266,13 @@ export function GatewayManager() {
     }
   };
 
-  const handleCopyToClipboard = async (text: string) => {
+  const handleCopyToClipboard = async (text: string, key: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      setCopiedStates(prev => ({ ...prev, [key]: true }));
+      setTimeout(() => {
+        setCopiedStates(prev => ({ ...prev, [key]: false }));
+      }, 2000);
       toast.success(t('common.copied', { text }));
     } catch {
       toast.error(t('common.copy_failed'));
@@ -581,7 +586,7 @@ export function GatewayManager() {
                                     variant="flat"
                                     size="sm"
                                     className="cursor-pointer hover:opacity-80 select-none"
-                                    onClick={() => handleCopyToClipboard(router.prefix)}
+                                    onClick={() => handleCopyToClipboard(router.prefix, `router_${idx}`)}
                                     aria-label={`${t('common.copy')} ${router.prefix}`}
                                   >
                                     {router.prefix}
@@ -591,13 +596,60 @@ export function GatewayManager() {
                                     variant="flat"
                                     size="sm"
                                     className="cursor-pointer hover:opacity-80 select-none"
-                                    onClick={() => handleCopyToClipboard(router.server)}
+                                    onClick={() => handleCopyToClipboard(router.server, `server_${idx}`)}
                                     aria-label={`${t('common.copy')} ${router.server}`}
                                   >
                                     {router.server}
                                   </Chip>
                                 </div>
                               ))}
+                            </div>
+                          </div>
+
+                          {/* Add SSE URL and Streamable HTTP URL tags */}
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">{t('gateway.backend_config')}</h4>
+                            <div className="flex flex-col gap-2">
+                              <Chip
+                                color="primary"
+                                variant="flat"
+                                size="sm"
+                                className="cursor-pointer hover:opacity-80 select-none pr-2"
+                                onClick={() => {
+                                  const baseUrl = window.location.origin;
+                                  const sseUrl = `${baseUrl}/mcp/user/sse`;
+                                  handleCopyToClipboard(sseUrl, 'sse');
+                                }}
+                                aria-label={`${t('common.copy')} ${t('gateway.sse_url')}`}
+                                endContent={
+                                  <Icon 
+                                    icon={copiedStates['sse'] ? "lucide:check" : "lucide:copy"} 
+                                    className="text-sm" 
+                                  />
+                                }
+                              >
+                                {t('gateway.sse_url')}
+                              </Chip>
+                              <Chip
+                                color="primary"
+                                variant="flat"
+                                size="sm"
+                                className="cursor-pointer hover:opacity-80 select-none pr-2"
+                                onClick={() => {
+                                  const baseUrl = window.location.origin;
+                                  const streamableUrl = `${baseUrl}/mcp/user/mcp`;
+                                  handleCopyToClipboard(streamableUrl, 'streamable');
+                                }}
+                                aria-label={`${t('common.copy')} ${t('gateway.streamable_http_url')}`}
+                                endContent={
+                                  <Icon 
+                                    icon={copiedStates['streamable'] ? "lucide:check" : "lucide:copy"} 
+                                    className="text-sm" 
+                                  />
+                                }
+                              >
+                                {t('gateway.streamable_http_url')}
+                              </Chip>
                             </div>
                           </div>
 
@@ -659,7 +711,7 @@ export function GatewayManager() {
                                     color="success"
                                     size="sm"
                                     className="truncate cursor-pointer hover:opacity-80 select-none"
-                                    onClick={() => handleCopyToClipboard(tool)}
+                                    onClick={() => handleCopyToClipboard(tool, `tool_${tool}`)}
                                     aria-label={`${t('common.copy')} ${tool}`}
                                   >
                                     {tool}
@@ -678,7 +730,7 @@ export function GatewayManager() {
                                     color="default"
                                     size="sm"
                                     className="truncate cursor-pointer hover:opacity-80 select-none"
-                                    onClick={() => handleCopyToClipboard(tool.name)}
+                                    onClick={() => handleCopyToClipboard(tool.name, `tool_${tool.name}`)}
                                     aria-label={`${t('common.copy')} ${tool.name}`}
                                   >
                                     {tool.name}
@@ -705,7 +757,7 @@ export function GatewayManager() {
                                     variant="flat"
                                     size="sm"
                                     className="cursor-pointer hover:opacity-80 select-none"
-                                    onClick={() => handleCopyToClipboard(router.prefix)}
+                                    onClick={() => handleCopyToClipboard(router.prefix, `router_${idx}`)}
                                     aria-label={`${t('common.copy')} ${router.prefix}`}
                                   >
                                     {router.prefix}
@@ -715,7 +767,7 @@ export function GatewayManager() {
                                     variant="flat"
                                     size="sm"
                                     className="cursor-pointer hover:opacity-80 select-none"
-                                    onClick={() => handleCopyToClipboard(router.server)}
+                                    onClick={() => handleCopyToClipboard(router.server, `server_${idx}`)}
                                     aria-label={`${t('common.copy')} ${router.server}`}
                                   >
                                     {router.server}
@@ -966,7 +1018,7 @@ export function GatewayManager() {
                             variant="flat"
                             size="sm"
                             className="cursor-pointer hover:opacity-80 select-none"
-                            onClick={() => handleCopyToClipboard(router.prefix)}
+                            onClick={() => handleCopyToClipboard(router.prefix, `router_${idx}`)}
                             aria-label={`${t('common.copy')} ${router.prefix}`}
                           >
                             {router.prefix}
@@ -976,7 +1028,7 @@ export function GatewayManager() {
                             variant="flat"
                             size="sm"
                             className="cursor-pointer hover:opacity-80 select-none"
-                            onClick={() => handleCopyToClipboard(router.server)}
+                            onClick={() => handleCopyToClipboard(router.server, `server_${idx}`)}
                             aria-label={`${t('common.copy')} ${router.server}`}
                           >
                             {router.server}
@@ -1068,7 +1120,7 @@ export function GatewayManager() {
                             color="success"
                             size="sm"
                             className="truncate cursor-pointer hover:opacity-80 select-none"
-                            onClick={() => handleCopyToClipboard(tool)}
+                            onClick={() => handleCopyToClipboard(tool, `tool_${tool}`)}
                             aria-label={`${t('common.copy')} ${tool}`}
                           >
                             {tool}
@@ -1087,7 +1139,7 @@ export function GatewayManager() {
                             color="default"
                             size="sm"
                             className="truncate cursor-pointer hover:opacity-80 select-none"
-                            onClick={() => handleCopyToClipboard(tool.name)}
+                            onClick={() => handleCopyToClipboard(tool.name, `tool_${tool.name}`)}
                             aria-label={`${t('common.copy')} ${tool.name}`}
                           >
                             {tool.name}

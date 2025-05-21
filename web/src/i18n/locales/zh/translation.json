@@ -64,7 +64,9 @@
     "copied": "已复制: {{text}}",
     "add": "添加",
     "already": "已",
-    "available": "可用"
+    "available": "可用",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL"
   },
   "nav": {
     "dashboard": "仪表盘",
@@ -73,7 +75,10 @@
     "gateway": "网关",
     "chat": "聊天",
     "users": "用户",
-    "tenants": "租户"
+    "tenants": "租户",
+    "tools_config": "工具配置",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL"
   },
   "auth": {
     "login": "登录",
@@ -116,7 +121,7 @@
     "enabled_tools": "已启用的工具",
     "all_tools": "所有工具",
     "mcp_config": "MCP 配置",
-    "backend_config": "后端配置",
+    "backend_config": "MCP URL",
     "add_success": "网关创建成功",
     "add_failed": "网关创建失败",
     "edit_success": "配置保存成功",
@@ -267,7 +272,9 @@
     "response_body_placeholder": "例如: {{.Response.Body}}",
     "origin_placeholder": "例如: https://example.com 或 *",
     "header_placeholder": "例如: Content-Type",
-    "expose_header_placeholder": "例如: Content-Length"
+    "expose_header_placeholder": "例如: Content-Length",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL"
   },
   "chat": {
     "title": "聊天",
