@@ -215,8 +215,8 @@ func (s *Server) fetchHTTPToolList(conn session.Connection) ([]mcp.ToolSchema, e
 		zap.String("prefix", conn.Meta().Prefix))
 
 	// Get http tools for this prefix
-	tools, ok := s.state.prefixToTools[conn.Meta().Prefix]
-	if !ok {
+	tools := s.state.GetToolSchemas(conn.Meta().Prefix)
+	if len(tools) == 0 {
 		s.logger.Warn("no tools found for prefix",
 			zap.String("prefix", conn.Meta().Prefix),
 			zap.String("session_id", conn.Meta().ID))
@@ -239,8 +239,8 @@ func (s *Server) callHTTPTool(c *gin.Context, req mcp.JSONRPCRequest, conn sessi
 		zap.String("remote_addr", c.Request.RemoteAddr))
 
 	// Find the tool in the precomputed map
-	tool, exists := s.state.toolMap[params.Name]
-	if !exists {
+	tool := s.state.GetTool(params.Name)
+	if tool == nil {
 		s.logger.Warn("tool not found",
 			zap.String("tool", params.Name),
 			zap.String("session_id", conn.Meta().ID),
@@ -270,8 +270,8 @@ func (s *Server) callHTTPTool(c *gin.Context, req mcp.JSONRPCRequest, conn sessi
 	}
 
 	// Get server configuration
-	serverCfg, ok := s.state.prefixToServerConfig[conn.Meta().Prefix]
-	if !ok {
+	serverCfg := s.state.GetServerConfig(conn.Meta().Prefix)
+	if serverCfg == nil {
 		s.logger.Error("server configuration not found",
 			zap.String("tool", params.Name),
 			zap.String("prefix", conn.Meta().Prefix),

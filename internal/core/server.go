@@ -85,9 +85,9 @@ func (s *Server) RegisterRoutes(ctx context.Context, cfgs []*config.MCPConfig) e
 	}
 
 	s.logger.Info("server configuration loaded",
-		zap.Int("server_count", len(newState.prefixToServerConfig)),
-		zap.Int("tool_count", len(newState.toolMap)),
-		zap.Int("router_count", len(newState.prefixToRouterConfig)))
+		zap.Int("server_count", newState.GetServerCount()),
+		zap.Int("tool_count", newState.GetToolCount()),
+		zap.Int("router_count", newState.GetRouterCount()))
 
 	// Atomically replace the state
 	s.state = newState
@@ -120,10 +120,10 @@ func (s *Server) handleRoot(c *gin.Context) {
 		zap.String("remote_addr", c.Request.RemoteAddr))
 
 	// Dynamically set CORS
-	if routerCfg, ok := s.state.prefixToRouterConfig[prefix]; ok && routerCfg.CORS != nil {
+	if cors := s.state.GetCORS(prefix); cors != nil {
 		s.logger.Debug("applying CORS middleware",
 			zap.String("prefix", prefix))
-		s.corsMiddleware(routerCfg.CORS)(c)
+		s.corsMiddleware(cors)(c)
 		if c.IsAborted() {
 			s.logger.Debug("request aborted by CORS middleware",
 				zap.String("prefix", prefix),
@@ -132,7 +132,8 @@ func (s *Server) handleRoot(c *gin.Context) {
 		}
 	}
 
-	if _, ok := s.state.prefixToProtoType[prefix]; !ok {
+	protoType := s.state.GetProtoType(prefix)
+	if protoType == "" {
 		s.logger.Warn("invalid prefix",
 			zap.String("prefix", prefix),
 			zap.String("remote_addr", c.Request.RemoteAddr))
@@ -177,7 +178,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	close(s.shutdownCh)
 
 	var wg sync.WaitGroup
-	for prefix, transport := range s.state.prefixToTransport {
+	for prefix, transport := range s.state.GetTransports() {
 		if transport.IsRunning() {
 			wg.Add(1)
 			go func(p string, t mcpproxy.Transport) {
@@ -222,9 +223,9 @@ func (s *Server) UpdateConfig(ctx context.Context, cfgs []*config.MCPConfig) err
 
 	// 记录配置更新信息
 	s.logger.Info("server configuration updated",
-		zap.Int("server_count", len(newState.prefixToServerConfig)),
-		zap.Int("tool_count", len(newState.toolMap)),
-		zap.Int("router_count", len(newState.prefixToRouterConfig)))
+		zap.Int("server_count", newState.GetServerCount()),
+		zap.Int("tool_count", newState.GetToolCount()),
+		zap.Int("router_count", newState.GetRouterCount()))
 
 	// Atomically replace the state
 	s.state = newState
@@ -236,7 +237,7 @@ func (s *Server) UpdateConfig(ctx context.Context, cfgs []*config.MCPConfig) err
 func (s *Server) MergeConfig(ctx context.Context, cfg *config.MCPConfig) error {
 	s.logger.Info("merging configuration")
 
-	newConfig, err := helper.MergeConfigs(s.state.rawConfigs, cfg)
+	newConfig, err := helper.MergeConfigs(s.state.GetRawConfigs(), cfg)
 	if err != nil {
 		s.logger.Error("failed to merge configuration",
 			zap.Error(err))
@@ -262,9 +263,9 @@ func (s *Server) MergeConfig(ctx context.Context, cfg *config.MCPConfig) error {
 
 	// Record configuration merge information
 	s.logger.Info("configuration merged successfully",
-		zap.Int("server_count", len(newState.prefixToServerConfig)),
-		zap.Int("tool_count", len(newState.toolMap)),
-		zap.Int("router_count", len(newState.prefixToRouterConfig)))
+		zap.Int("server_count", newState.GetServerCount()),
+		zap.Int("tool_count", newState.GetToolCount()),
+		zap.Int("router_count", newState.GetRouterCount()))
 
 	// Atomically replace the state
 	s.state = newState
