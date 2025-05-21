@@ -263,25 +263,11 @@ func (s *Server) UpdateConfig(ctx context.Context, cfg *config.MCPConfig) {
 		return
 	}
 
-	// Create new state with current configs
-	rawConfigs := make([]*config.MCPConfig, len(currentState.GetRawConfigs()))
-	copy(rawConfigs, currentState.GetRawConfigs())
-
-	// Find and update the config in rawConfigs
-	found := false
-	for i, existingCfg := range rawConfigs {
-		if existingCfg.Name == cfg.Name {
-			rawConfigs[i] = cfg
-			found = true
-			break
-		}
-	}
-	if !found {
-		rawConfigs = append(rawConfigs, cfg)
-	}
+	// Merge the new configuration with existing configs
+	cfgs := config.MergeConfigs(currentState.GetRawConfigs(), cfg)
 
 	// Build new state from updated configs
-	updatedState, err := state.BuildStateFromConfig(ctx, rawConfigs, currentState, s.logger)
+	updatedState, err := state.BuildStateFromConfig(ctx, cfgs, currentState, s.logger)
 	if err != nil {
 		s.logger.Error("failed to build state from updated configs",
 			zap.Error(err))

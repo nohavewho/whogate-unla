@@ -14,7 +14,6 @@ import (
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/helper"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
 	pidHelper "github.com/mcp-ecosystem/mcp-gateway/pkg/helper"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
@@ -86,26 +85,20 @@ var (
 			}
 
 			// Load all MCP configurations
-			mcpConfigs, err := store.List(context.Background())
+			cfgs, err := store.List(context.Background())
 			if err != nil {
 				fmt.Printf("Failed to load MCP configurations: %v\n", err)
 				os.Exit(1)
 			}
 
 			// Validate configurations
-			if err := config.ValidateMCPConfigs(mcpConfigs); err != nil {
+			if err := config.ValidateMCPConfigs(cfgs); err != nil {
 				var validationErr *config.ValidationError
 				if errors.As(err, &validationErr) {
 					fmt.Printf("Configuration validation failed: %v\n", validationErr)
 				} else {
 					fmt.Printf("Failed to validate configurations: %v\n", err)
 				}
-				os.Exit(1)
-			}
-
-			// Try to merge configurations
-			if _, err := helper.MergeConfigs(mcpConfigs); err != nil {
-				fmt.Printf("Failed to merge configurations: %v\n", err)
 				os.Exit(1)
 			}
 

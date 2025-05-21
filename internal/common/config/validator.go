@@ -157,3 +157,26 @@ func ValidateMCPConfigs(configs []*MCPConfig) error {
 
 	return formatValidationErrors(errors)
 }
+
+// MergeConfigs merges a new configuration with existing configurations
+// It will update the existing config if it exists, or append the new config if it doesn't exist
+func MergeConfigs(existingConfigs []*MCPConfig, newConfig *MCPConfig) []*MCPConfig {
+	// Create a copy of existing configs
+	configs := make([]*MCPConfig, len(existingConfigs))
+	copy(configs, existingConfigs)
+
+	// Find and update the config in configs
+	found := false
+	for i, existingCfg := range configs {
+		if existingCfg.Name == newConfig.Name {
+			configs[i] = newConfig
+			found = true
+			break
+		}
+	}
+	if !found {
+		configs = append(configs, newConfig)
+	}
+
+	return configs
+}
