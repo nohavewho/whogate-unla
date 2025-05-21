@@ -289,34 +289,7 @@ func (s *Server) handleMCPRequest(c *gin.Context, req mcp.JSONRPCRequest, conn s
 		)
 		switch protoType {
 		case cnst.BackendProtoHttp:
-			// For HTTP backend, use the existing HTTP tool invocation logic
-			tool, exists := s.state.toolMap[params.Name]
-			if !exists {
-				s.sendProtocolError(c, req.Id, "Tool not found", http.StatusNotFound, mcp.ErrorCodeMethodNotFound)
-				return
-			}
-
-			// Convert arguments to map[string]any
-			var args map[string]any
-			if err := json.Unmarshal(params.Arguments, &args); err != nil {
-				s.sendProtocolError(c, req.Id, "Invalid tool arguments", http.StatusBadRequest, mcp.ErrorCodeInvalidParams)
-				return
-			}
-
-			// Get server configuration
-			serverCfg, ok := s.state.prefixToServerConfig[conn.Meta().Prefix]
-			if !ok {
-				s.sendProtocolError(c, req.Id, "Server config not found", http.StatusInternalServerError, mcp.ErrorCodeInternalError)
-				return
-			}
-
-			// Execute the tool
-			result, err = s.executeHTTPTool(conn, tool, args, c.Request, serverCfg.Config)
-			if err != nil {
-				s.logger.Error("failed to execute tool", zap.Error(err))
-				s.sendToolExecutionError(c, conn, req, err, false)
-				return
-			}
+			result = s.callHTTPTool(c, req, conn, params)
 		case cnst.BackendProtoStdio:
 			transport, ok := s.state.prefixToTransport[conn.Meta().Prefix]
 			if !ok {

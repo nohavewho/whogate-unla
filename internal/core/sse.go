@@ -414,7 +414,7 @@ func (s *Server) handlePostMessage(c *gin.Context, conn session.Connection) {
 		)
 		switch protoType {
 		case cnst.BackendProtoHttp:
-			result = s.invokeHTTPTool(c, req, conn, params)
+			result = s.callHTTPTool(c, req, conn, params)
 		case cnst.BackendProtoStdio:
 			transport, ok := s.state.prefixToTransport[conn.Meta().Prefix]
 			if !ok {
