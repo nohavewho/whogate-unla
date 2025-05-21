@@ -246,6 +246,7 @@ export function ToolsConfig({
                       <SelectItem key="body">{t('gateway.position_body')}</SelectItem>
                       <SelectItem key="query">{t('gateway.position_query')}</SelectItem>
                       <SelectItem key="path">{t('gateway.position_path')}</SelectItem>
+                      <SelectItem key="form-data">{t('gateway.type_form_data')}</SelectItem>
                     </Select>
 
                     <Button

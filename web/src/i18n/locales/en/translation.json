@@ -194,6 +194,7 @@
     "type_boolean": "Boolean",
     "type_array": "Array",
     "type_object": "Object",
+    "type_form_data": "Form Data",
     "enable_cors": "Enable CORS",
     "allow_origins": "Allowed Origins",
     "allow_methods": "Allowed Methods",
@@ -272,7 +273,9 @@
     "header_placeholder": "Example: Content-Type",
     "expose_header_placeholder": "Example: Content-Length",
     "sse_url": "SSE URL",
-    "streamable_http_url": "Streamable HTTP URL"
+    "streamable_http_url": "Streamable HTTP URL",
+    "tenant_name": "Tenant",
+    "confirm_delete": "Are you sure you want to delete gateway '{{name}}'?"
   },
   "chat": {
     "title": "Chat",

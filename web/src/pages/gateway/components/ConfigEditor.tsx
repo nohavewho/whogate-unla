@@ -131,7 +131,7 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
 
             <Select
               label={t('gateway.tenant')}
-              selectedKeys={generalFormState.tenant !== undefined ? [generalFormState.tenant] : (parsedConfig?.tenant ? [parsedConfig.tenant] : ['default'])}
+              selectedKeys={generalFormState.tenant !== undefined ? [generalFormState.tenant] : (parsedConfig?.tenant ? [parsedConfig.tenant.replace(/^\//, '')] : ['default'])}
               onChange={(e) => {
                 setGeneralFormState(prev => ({
                   ...prev,

@@ -195,6 +195,7 @@
     "type_boolean": "布尔值",
     "type_array": "数组",
     "type_object": "对象",
+    "type_form_data": "表单数据",
     "enable_cors": "启用跨域(CORS)",
     "allow_origins": "允许的源",
     "allow_methods": "允许的方法",
@@ -274,7 +275,9 @@
     "header_placeholder": "例如: Content-Type",
     "expose_header_placeholder": "例如: Content-Length",
     "sse_url": "SSE URL",
-    "streamable_http_url": "Streamable HTTP URL"
+    "streamable_http_url": "Streamable HTTP URL",
+    "tenant_name": "租户",
+    "confirm_delete": "确定要删除网关 '{{name}}' 吗？"
   },
   "chat": {
     "title": "聊天",
