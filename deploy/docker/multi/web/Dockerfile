@@ -43,12 +43,9 @@ WORKDIR /app
 # Set default timezone
 ENV TZ=UTC
 
-RUN apt-get update && apt-get install -y \
-    tzdata \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && echo ${TZ} > /etc/timezone \
-    && dpkg-reconfigure -f noninteractive tzdata
+RUN apk add --no-cache tzdata && \
+    ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime && \
+    echo ${TZ} > /etc/timezone
 
 # Copy apiserver binary and config
 COPY --from=apiserver-builder /app/apiserver /app/
