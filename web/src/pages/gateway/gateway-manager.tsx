@@ -1,5 +1,6 @@
 import { Card, CardBody, Button, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Autocomplete, AutocompleteItem, Tabs, Tab, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Modal, Snippet } from "@heroui/react";
 import { Icon } from '@iconify/react';
+import copy from 'copy-to-clipboard';
 import yaml from 'js-yaml';
 import { configureMonacoYaml } from 'monaco-yaml';
 import React from 'react';
@@ -277,10 +278,14 @@ export function GatewayManager() {
     }
   };
 
-  const handleCopyToClipboard = async (text: string) => {
+  const handleCopyToClipboard = (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      toast.success(t('common.copied', { text }));
+      const success = copy(text);
+      if (success) {
+        toast.success(t('common.copied', { text }));
+      } else {
+        toast.error(t('common.copy_failed'));
+      }
     } catch {
       toast.error(t('common.copy_failed'));
     }
@@ -648,6 +653,11 @@ export function GatewayManager() {
                                   variant="flat"
                                   size="sm"
                                   className="cursor-pointer hover:opacity-80 select-none"
+                                  onClick={() => {
+                                    const baseUrl = window.location.origin;
+                                    const sseUrl = `${baseUrl}/mcp/user/sse`;
+                                    handleCopyToClipboard(sseUrl);
+                                  }}
                                   onCopy={() => {
                                     const baseUrl = window.location.origin;
                                     const sseUrl = `${baseUrl}/mcp/user/sse`;

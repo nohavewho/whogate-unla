@@ -62,6 +62,7 @@
     "no_results": "No results found",
     "copy": "Copy",
     "copied": "Copied: {{text}}",
+    "copy_failed": "Copy failed",
     "add": "Add",
     "already": "Already",
     "available": "Available"
