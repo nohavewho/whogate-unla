@@ -1,7 +1,10 @@
 package storage
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
@@ -127,6 +130,7 @@ type MCPConfigVersion struct {
 	Servers    string          `gorm:"type:text;column:servers"`
 	Tools      string          `gorm:"type:text;column:tools"`
 	McpServers string          `gorm:"type:text;column:mcp_servers"`
+	Hash       string          `gorm:"column:hash;not null"` // hash of the configuration content
 }
 
 // ToMCPConfig converts the database model to MCPConfig
@@ -184,6 +188,10 @@ func FromMCPConfigVersion(cfg *config.MCPConfig, version int, createdBy string, 
 		return nil, err
 	}
 
+	// Calculate hash of the configuration content
+	content := fmt.Sprintf("%s%s%s%s", routers, servers, tools, mcpServers)
+	hash := sha256.Sum256([]byte(content))
+
 	return &MCPConfigVersion{
 		Name:       cfg.Name,
 		Tenant:     cfg.Tenant,
@@ -195,5 +203,6 @@ func FromMCPConfigVersion(cfg *config.MCPConfig, version int, createdBy string, 
 		Servers:    string(servers),
 		Tools:      string(tools),
 		McpServers: string(mcpServers),
+		Hash:       hex.EncodeToString(hash[:]),
 	}, nil
 }

@@ -146,21 +146,28 @@ func (s *DBStore) Update(ctx context.Context, server *config.MCPConfig) error {
 			return err
 		}
 
-		// Get the latest version number
-		var latestVersion int
-		if err := tx.Model(&MCPConfigVersion{}).
-			Where("name = ?", server.Name).
-			Select("COALESCE(MAX(version), 0)").
-			Scan(&latestVersion).Error; err != nil {
+		// Get the latest version
+		var latestVersion MCPConfigVersion
+		if err := tx.Where("name = ?", server.Name).Order("version DESC").First(&latestVersion).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
 
-		// Create new version
-		version, err := FromMCPConfigVersion(server, latestVersion+1, "system", cnst.ActionUpdate)
+		// Calculate hash for current config
+		version, err := FromMCPConfigVersion(server, latestVersion.Version+1, "system", cnst.ActionUpdate)
 		if err != nil {
 			return err
 		}
 
+		// If there's a latest version and its hash matches the current config's hash, skip creating new version
+		if latestVersion.Version > 0 && latestVersion.Hash == version.Hash {
+			s.logger.Info("Skipping version creation as content hash matches latest version",
+				zap.String("name", server.Name),
+				zap.Int("version", latestVersion.Version),
+				zap.String("hash", version.Hash))
+			return nil
+		}
+
+		// Create new version
 		if err := tx.Create(version).Error; err != nil {
 			return err
 		}
@@ -240,6 +247,13 @@ func (s *DBStore) GetVersion(ctx context.Context, name string, version int) (*co
 		CreatedBy:  versionModel.CreatedBy,
 		CreatedAt:  versionModel.CreatedAt,
 		ActionType: versionModel.ActionType,
+		Name:       versionModel.Name,
+		Tenant:     versionModel.Tenant,
+		Routers:    versionModel.Routers,
+		Servers:    versionModel.Servers,
+		Tools:      versionModel.Tools,
+		McpServers: versionModel.McpServers,
+		Hash:       versionModel.Hash,
 	}, nil
 }
 
@@ -270,6 +284,7 @@ func (s *DBStore) ListVersions(ctx context.Context, name string) ([]*config.MCPC
 			Tools:      v.Tools,
 			McpServers: v.McpServers,
 			IsActive:   v.Version == activeVersion.Version,
+			Hash:       v.Hash,
 		}
 	}
 	return result, nil

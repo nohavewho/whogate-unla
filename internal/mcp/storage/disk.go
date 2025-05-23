@@ -135,6 +135,71 @@ func (s *DiskStore) Update(_ context.Context, server *config.MCPConfig) error {
 	}
 
 	path := filepath.Join(s.baseDir, server.Name+".yaml")
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+
+	// Get the latest version
+	versionsDir := filepath.Join(s.baseDir, "versions", server.Name)
+	entries, err := os.ReadDir(versionsDir)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	// Sort entries by version number in descending order
+	sort.Slice(entries, func(i, j int) bool {
+		vi, _ := strconv.Atoi(strings.TrimSuffix(entries[i].Name(), ".yaml"))
+		vj, _ := strconv.Atoi(strings.TrimSuffix(entries[j].Name(), ".yaml"))
+		return vi > vj
+	})
+
+	// Calculate hash for current config
+	version, err := FromMCPConfigVersion(server, 1, "system", cnst.ActionUpdate)
+	if err != nil {
+		return err
+	}
+
+	// If there's a latest version, check its hash
+	if len(entries) > 0 {
+		latestVersionPath := filepath.Join(versionsDir, entries[0].Name())
+		latestData, err := os.ReadFile(latestVersionPath)
+		if err != nil {
+			return err
+		}
+
+		var latestVersion MCPConfigVersion
+		if err := yaml.Unmarshal(latestData, &latestVersion); err != nil {
+			return err
+		}
+
+		// If hash matches, skip creating new version
+		if latestVersion.Hash == version.Hash {
+			s.logger.Info("Skipping version creation as content hash matches latest version",
+				zap.String("name", server.Name),
+				zap.Int("version", latestVersion.Version),
+				zap.String("hash", version.Hash))
+			return os.WriteFile(path, data, 0644)
+		}
+
+		// Set the new version number
+		version.Version = latestVersion.Version + 1
+	}
+
+	// Create new version
+	versionData, err := yaml.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	versionPath := filepath.Join(versionsDir, fmt.Sprintf("%d.yaml", version.Version))
+	if err := os.MkdirAll(filepath.Dir(versionPath), 0755); err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(versionPath, versionData, 0644); err != nil {
+		return err
+	}
+
 	return os.WriteFile(path, data, 0644)
 }
 
@@ -172,6 +237,7 @@ func (s *DiskStore) GetVersion(_ context.Context, name string, version int) (*co
 		Servers:    model.Servers,
 		Tools:      model.Tools,
 		McpServers: model.McpServers,
+		Hash:       model.Hash,
 	}, nil
 }
 
@@ -221,6 +287,7 @@ func (s *DiskStore) ListVersions(_ context.Context, name string) ([]*config.MCPC
 			Servers:    model.Servers,
 			Tools:      model.Tools,
 			McpServers: model.McpServers,
+			Hash:       model.Hash,
 		})
 	}
 

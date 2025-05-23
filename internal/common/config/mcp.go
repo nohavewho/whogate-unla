@@ -102,6 +102,7 @@ type (
 		Tools      string          `json:"tools" yaml:"tools"`
 		McpServers string          `json:"mcp_servers" yaml:"mcp_servers"`
 		IsActive   bool            `json:"is_active" yaml:"is_active"` // indicates if this version is currently active
+		Hash       string          `json:"hash" yaml:"hash"`           // hash of the configuration content
 	}
 )
 
