@@ -122,7 +122,7 @@ type MCPConfigVersion struct {
 	Version    int             `gorm:"column:version;index:idx_name_tenant_version,uniqueIndex"`
 	ActionType cnst.ActionType `gorm:"column:action_type;not null"` // Create, Update, Delete, Revert
 	CreatedBy  string          `gorm:"column:created_by"`
-	CreatedAt  time.Time       `gorm:"column:created_at;default:CURRENT_TIMESTAMP(3)"`
+	CreatedAt  time.Time       `gorm:"column:created_at;"`
 	Routers    string          `gorm:"type:text;column:routers"`
 	Servers    string          `gorm:"type:text;column:servers"`
 	Tools      string          `gorm:"type:text;column:tools"`
