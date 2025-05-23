@@ -1,16 +1,50 @@
-import { Card, CardBody, Button, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Autocomplete, AutocompleteItem, Tabs, Tab, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Modal, Snippet } from "@heroui/react";
-import { Icon } from '@iconify/react';
+import {
+  Autocomplete,
+  AutocompleteItem,
+  Button,
+  Card,
+  CardBody,
+  Chip,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
+  Tabs,
+  useDisclosure
+} from "@heroui/react";
+import {Icon} from '@iconify/react';
 import copy from 'copy-to-clipboard';
 import yaml from 'js-yaml';
-import { configureMonacoYaml } from 'monaco-yaml';
+import {configureMonacoYaml} from 'monaco-yaml';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import {useTranslation} from 'react-i18next';
 
-import { getMCPServers, createMCPServer, updateMCPServer, deleteMCPServer, exportMCPServer, syncMCPServers, getUserAuthorizedTenants, getTenant } from '../../services/api';
-import type { Gateway } from '../../types/gateway';
-import { toast } from '../../utils/toast';
+import {
+  createMCPServer,
+  deleteMCPServer,
+  exportMCPServer,
+  getMCPServers,
+  getTenant,
+  getUserAuthorizedTenants,
+  syncMCPServers,
+  updateMCPServer
+} from '../../services/api';
+import type {Gateway} from '../../types/gateway';
+import {toast} from '../../utils/toast';
 
-import { ConfigEditor } from './components/ConfigEditor';
+import {ConfigEditor} from './components/ConfigEditor';
 import OpenAPIImport from './components/OpenAPIImport';
 
 declare global {
@@ -29,7 +63,6 @@ declare global {
 
 interface ServerConfig {
   name: string;
-  namespace: string;
   description: string;
   allowedTools: string[];
 }

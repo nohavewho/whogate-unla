@@ -46,7 +46,6 @@ type (
 
 	ServerConfig struct {
 		Name         string            `json:"name" yaml:"name"`
-		Namespace    string            `json:"namespace" yaml:"namespace"`
 		Description  string            `json:"description" yaml:"description"`
 		AllowedTools []string          `json:"allowedTools" yaml:"allowedTools"`
 		Config       map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
