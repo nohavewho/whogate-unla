@@ -243,17 +243,28 @@ export function GatewayManager() {
 
   const handleSave = async () => {
     try {
-      // Validate YAML
-      yaml.load(editConfig);
+      // Parse YAML to check format and handle null values
+      const parsedConfig = yaml.load(editConfig) as any;
+      
+      // Remove null fields from the config
+      const fieldsToCheck = ['mcpServers', 'tools', 'servers', 'routers'];
+      fieldsToCheck.forEach(field => {
+        if (parsedConfig[field] === null) {
+          delete parsedConfig[field];
+        }
+      });
+
+      // Convert back to YAML string
+      const cleanedConfig = yaml.dump(parsedConfig);
 
       // Validate router prefix
-      const isValidPrefix = await validateRouterPrefixes(editConfig);
+      const isValidPrefix = await validateRouterPrefixes(cleanedConfig);
       if (!isValidPrefix) {
         return;
       }
 
       if (currentMCPServer) {
-        await updateMCPServer(currentMCPServer.name, editConfig);
+        await updateMCPServer(currentMCPServer.name, cleanedConfig);
         const tenantId = selectedTenants.length > 0 ? selectedTenants[0].id : undefined;
         const servers = await getMCPServers(tenantId);
         setMCPServers(servers);
@@ -327,22 +338,28 @@ export function GatewayManager() {
 
   const handleCreate = async () => {
     try {
-      // Validate YAML format first
-      try {
-        yaml.load(newConfig);
-      } catch {
-        toast.error(t('errors.invalid_yaml'));
-        return;
-      }
+      // Parse YAML to check format and handle null values
+      const parsedConfig = yaml.load(newConfig) as any;
+      
+      // Remove null fields from the config
+      const fieldsToCheck = ['mcpServers', 'tools', 'servers', 'routers'];
+      fieldsToCheck.forEach(field => {
+        if (parsedConfig[field] === null) {
+          delete parsedConfig[field];
+        }
+      });
+
+      // Convert back to YAML string
+      const cleanedConfig = yaml.dump(parsedConfig);
 
       // Validate router prefix
-      const isValidPrefix = await validateRouterPrefixes(newConfig);
+      const isValidPrefix = await validateRouterPrefixes(cleanedConfig);
       if (!isValidPrefix) {
         return;
       }
 
       // If YAML is valid, proceed with creation
-      await createMCPServer(newConfig);
+      await createMCPServer(cleanedConfig);
       const tenantId = selectedTenants.length > 0 ? selectedTenants[0].id : undefined;
       const servers = await getMCPServers(tenantId);
       setMCPServers(servers);
