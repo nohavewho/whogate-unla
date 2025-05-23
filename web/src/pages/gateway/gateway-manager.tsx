@@ -76,6 +76,7 @@ export function GatewayManager() {
   const [currentModalServer, setCurrentModalServer] = React.useState<Gateway | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [serverToDelete, setServerToDelete] = React.useState<Gateway | null>(null);
+  const [copiedStates, setCopiedStates] = React.useState<{ [key: string]: boolean }>({});
 
   // Listen for theme changes
   React.useEffect(() => {
@@ -407,6 +408,14 @@ export function GatewayManager() {
     );
   }, [tenants, selectedTenants]);
 
+  const handleCopyWithIcon = (text: string, key: string) => {
+    handleCopyToClipboard(text);
+    setCopiedStates(prev => ({ ...prev, [key]: true }));
+    setTimeout(() => {
+      setCopiedStates(prev => ({ ...prev, [key]: false }));
+    }, 1000);
+  };
+
   return (
     <div className="container mx-auto p-4 pb-10 h-[calc(100vh-5rem)] flex flex-col overflow-y-scroll scrollbar-hide">
       <div className="flex justify-between items-center mb-4">
@@ -648,39 +657,36 @@ export function GatewayManager() {
                             <div className="space-y-2">
                               <h4 className="text-sm font-semibold">{t('gateway.backend_config')}</h4>
                               <div className="flex flex-col gap-2">
-                                <Snippet
+                                <Chip
                                   color="primary"
                                   variant="flat"
                                   size="sm"
-                                  className="cursor-pointer hover:opacity-80 select-none"
+                                  className="cursor-pointer hover:opacity-80 select-none pr-2"
                                   onClick={() => {
                                     const baseUrl = window.location.origin;
                                     const sseUrl = `${baseUrl}/mcp/user/sse`;
-                                    handleCopyToClipboard(sseUrl);
+                                    handleCopyWithIcon(sseUrl, `sse-${server.name}`);
                                   }}
-                                  onCopy={() => {
-                                    const baseUrl = window.location.origin;
-                                    const sseUrl = `${baseUrl}/mcp/user/sse`;
-                                    handleCopyToClipboard(sseUrl);
-                                  }}
+                                  endContent={<Icon icon={copiedStates[`sse-${server.name}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />}
                                   aria-label={`${t('common.copy')} ${t('gateway.sse_url')}`}
                                 >
                                   {t('gateway.sse_url')}
-                                </Snippet>
-                                <Snippet
+                                </Chip>
+                                <Chip
                                   color="primary"
                                   variant="flat"
                                   size="sm"
-                                  className="cursor-pointer hover:opacity-80 select-none"
-                                  onCopy={() => {
+                                  className="cursor-pointer hover:opacity-80 select-none pr-2"
+                                  onClick={() => {
                                     const baseUrl = window.location.origin;
                                     const streamableUrl = `${baseUrl}/mcp/user/mcp`;
-                                    handleCopyToClipboard(streamableUrl);
+                                    handleCopyWithIcon(streamableUrl, `streamable-${server.name}`);
                                   }}
+                                  endContent={<Icon icon={copiedStates[`streamable-${server.name}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />}
                                   aria-label={`${t('common.copy')} ${t('gateway.streamable_http_url')}`}
                                 >
                                   {t('gateway.streamable_http_url')}
-                                </Snippet>
+                                </Chip>
                               </div>
                             </div>
 
@@ -808,6 +814,43 @@ export function GatewayManager() {
                               </div>
                             </div>
                           )}
+
+                          {/* Add SSE URL and Streamable HTTP URL tags */}
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">{t('gateway.backend_config')}</h4>
+                            <div className="flex flex-col gap-2">
+                              <Chip
+                                color="primary"
+                                variant="flat"
+                                size="sm"
+                                className="cursor-pointer hover:opacity-80 select-none pr-2"
+                                onClick={() => {
+                                  const baseUrl = window.location.origin;
+                                  const sseUrl = `${baseUrl}/mcp/user/sse`;
+                                  handleCopyWithIcon(sseUrl, `sse-${server.name}`);
+                                }}
+                                endContent={<Icon icon={copiedStates[`sse-${server.name}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />}
+                                aria-label={`${t('common.copy')} ${t('gateway.sse_url')}`}
+                              >
+                                {t('gateway.sse_url')}
+                              </Chip>
+                              <Chip
+                                color="primary"
+                                variant="flat"
+                                size="sm"
+                                className="cursor-pointer hover:opacity-80 select-none pr-2"
+                                onClick={() => {
+                                  const baseUrl = window.location.origin;
+                                  const streamableUrl = `${baseUrl}/mcp/user/mcp`;
+                                  handleCopyWithIcon(streamableUrl, `streamable-${server.name}`);
+                                }}
+                                endContent={<Icon icon={copiedStates[`streamable-${server.name}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />}
+                                aria-label={`${t('common.copy')} ${t('gateway.streamable_http_url')}`}
+                              >
+                                {t('gateway.streamable_http_url')}
+                              </Chip>
+                            </div>
+                          </div>
 
                           {server.parsedConfig.mcpServers && server.parsedConfig.mcpServers.length > 0 && (
                             <div className="space-y-2">
