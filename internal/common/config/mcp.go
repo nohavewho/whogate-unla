@@ -46,7 +46,6 @@ type (
 
 	ServerConfig struct {
 		Name         string            `json:"name" yaml:"name"`
-		Namespace    string            `json:"namespace" yaml:"namespace"`
 		Description  string            `json:"description" yaml:"description"`
 		AllowedTools []string          `json:"allowedTools" yaml:"allowedTools"`
 		Config       map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
@@ -103,6 +102,7 @@ type (
 		Tools      string          `json:"tools" yaml:"tools"`
 		McpServers string          `json:"mcp_servers" yaml:"mcp_servers"`
 		IsActive   bool            `json:"is_active" yaml:"is_active"` // indicates if this version is currently active
+		Hash       string          `json:"hash" yaml:"hash"`           // hash of the configuration content
 	}
 )
 
