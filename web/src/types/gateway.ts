@@ -2,6 +2,7 @@ export interface Gateway {
   name: string;
   config: string;
   parsedConfig?: {
+    tenant?: string;
     routers: Array<{
       server: string;
       prefix: string;

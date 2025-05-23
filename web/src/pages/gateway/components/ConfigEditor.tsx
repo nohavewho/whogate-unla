@@ -78,6 +78,7 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
     }
   }, [config]);
 
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-end mb-4">
@@ -120,10 +121,12 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
               label={t('gateway.name')}
               value={generalFormState.name !== undefined ? generalFormState.name : (parsedConfig?.name || "")}
               onChange={(e) => {
+                const newName = e.target.value;
                 setGeneralFormState(prev => ({
                   ...prev,
-                  name: e.target.value
+                  name: newName
                 }));
+                updateConfig({ name: newName });
               }}
               isDisabled={Boolean(isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '')}
               description={(isEditing && parsedConfig?.name && parsedConfig.name.trim() !== '') ? t('gateway.name_locked') : undefined}
@@ -131,12 +134,14 @@ export function ConfigEditor({ config, onChange, isDark, editorOptions, isEditin
 
             <Select
               label={t('gateway.tenant')}
-              selectedKeys={generalFormState.tenant !== undefined ? [generalFormState.tenant] : (parsedConfig?.tenant ? [parsedConfig.tenant] : ['default'])}
+              selectedKeys={generalFormState.tenant !== undefined ? [generalFormState.tenant] : (parsedConfig?.tenant ? [parsedConfig.tenant.replace(/^\//, '')] : ['default'])}
               onChange={(e) => {
+                const newTenant = e.target.value;
                 setGeneralFormState(prev => ({
                   ...prev,
-                  tenant: e.target.value
+                  tenant: newTenant
                 }));
+                updateConfig({ tenant: newTenant });
               }}
               aria-label={t('gateway.tenant')}
               isLoading={isLoadingTenants}

@@ -1,4 +1,5 @@
-import { Input, Select, SelectItem, Button, Switch } from "@heroui/react";
+import { Input, Select, SelectItem, Button, Switch, Accordion, AccordionItem } from "@heroui/react";
+import { Icon } from "@iconify/react";
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -182,126 +183,154 @@ export function MCPServersConfig({
   };
 
   return (
-    <div className="border-t pt-4 mt-2">
-      <h3 className="text-sm font-medium mb-2">{t('gateway.mcp_server_config')}</h3>
-      {mcpServers.map((server, index) => (
-        <div key={index} className="flex flex-col gap-2 mb-4 p-3 border rounded-md">
-          <div className="flex justify-between items-center">
-            <div className="flex-1">
-              <Input
-                label={t('gateway.server_name')}
-                value={server.name || ""}
-                onChange={(e) => updateServer(index, 'name', e.target.value)}
+    <div className="space-y-4">
+      <Accordion variant="splitted">
+        {mcpServers.map((server, index) => (
+          <AccordionItem 
+            key={index} 
+            title={server.name || `MCP Server ${index + 1}`}
+            subtitle={server.type}
+            startContent={
+              <Icon 
+                icon={
+                  server.type === 'stdio' ? 'lucide:terminal' :
+                  server.type === 'sse' ? 'lucide:radio' :
+                  'lucide:globe'
+                } 
+                className="text-primary-500" 
               />
-            </div>
-            <Button
-              color="danger"
-              isIconOnly
-              className="ml-2"
-              onPress={() => removeServer(index)}
-            >
-              ✕
-            </Button>
-          </div>
-
-          <Select
-            label={t('gateway.mcp_type')}
-            selectedKeys={[server.type || "stdio"]}
-            onChange={(e) => updateServer(index, 'type', e.target.value)}
-            aria-label={t('gateway.mcp_type')}
+            }
           >
-            <SelectItem key="stdio">stdio</SelectItem>
-            <SelectItem key="sse">sse</SelectItem>
-            <SelectItem key="streamable-http">streamable-http</SelectItem>
-          </Select>
-
-          <Select
-            label={t('gateway.startup_policy')}
-            selectedKeys={[server.policy || "onDemand"]}
-            onChange={(e) => updateServer(index, 'policy', e.target.value)}
-            aria-label={t('gateway.startup_policy')}
-          >
-            <SelectItem key="onDemand">{t('gateway.policy_on_demand')}</SelectItem>
-            <SelectItem key="onStart">{t('gateway.policy_on_start')}</SelectItem>
-          </Select>
-
-          {(server.type === 'stdio' || !server.type) && (
-            <>
-              <Switch
-                isSelected={server.preinstalled}
-                onValueChange={(value) => updateServer(index, 'preinstalled', value)}
-                size="sm"
-              >
-                {t('gateway.preinstalled')}
-              </Switch>
-
-              <Input
-                label={t('gateway.command')}
-                value={commandInputs[index] || ''}
-                onChange={(e) => handleCommandInputChange(index, e.target.value)}
-                onBlur={() => handleCommandInputBlur(index)}
-                placeholder="command arg1 arg2 arg3"
-                type="text"
-                inputMode="text"
-              />
-
-              <div className="mt-2">
-                <h4 className="text-sm font-medium mb-2">{t('gateway.env_variables')}</h4>
-                <div className="flex flex-col gap-2">
-                  {Object.entries(server.env || {}).map(([key, value], envIndex) => (
-                    <div key={envIndex} className="flex items-center gap-2">
-                      <Input
-                        className="flex-1"
-                        value={key}
-                        onChange={(e) => updateEnvVariable(index, envIndex, 'key', e.target.value)}
-                        placeholder="环境变量名称"
-                      />
-                      <Input
-                        className="flex-1"
-                        value={String(value)}
-                        onChange={(e) => updateEnvVariable(index, envIndex, 'value', e.target.value)}
-                        placeholder="环境变量值"
-                      />
-                      <Button
-                        color="danger"
-                        isIconOnly
-                        onPress={() => removeEnvVariable(index, envIndex)}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  ))}
-
-                  <Button
-                    color="primary"
-                    size="sm"
-                    className="mt-1"
-                    onPress={() => addEnvVariable(index)}
-                  >
-                    添加环境变量
-                  </Button>
-                </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label={t('gateway.server_name')}
+                  value={server.name || ""}
+                  onChange={(e) => updateServer(index, 'name', e.target.value)}
+                />
+                <Select
+                  label={t('gateway.mcp_type')}
+                  selectedKeys={[server.type || "stdio"]}
+                  onChange={(e) => updateServer(index, 'type', e.target.value)}
+                  aria-label={t('gateway.mcp_type')}
+                >
+                  <SelectItem key="stdio">stdio</SelectItem>
+                  <SelectItem key="sse">sse</SelectItem>
+                  <SelectItem key="streamable-http">streamable-http</SelectItem>
+                </Select>
               </div>
-            </>
-          )}
 
-          {(server.type === 'sse' || server.type === 'streamable-http') && (
-            <Input
-              label={t('gateway.url')}
-              value={server.url || ''}
-              onChange={(e) => updateServer(index, 'url', e.target.value)}
-            />
-          )}
-        </div>
-      ))}
-      <Button
-        size="sm"
-        color="primary"
-        onPress={addServer}
-        className="w-full"
-      >
-        {t('gateway.add_mcp_server')}
-      </Button>
+              <Select
+                label={t('gateway.startup_policy')}
+                selectedKeys={[server.policy || "onDemand"]}
+                onChange={(e) => updateServer(index, 'policy', e.target.value)}
+                aria-label={t('gateway.startup_policy')}
+              >
+                <SelectItem key="onDemand">{t('gateway.policy_on_demand')}</SelectItem>
+                <SelectItem key="onStart">{t('gateway.policy_on_start')}</SelectItem>
+              </Select>
+
+              {(server.type === 'stdio' || !server.type) && (
+                <>
+                  <div className="bg-content1 p-4 rounded-medium border border-content2">
+                    <Switch
+                      isSelected={server.preinstalled}
+                      onValueChange={(value) => updateServer(index, 'preinstalled', value)}
+                      size="sm"
+                    >
+                      {t('gateway.preinstalled')}
+                    </Switch>
+
+                    <Input
+                      label={t('gateway.command')}
+                      value={commandInputs[index] || ''}
+                      onChange={(e) => handleCommandInputChange(index, e.target.value)}
+                      onBlur={() => handleCommandInputBlur(index)}
+                      placeholder="command arg1 arg2 arg3"
+                      type="text"
+                      inputMode="text"
+                      className="mt-4"
+                    />
+
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-2">{t('gateway.env_variables')}</h4>
+                      <div className="flex flex-col gap-2">
+                        {Object.entries(server.env || {}).map(([key, value], envIndex) => (
+                          <div key={envIndex} className="flex items-center gap-2">
+                            <Input
+                              className="flex-1"
+                              value={key}
+                              onChange={(e) => updateEnvVariable(index, envIndex, 'key', e.target.value)}
+                              placeholder="环境变量名称"
+                            />
+                            <Input
+                              className="flex-1"
+                              value={String(value)}
+                              onChange={(e) => updateEnvVariable(index, envIndex, 'value', e.target.value)}
+                              placeholder="环境变量值"
+                            />
+                            <Button
+                              color="danger"
+                              variant="flat"
+                              isIconOnly
+                              onPress={() => removeEnvVariable(index, envIndex)}
+                            >
+                              <Icon icon="lucide:x" />
+                            </Button>
+                          </div>
+                        ))}
+
+                        <Button
+                          color="primary"
+                          variant="flat"
+                          size="sm"
+                          startContent={<Icon icon="lucide:plus" />}
+                          onPress={() => addEnvVariable(index)}
+                        >
+                          {t('gateway.add_env_variable')}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(server.type === 'sse' || server.type === 'streamable-http') && (
+                <div className="bg-content1 p-4 rounded-medium border border-content2">
+                  <Input
+                    label={t('gateway.url')}
+                    value={server.url || ''}
+                    onChange={(e) => updateServer(index, 'url', e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button 
+                  color="danger" 
+                  variant="flat" 
+                  size="sm"
+                  startContent={<Icon icon="lucide:trash-2" />}
+                  onPress={() => removeServer(index)}
+                >
+                  {t('gateway.remove_server')}
+                </Button>
+              </div>
+            </div>
+          </AccordionItem>
+        ))}
+      </Accordion>
+
+      <div className="flex justify-center">
+        <Button
+          color="primary"
+          variant="flat"
+          startContent={<Icon icon="lucide:plus" />}
+          onPress={addServer}
+        >
+          {t('gateway.add_mcp_server')}
+        </Button>
+      </div>
     </div>
   );
 }

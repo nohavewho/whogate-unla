@@ -116,7 +116,7 @@ export function Layout({ children }: LayoutProps) {
         maxWidth="full"
         height="4rem"
       >
-        <NavbarContent className={`transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
+        <NavbarContent className={`transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-56'}`}>
           <NavbarItem>
             <Button
               isIconOnly
@@ -203,7 +203,7 @@ export function Layout({ children }: LayoutProps) {
         {/* Sidebar */}
         <div
           className={`h-screen bg-card text-foreground flex flex-col fixed left-0 top-0 z-40 transition-all duration-300 border-r border-border shadow-lg ${
-            isCollapsed ? "w-20" : "w-64"
+            isCollapsed ? "w-20" : "w-56"
           }`}
         >
           <div className="flex items-center justify-center p-4 border-b border-border h-16">
@@ -212,7 +212,7 @@ export function Layout({ children }: LayoutProps) {
             ) : (
               <div className="flex items-center gap-2">
                 <img src={logoImg} alt="MCP Logo" className="w-6 h-6" />
-                <span className="text-xl font-bold">MCP Admin</span>
+                <span className="text-xl font-bold">MCP Gateway</span>
               </div>
             )}
           </div>
@@ -312,7 +312,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Main Content */}
-        <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
+        <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-56'}`}>
           <div className="p-6">
             {children}
           </div>

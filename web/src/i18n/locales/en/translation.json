@@ -62,6 +62,7 @@
     "no_results": "No results found",
     "copy": "Copy",
     "copied": "Copied: {{text}}",
+    "copy_failed": "Copy failed",
     "add": "Add",
     "already": "Already",
     "available": "Available"
@@ -73,7 +74,10 @@
     "gateway": "Gateway",
     "chat": "Chat",
     "users": "Users",
-    "tenants": "Tenants"
+    "tenants": "Tenants",
+    "tools_config": "Tools Configuration",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL"
   },
   "auth": {
     "login": "Login",
@@ -115,7 +119,7 @@
     "enabled_tools": "Enabled Tools",
     "all_tools": "All Tools",
     "mcp_config": "MCP Configuration",
-    "backend_config": "Backend Configuration",
+    "backend_config": "MCP URL",
     "add_success": "Gateway created successfully",
     "add_failed": "Failed to create gateway",
     "edit_success": "Configuration saved successfully",
@@ -191,6 +195,7 @@
     "type_boolean": "Boolean",
     "type_array": "Array",
     "type_object": "Object",
+    "type_form_data": "Form Data",
     "enable_cors": "Enable CORS",
     "allow_origins": "Allowed Origins",
     "allow_methods": "Allowed Methods",
@@ -267,7 +272,19 @@
     "response_body_placeholder": "Example: {{.Response.Body}}",
     "origin_placeholder": "Example: https://example.com or *",
     "header_placeholder": "Example: Content-Type",
-    "expose_header_placeholder": "Example: Content-Length"
+    "expose_header_placeholder": "Example: Content-Length",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL",
+    "tenant_name": "Tenant",
+    "confirm_delete": "Are you sure you want to delete gateway '{{name}}'?",
+    "remove_argument": "Remove Argument",
+    "remove_tool": "Remove Tool",
+    "tools_already_all_added": "Tools already all added",
+    "tools_none_available": "No tools available",
+    "remove_server": "Remove Server",
+    "add_origin": "Add Origin",
+    "add_method": "Add Method",
+    "add_expose_header": "Add Expose Header"
   },
   "chat": {
     "title": "Chat",

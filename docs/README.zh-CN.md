@@ -8,6 +8,8 @@
 [![文档](https://img.shields.io/badge/文档-在线阅读-blue)](https://mcp.ifuryst.com)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mcp-ecosystem/mcp-gateway)
 [![Discord](https://img.shields.io/badge/Discord-加入讨论-5865F2?logo=discord&logoColor=white)](https://discord.gg/udf69cT9TY)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mcp-ecosystem/mcp-gateway)](https://goreportcard.com/report/github.com/mcp-ecosystem/mcp-gateway)
+[![Snyk Security](https://img.shields.io/badge/Snyk-Secure-blueviolet?logo=snyk)](https://snyk.io/test/github/mcp-ecosystem/mcp-gateway)
 
 ---
 

@@ -62,9 +62,12 @@
     "no_results": "未找到结果",
     "copy": "复制",
     "copied": "已复制: {{text}}",
+    "copy_failed": "复制失败",
     "add": "添加",
     "already": "已",
-    "available": "可用"
+    "available": "可用",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL"
   },
   "nav": {
     "dashboard": "仪表盘",
@@ -73,7 +76,10 @@
     "gateway": "网关",
     "chat": "聊天",
     "users": "用户",
-    "tenants": "租户"
+    "tenants": "租户",
+    "tools_config": "工具配置",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL"
   },
   "auth": {
     "login": "登录",
@@ -116,7 +122,7 @@
     "enabled_tools": "已启用的工具",
     "all_tools": "所有工具",
     "mcp_config": "MCP 配置",
-    "backend_config": "后端配置",
+    "backend_config": "MCP URL",
     "add_success": "网关创建成功",
     "add_failed": "网关创建失败",
     "edit_success": "配置保存成功",
@@ -190,6 +196,7 @@
     "type_boolean": "布尔值",
     "type_array": "数组",
     "type_object": "对象",
+    "type_form_data": "表单数据",
     "enable_cors": "启用跨域(CORS)",
     "allow_origins": "允许的源",
     "allow_methods": "允许的方法",
@@ -267,7 +274,20 @@
     "response_body_placeholder": "例如: {{.Response.Body}}",
     "origin_placeholder": "例如: https://example.com 或 *",
     "header_placeholder": "例如: Content-Type",
-    "expose_header_placeholder": "例如: Content-Length"
+    "expose_header_placeholder": "例如: Content-Length",
+    "sse_url": "SSE URL",
+    "streamable_http_url": "Streamable HTTP URL",
+    "tenant_name": "租户",
+    "confirm_delete": "确定要删除网关 '{{name}}' 吗？",
+    "remove_argument": "删除参数",
+    "remove_tool": "删除工具",
+    "tools_already_all_added": "工具已全部添加",
+    "tools_none_available": "暂无可用工具",
+    "remove_server": "删除服务",
+    "add_origin": "添加源",
+    "add_method": "添加方法",
+    "add_header": "添加头部",
+    "add_expose_header": "添加暴露头部"
   },
   "chat": {
     "title": "聊天",
