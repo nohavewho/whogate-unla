@@ -29,9 +29,9 @@ var _ Store = (*DBStore)(nil)
 type DatabaseType string
 
 const (
-	PostgresSQL DatabaseType = "postgres"
-	MySQL       DatabaseType = "mysql"
-	SQLite      DatabaseType = "sqlite"
+	PostgreSQL DatabaseType = "postgres"
+	MySQL      DatabaseType = "mysql"
+	SQLite     DatabaseType = "sqlite"
 )
 
 // NewDBStore creates a new database-based store
@@ -40,7 +40,7 @@ func NewDBStore(logger *zap.Logger, dbType DatabaseType, dsn string) (*DBStore, 
 
 	var dialector gorm.Dialector
 	switch dbType {
-	case PostgresSQL:
+	case PostgreSQL:
 		dialector = postgres.Open(dsn)
 	case MySQL:
 		dialector = mysql.Open(dsn)
