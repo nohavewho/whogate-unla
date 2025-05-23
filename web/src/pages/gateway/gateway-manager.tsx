@@ -86,6 +86,14 @@ interface Tenant {
   isActive: boolean;
 }
 
+interface YAMLConfig {
+  mcpServers?: Record<string, unknown>;
+  tools?: Record<string, unknown>;
+  servers?: Record<string, unknown>;
+  routers?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export function GatewayManager() {
   const { t } = useTranslation();
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
@@ -244,7 +252,7 @@ export function GatewayManager() {
   const handleSave = async () => {
     try {
       // Parse YAML to check format and handle null values
-      const parsedConfig = yaml.load(editConfig) as any;
+      const parsedConfig = yaml.load(editConfig) as YAMLConfig;
       
       // Remove null fields from the config
       const fieldsToCheck = ['mcpServers', 'tools', 'servers', 'routers'];
@@ -339,7 +347,7 @@ export function GatewayManager() {
   const handleCreate = async () => {
     try {
       // Parse YAML to check format and handle null values
-      const parsedConfig = yaml.load(newConfig) as any;
+      const parsedConfig = yaml.load(newConfig) as YAMLConfig;
       
       // Remove null fields from the config
       const fieldsToCheck = ['mcpServers', 'tools', 'servers', 'routers'];
@@ -461,7 +469,7 @@ export function GatewayManager() {
   const handleCopyWithIcon = (text: string, key: string) => {
     handleCopyToClipboard(text);
     setCopiedStates(prev => ({ ...prev, [key]: true }));
-    setTimeout(() => {
+    window.setTimeout(() => {
       setCopiedStates(prev => ({ ...prev, [key]: false }));
     }, 1000);
   };
