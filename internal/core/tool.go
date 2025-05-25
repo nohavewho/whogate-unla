@@ -115,13 +115,11 @@ func fillDefaultArgs(tool *config.ToolConfig, args map[string]any) {
 
 // createHTTPClient creates an HTTP client with proxy support if configured
 func createHTTPClient(tool *config.ToolConfig) (*http.Client, error) {
-	// 只有当工具配置中有代理配置时才使用代理
 	if tool != nil && tool.Proxy != nil {
 		transport := &http.Transport{}
 
 		switch tool.Proxy.Type {
 		case "http", "https":
-			// 对于 HTTP/HTTPS 代理，使用标准的 ProxyURL 方法
 			proxyURLStr := fmt.Sprintf("%s://%s:%d", tool.Proxy.Type, tool.Proxy.Host, tool.Proxy.Port)
 			proxyURL, err := url.Parse(proxyURLStr)
 			if err != nil {
@@ -130,13 +128,10 @@ func createHTTPClient(tool *config.ToolConfig) (*http.Client, error) {
 			transport.Proxy = http.ProxyURL(proxyURL)
 
 		case "socks5":
-			// 对于 SOCKS5 代理，我们需要使用 golang.org/x/net/proxy 包
 			dialer, err := proxy.SOCKS5("tcp", fmt.Sprintf("%s:%d", tool.Proxy.Host, tool.Proxy.Port), nil, proxy.Direct)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create SOCKS5 dialer: %w", err)
 			}
-
-			// 设置自定义的 DialContext 函数
 			transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 				return dialer.Dial(network, addr)
 			}
@@ -145,7 +140,6 @@ func createHTTPClient(tool *config.ToolConfig) (*http.Client, error) {
 		return &http.Client{Transport: transport}, nil
 	}
 
-	// 如果没有配置代理，返回默认客户端（不使用代理）
 	return &http.Client{}, nil
 }
 
