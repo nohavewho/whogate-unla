@@ -44,6 +44,12 @@ type (
 		AllowCredentials bool     `json:"allowCredentials" yaml:"allowCredentials"`
 	}
 
+	ProxyConfig struct {
+		Host string `json:"host" yaml:"host"`
+		Port int    `json:"port" yaml:"port"`
+		Type string `json:"type" yaml:"type"` // http, https, socks5
+	}
+
 	ServerConfig struct {
 		Name         string            `json:"name" yaml:"name"`
 		Description  string            `json:"description" yaml:"description"`
@@ -56,6 +62,7 @@ type (
 		Description  string            `json:"description,omitempty" yaml:"description,omitempty"`
 		Method       string            `json:"method" yaml:"method"`
 		Endpoint     string            `json:"endpoint" yaml:"endpoint"`
+		Proxy        *ProxyConfig      `json:"proxy,omitempty" yaml:"proxy,omitempty"`
 		Headers      map[string]string `json:"headers" yaml:"headers"`
 		Args         []ArgConfig       `json:"args" yaml:"args"`
 		RequestBody  string            `json:"requestBody"  yaml:"requestBody"`

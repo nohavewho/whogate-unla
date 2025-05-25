@@ -2,16 +2,20 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
 	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"golang.org/x/net/proxy"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
@@ -109,6 +113,42 @@ func fillDefaultArgs(tool *config.ToolConfig, args map[string]any) {
 	}
 }
 
+// createHTTPClient creates an HTTP client with proxy support if configured
+func createHTTPClient(tool *config.ToolConfig) (*http.Client, error) {
+	// 只有当工具配置中有代理配置时才使用代理
+	if tool != nil && tool.Proxy != nil {
+		transport := &http.Transport{}
+
+		switch tool.Proxy.Type {
+		case "http", "https":
+			// 对于 HTTP/HTTPS 代理，使用标准的 ProxyURL 方法
+			proxyURLStr := fmt.Sprintf("%s://%s:%d", tool.Proxy.Type, tool.Proxy.Host, tool.Proxy.Port)
+			proxyURL, err := url.Parse(proxyURLStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid %s proxy configuration: %w", tool.Proxy.Type, err)
+			}
+			transport.Proxy = http.ProxyURL(proxyURL)
+
+		case "socks5":
+			// 对于 SOCKS5 代理，我们需要使用 golang.org/x/net/proxy 包
+			dialer, err := proxy.SOCKS5("tcp", fmt.Sprintf("%s:%d", tool.Proxy.Host, tool.Proxy.Port), nil, proxy.Direct)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create SOCKS5 dialer: %w", err)
+			}
+
+			// 设置自定义的 DialContext 函数
+			transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return dialer.Dial(network, addr)
+			}
+		}
+
+		return &http.Client{Transport: transport}, nil
+	}
+
+	// 如果没有配置代理，返回默认客户端（不使用代理）
+	return &http.Client{}, nil
+}
+
 // executeHTTPTool executes a tool with the given arguments
 func (s *Server) executeHTTPTool(conn session.Connection, tool *config.ToolConfig, args map[string]any, request *http.Request, serverCfg map[string]string) (*mcp.CallToolResult, error) {
 	// Fill default values for missing arguments
@@ -152,7 +192,15 @@ func (s *Server) executeHTTPTool(conn session.Connection, tool *config.ToolConfi
 	processArguments(req, tool, args)
 
 	// Execute request
-	cli := &http.Client{}
+	cli, err := createHTTPClient(tool)
+	if err != nil {
+		s.logger.Error("failed to create HTTP client",
+			zap.String("tool", tool.Name),
+			zap.String("session_id", conn.Meta().ID),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
+	}
+
 	s.logger.Debug("sending HTTP request",
 		zap.String("tool", tool.Name),
 		zap.String("url", req.URL.String()),
