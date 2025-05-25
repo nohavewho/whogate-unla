@@ -701,7 +701,7 @@ export function GatewayManager() {
                                           {router.prefix}
                                         </Chip>
                                       </PopoverTrigger>
-                                      <PopoverContent>
+                                      <PopoverContent className="max-w-[500px]">
                                         <div className="px-1 py-2 space-y-4">
                                           <div className="space-y-2">
                                             <h4 className="text-sm font-semibold">AllInOne - Nginx:</h4>
@@ -915,7 +915,7 @@ export function GatewayManager() {
                                           {router.prefix}
                                         </Chip>
                                       </PopoverTrigger>
-                                      <PopoverContent>
+                                      <PopoverContent className="max-w-[500px]">
                                         <div className="px-1 py-2 space-y-4">
                                           <div className="space-y-2">
                                             <h4 className="text-sm font-semibold">AllInOne - Nginx:</h4>
@@ -1266,7 +1266,7 @@ export function GatewayManager() {
                                 {router.prefix}
                               </Chip>
                             </PopoverTrigger>
-                            <PopoverContent>
+                            <PopoverContent className="max-w-[500px]">
                               <div className="px-1 py-2 space-y-4">
                                 <div className="space-y-2">
                                   <h4 className="text-sm font-semibold">AllInOne - Nginx:</h4>
