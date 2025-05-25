@@ -14,6 +14,9 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Tab,
   Table,
   TableBody,
@@ -686,16 +689,106 @@ export function GatewayManager() {
                               <div className="flex flex-col gap-2">
                                 {(server.parsedConfig?.routers ?? []).map((router: RouterConfig, idx: number) => (
                                   <div key={idx} className="flex items-center gap-2">
-                                    <Chip
-                                      color="primary"
-                                      variant="flat"
-                                      size="sm"
-                                      className="cursor-pointer hover:opacity-80 select-none"
-                                      onClick={() => handleCopyToClipboard(router.prefix)}
-                                      aria-label={`${t('common.copy')} ${router.prefix}`}
-                                    >
-                                      {router.prefix}
-                                    </Chip>
+                                    <Popover placement="right">
+                                      <PopoverTrigger>
+                                        <Chip
+                                          color="primary"
+                                          variant="flat"
+                                          size="sm"
+                                          className="cursor-pointer hover:opacity-80 select-none"
+                                          aria-label={`${t('common.copy')} ${router.prefix}`}
+                                        >
+                                          {router.prefix}
+                                        </Chip>
+                                      </PopoverTrigger>
+                                      <PopoverContent>
+                                        <div className="px-1 py-2 space-y-4">
+                                          <div className="space-y-2">
+                                            <h4 className="text-sm font-semibold">AllInOne - Nginx:</h4>
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-default-500">SSE:</span>
+                                                <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                                  {`${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/sse`}
+                                                </code>
+                                                <Button
+                                                  isIconOnly
+                                                  size="sm"
+                                                  variant="light"
+                                                  onPress={() => handleCopyWithIcon(
+                                                    `${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/sse`,
+                                                    `nginx-sse-${server.name}-${idx}`
+                                                  )}
+                                                >
+                                                  <Icon icon={copiedStates[`nginx-sse-${server.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                                </Button>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-default-500">Streamable HTTP:</span>
+                                                <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                                  {`${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/mcp`}
+                                                </code>
+                                                <Button
+                                                  isIconOnly
+                                                  size="sm"
+                                                  variant="light"
+                                                  onPress={() => handleCopyWithIcon(
+                                                    `${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/mcp`,
+                                                    `nginx-mcp-${server.name}-${idx}`
+                                                  )}
+                                                >
+                                                  <Icon icon={copiedStates[`nginx-mcp-${server.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="space-y-2">
+                                            <h4 className="text-sm font-semibold">{t('gateway.direct_to_mcp_gateway')}</h4>
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-default-500">SSE:</span>
+                                                <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                                  {`${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/sse`}
+                                                </code>
+                                                <Button
+                                                  isIconOnly
+                                                  size="sm"
+                                                  variant="light"
+                                                  onPress={() => handleCopyWithIcon(
+                                                    `${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/sse`,
+                                                    `direct-sse-${server.name}-${idx}`
+                                                  )}
+                                                >
+                                                  <Icon icon={copiedStates[`direct-sse-${server.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                                </Button>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-default-500">Streamable HTTP:</span>
+                                                <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                                  {`${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/mcp`}
+                                                </code>
+                                                <Button
+                                                  isIconOnly
+                                                  size="sm"
+                                                  variant="light"
+                                                  onPress={() => handleCopyWithIcon(
+                                                    `${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/mcp`,
+                                                    `direct-mcp-${server.name}-${idx}`
+                                                  )}
+                                                >
+                                                  <Icon icon={copiedStates[`direct-mcp-${server.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="text-xs text-default-500 border-t pt-2">
+                                            {t('gateway.url_access_note')}
+                                          </div>
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
                                     <Icon icon="lucide:arrow-right" className="text-sm" />
                                     <Chip
                                       variant="flat"
@@ -708,43 +801,6 @@ export function GatewayManager() {
                                     </Chip>
                                   </div>
                                 ))}
-                              </div>
-                            </div>
-
-                            {/* Add SSE URL and Streamable HTTP URL tags */}
-                            <div className="space-y-2">
-                              <h4 className="text-sm font-semibold">{t('gateway.backend_config')}</h4>
-                              <div className="flex flex-col gap-2">
-                                <Chip
-                                  color="primary"
-                                  variant="flat"
-                                  size="sm"
-                                  className="cursor-pointer hover:opacity-80 select-none pr-2"
-                                  onClick={() => {
-                                    const baseUrl = window.location.origin;
-                                    const sseUrl = `${baseUrl}/mcp/user/sse`;
-                                    handleCopyWithIcon(sseUrl, `sse-${server.name}`);
-                                  }}
-                                  endContent={<Icon icon={copiedStates[`sse-${server.name}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />}
-                                  aria-label={`${t('common.copy')} ${t('gateway.sse_url')}`}
-                                >
-                                  {t('gateway.sse_url')}
-                                </Chip>
-                                <Chip
-                                  color="primary"
-                                  variant="flat"
-                                  size="sm"
-                                  className="cursor-pointer hover:opacity-80 select-none pr-2"
-                                  onClick={() => {
-                                    const baseUrl = window.location.origin;
-                                    const streamableUrl = `${baseUrl}/mcp/user/mcp`;
-                                    handleCopyWithIcon(streamableUrl, `streamable-${server.name}`);
-                                  }}
-                                  endContent={<Icon icon={copiedStates[`streamable-${server.name}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />}
-                                  aria-label={`${t('common.copy')} ${t('gateway.streamable_http_url')}`}
-                                >
-                                  {t('gateway.streamable_http_url')}
-                                </Chip>
                               </div>
                             </div>
 
@@ -847,16 +903,106 @@ export function GatewayManager() {
                               <div className="flex flex-col gap-2">
                                 {server.parsedConfig.routers.map((router: RouterConfig, idx: number) => (
                                   <div key={idx} className="flex items-center gap-2">
-                                    <Chip
-                                      color="primary"
-                                      variant="flat"
-                                      size="sm"
-                                      className="cursor-pointer hover:opacity-80 select-nonetext-wrap"
-                                      onClick={() => handleCopyToClipboard(router.prefix)}
-                                      aria-label={`${t('common.copy')} ${router.prefix}`}
-                                    >
-                                      {router.prefix}
-                                    </Chip>
+                                    <Popover placement="right">
+                                      <PopoverTrigger>
+                                        <Chip
+                                          color="primary"
+                                          variant="flat"
+                                          size="sm"
+                                          className="cursor-pointer hover:opacity-80 select-none"
+                                          aria-label={`${t('common.copy')} ${router.prefix}`}
+                                        >
+                                          {router.prefix}
+                                        </Chip>
+                                      </PopoverTrigger>
+                                      <PopoverContent>
+                                        <div className="px-1 py-2 space-y-4">
+                                          <div className="space-y-2">
+                                            <h4 className="text-sm font-semibold">AllInOne - Nginx:</h4>
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-default-500">SSE:</span>
+                                                <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                                  {`${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/sse`}
+                                                </code>
+                                                <Button
+                                                  isIconOnly
+                                                  size="sm"
+                                                  variant="light"
+                                                  onPress={() => handleCopyWithIcon(
+                                                    `${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/sse`,
+                                                    `nginx-sse-${server.name}-${idx}`
+                                                  )}
+                                                >
+                                                  <Icon icon={copiedStates[`nginx-sse-${server.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                                </Button>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-default-500">Streamable HTTP:</span>
+                                                <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                                  {`${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/mcp`}
+                                                </code>
+                                                <Button
+                                                  isIconOnly
+                                                  size="sm"
+                                                  variant="light"
+                                                  onPress={() => handleCopyWithIcon(
+                                                    `${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/mcp`,
+                                                    `nginx-mcp-${server.name}-${idx}`
+                                                  )}
+                                                >
+                                                  <Icon icon={copiedStates[`nginx-mcp-${server.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="space-y-2">
+                                            <h4 className="text-sm font-semibold">{t('gateway.direct_to_mcp_gateway')}</h4>
+                                            <div className="space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-default-500">SSE:</span>
+                                                <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                                  {`${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/sse`}
+                                                </code>
+                                                <Button
+                                                  isIconOnly
+                                                  size="sm"
+                                                  variant="light"
+                                                  onPress={() => handleCopyWithIcon(
+                                                    `${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/sse`,
+                                                    `direct-sse-${server.name}-${idx}`
+                                                  )}
+                                                >
+                                                  <Icon icon={copiedStates[`direct-sse-${server.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                                </Button>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-xs text-default-500">Streamable HTTP:</span>
+                                                <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                                  {`${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/mcp`}
+                                                </code>
+                                                <Button
+                                                  isIconOnly
+                                                  size="sm"
+                                                  variant="light"
+                                                  onPress={() => handleCopyWithIcon(
+                                                    `${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/mcp`,
+                                                    `direct-mcp-${server.name}-${idx}`
+                                                  )}
+                                                >
+                                                  <Icon icon={copiedStates[`direct-mcp-${server.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="text-xs text-default-500 border-t pt-2">
+                                            {t('gateway.url_access_note')}
+                                          </div>
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
                                     <Icon icon="lucide:arrow-right" className="text-sm" />
                                     <Chip
                                       variant="flat"
@@ -872,43 +1018,6 @@ export function GatewayManager() {
                               </div>
                             </div>
                           )}
-
-                          {/* Add SSE URL and Streamable HTTP URL tags */}
-                          <div className="space-y-2">
-                            <h4 className="text-sm font-semibold">{t('gateway.backend_config')}</h4>
-                            <div className="flex flex-col gap-2">
-                              <Chip
-                                color="primary"
-                                variant="flat"
-                                size="sm"
-                                className="cursor-pointer hover:opacity-80 select-none pr-2"
-                                onClick={() => {
-                                  const baseUrl = window.location.origin;
-                                  const sseUrl = `${baseUrl}/mcp/user/sse`;
-                                  handleCopyWithIcon(sseUrl, `sse-${server.name}`);
-                                }}
-                                endContent={<Icon icon={copiedStates[`sse-${server.name}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />}
-                                aria-label={`${t('common.copy')} ${t('gateway.sse_url')}`}
-                              >
-                                {t('gateway.sse_url')}
-                              </Chip>
-                              <Chip
-                                color="primary"
-                                variant="flat"
-                                size="sm"
-                                className="cursor-pointer hover:opacity-80 select-none pr-2"
-                                onClick={() => {
-                                  const baseUrl = window.location.origin;
-                                  const streamableUrl = `${baseUrl}/mcp/user/mcp`;
-                                  handleCopyWithIcon(streamableUrl, `streamable-${server.name}`);
-                                }}
-                                endContent={<Icon icon={copiedStates[`streamable-${server.name}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />}
-                                aria-label={`${t('common.copy')} ${t('gateway.streamable_http_url')}`}
-                              >
-                                {t('gateway.streamable_http_url')}
-                              </Chip>
-                            </div>
-                          </div>
 
                           {server.parsedConfig.mcpServers && server.parsedConfig.mcpServers.length > 0 && (
                             <div className="space-y-2">
@@ -1145,16 +1254,106 @@ export function GatewayManager() {
                     <div className="space-y-2 w-full">
                       {(currentModalServer?.parsedConfig?.routers || []).map((router: RouterConfig, idx: number) => (
                         <div key={idx} className="flex items-center gap-2 flex-wrap">
-                          <Chip
-                            color="primary"
-                            variant="flat"
-                            size="sm"
-                            className="cursor-pointer hover:opacity-80 select-none"
-                            onClick={() => handleCopyToClipboard(router.prefix)}
-                            aria-label={`${t('common.copy')} ${router.prefix}`}
-                          >
-                            {router.prefix}
-                          </Chip>
+                          <Popover placement="right">
+                            <PopoverTrigger>
+                              <Chip
+                                color="primary"
+                                variant="flat"
+                                size="sm"
+                                className="cursor-pointer hover:opacity-80 select-none"
+                                aria-label={`${t('common.copy')} ${router.prefix}`}
+                              >
+                                {router.prefix}
+                              </Chip>
+                            </PopoverTrigger>
+                            <PopoverContent>
+                              <div className="px-1 py-2 space-y-4">
+                                <div className="space-y-2">
+                                  <h4 className="text-sm font-semibold">AllInOne - Nginx:</h4>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-default-500">SSE:</span>
+                                      <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                        {`${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/sse`}
+                                      </code>
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
+                                        onPress={() => handleCopyWithIcon(
+                                          `${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/sse`,
+                                          `nginx-sse-${currentModalServer?.name}-${idx}`
+                                        )}
+                                      >
+                                        <Icon icon={copiedStates[`nginx-sse-${currentModalServer?.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                      </Button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-default-500">Streamable HTTP:</span>
+                                      <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                        {`${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/mcp`}
+                                      </code>
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
+                                        onPress={() => handleCopyWithIcon(
+                                          `${import.meta.env.VITE_MCP_GATEWAY_BASE_URL?.startsWith('http') ? import.meta.env.VITE_MCP_GATEWAY_BASE_URL : `${window.location.origin}${import.meta.env.VITE_MCP_GATEWAY_BASE_URL}`}${router.prefix}/mcp`,
+                                          `nginx-mcp-${currentModalServer?.name}-${idx}`
+                                        )}
+                                      >
+                                        <Icon icon={copiedStates[`nginx-mcp-${currentModalServer?.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <h4 className="text-sm font-semibold">{t('gateway.direct_to_mcp_gateway')}</h4>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-default-500">SSE:</span>
+                                      <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                        {`${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/sse`}
+                                      </code>
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
+                                        onPress={() => handleCopyWithIcon(
+                                          `${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/sse`,
+                                          `direct-sse-${currentModalServer?.name}-${idx}`
+                                        )}
+                                      >
+                                        <Icon icon={copiedStates[`direct-sse-${currentModalServer?.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                      </Button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-default-500">Streamable HTTP:</span>
+                                      <code className="text-xs bg-default-100 px-1 py-1 rounded flex-1 break-all">
+                                        {`${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/mcp`}
+                                      </code>
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
+                                        onPress={() => handleCopyWithIcon(
+                                          `${window.location.origin.match(/:\d+$/) ? window.location.origin.replace(/:\d+$/, ':5235') : `${window.location.origin}:5235`}${router.prefix}/mcp`,
+                                          `direct-mcp-${currentModalServer?.name}-${idx}`
+                                        )}
+                                      >
+                                        <Icon icon={copiedStates[`direct-mcp-${currentModalServer?.name}-${idx}`] ? "lucide:check" : "lucide:copy"} className="text-sm" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="text-xs text-default-500 border-t pt-2">
+                                  {t('gateway.url_access_note')}
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                           <Icon icon="lucide:arrow-right" className="text-sm" />
                           <Chip
                             variant="flat"
@@ -1176,7 +1375,7 @@ export function GatewayManager() {
                       <div className="space-y-2">
                         {currentModalServer.parsedConfig.mcpServers.map((mcpServer, idx) => (
                           <div key={idx} className="flex flex-col gap-1 p-2 border border-default-200 rounded-md">
-                            <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">{mcpServer.name}</span>
                               <Chip size="sm" variant="flat" color="warning" aria-label={`Type: ${mcpServer.type}`}>
                                 {mcpServer.type}
@@ -1184,9 +1383,9 @@ export function GatewayManager() {
                             </div>
                             {mcpServer.type === 'stdio' && (
                               <div className="text-xs">
-                                <div className="flex items-center gap-1 flex-wrap">
+                                <div className="flex items-center gap-1">
                                   <span className="font-medium">Command:</span>
-                                  <code className="bg-default-100 px-1 rounded break-all">{mcpServer.command} {mcpServer.args?.join(' ')}</code>
+                                  <code className="bg-default-100 px-1 rounded">{mcpServer.command} {mcpServer.args?.join(' ')}</code>
                                 </div>
                                 {mcpServer.env && Object.keys(mcpServer.env).length > 0 && (
                                   <div className="mt-1">
