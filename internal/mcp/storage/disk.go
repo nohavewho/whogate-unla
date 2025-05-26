@@ -457,3 +457,75 @@ func getConfigPath(baseDir string) string {
 	}
 	return filepath.Join(appData, ".mcp", "gateway")
 }
+
+// ListUpdated implements Store.ListUpdated
+func (s *DiskStore) ListUpdated(_ context.Context, since time.Time) ([]*config.MCPConfig, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Get all config files
+	entries, err := os.ReadDir(s.baseDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var configs []*config.MCPConfig
+	for _, tenantEntry := range entries {
+		if !tenantEntry.IsDir() {
+			continue
+		}
+
+		tenant := tenantEntry.Name()
+		tenantPath := filepath.Join(s.baseDir, tenant)
+		configEntries, err := os.ReadDir(tenantPath)
+		if err != nil {
+			s.logger.Error("failed to read tenant directory",
+				zap.String("tenant", tenant),
+				zap.Error(err))
+			continue
+		}
+
+		for _, configEntry := range configEntries {
+			if configEntry.IsDir() {
+				continue
+			}
+
+			path := filepath.Join(tenantPath, configEntry.Name())
+
+			// Get file info to check modification time
+			info, err := configEntry.Info()
+			if err != nil {
+				s.logger.Error("failed to get file info",
+					zap.String("path", path),
+					zap.Error(err))
+				continue
+			}
+
+			// Skip if file was not modified after since
+			if info.ModTime().Before(since) {
+				continue
+			}
+
+			// Read and parse config
+			data, err := os.ReadFile(path)
+			if err != nil {
+				s.logger.Error("failed to read config file",
+					zap.String("path", path),
+					zap.Error(err))
+				continue
+			}
+
+			var cfg config.MCPConfig
+			if err := yaml.Unmarshal(data, &cfg); err != nil {
+				s.logger.Error("failed to unmarshal config",
+					zap.String("path", path),
+					zap.Error(err))
+				continue
+			}
+
+			configs = append(configs, &cfg)
+		}
+	}
+
+	return configs, nil
+}

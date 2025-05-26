@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 )
@@ -17,6 +18,9 @@ type Store interface {
 	// List lists all MCP configurations
 	// includeDeleted: if true, includes soft deleted records
 	List(ctx context.Context, includeDeleted ...bool) ([]*config.MCPConfig, error)
+
+	// ListUpdated lists all MCP configurations updated since a given time
+	ListUpdated(ctx context.Context, since time.Time) ([]*config.MCPConfig, error)
 
 	// Update updates an existing MCP configuration
 	Update(ctx context.Context, cfg *config.MCPConfig) error

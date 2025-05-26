@@ -248,19 +248,7 @@ func (s *DBStore) GetVersion(ctx context.Context, tenant, name string, version i
 	if err := s.db.Where("tenant = ? AND name = ? AND version = ?", tenant, name, version).First(&versionModel).Error; err != nil {
 		return nil, err
 	}
-	return &config.MCPConfigVersion{
-		Version:    versionModel.Version,
-		CreatedBy:  versionModel.CreatedBy,
-		CreatedAt:  versionModel.CreatedAt,
-		ActionType: versionModel.ActionType,
-		Name:       versionModel.Name,
-		Tenant:     versionModel.Tenant,
-		Routers:    versionModel.Routers,
-		Servers:    versionModel.Servers,
-		Tools:      versionModel.Tools,
-		McpServers: versionModel.McpServers,
-		Hash:       versionModel.Hash,
-	}, nil
+	return versionModel.ToConfigVersion(), nil
 }
 
 // ListVersions lists all versions of a configuration
@@ -393,4 +381,28 @@ func (s *DBStore) SetActiveVersion(ctx context.Context, tenant, name string, ver
 
 		return nil
 	})
+}
+
+// ListUpdated implements Store.ListUpdated
+func (s *DBStore) ListUpdated(_ context.Context, since time.Time) ([]*config.MCPConfig, error) {
+	// Get active versions and their configs in one query
+	var models []MCPConfig
+	err := s.db.Model(&MCPConfig{}).
+		Joins("INNER JOIN active_versions ON mcp_configs.tenant = active_versions.tenant AND mcp_configs.name = active_versions.name").
+		Where("active_versions.updated_at > ?", since).
+		Find(&models).Error
+	if err != nil {
+		return nil, err
+	}
+
+	configs := make([]*config.MCPConfig, len(models))
+	for i, model := range models {
+		cfg, err := model.ToMCPConfig()
+		if err != nil {
+			return nil, err
+		}
+		configs[i] = cfg
+	}
+
+	return configs, nil
 }

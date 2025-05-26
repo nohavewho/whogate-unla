@@ -113,6 +113,13 @@ func (s *APIStore) DeleteVersion(_ context.Context, tenant, name string, version
 	return nil
 }
 
+// ListUpdated implements Store.ListUpdated
+func (s *APIStore) ListUpdated(_ context.Context, since time.Time) ([]*config.MCPConfig, error) {
+	// API store is read-only and doesn't support versioning
+	// Just return all configs as they are always up to date
+	return s.List(context.Background())
+}
+
 func (s *APIStore) request() (string, error) {
 	client := &http.Client{
 		Timeout: s.timeout,

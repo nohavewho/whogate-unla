@@ -224,3 +224,19 @@ func FromMCPConfigVersion(cfg *config.MCPConfig, version int, createdBy string, 
 		Hash:       hex.EncodeToString(hash[:]),
 	}, nil
 }
+
+func (m *MCPConfigVersion) ToConfigVersion() *config.MCPConfigVersion {
+	return &config.MCPConfigVersion{
+		Version:    m.Version,
+		CreatedBy:  m.CreatedBy,
+		CreatedAt:  m.CreatedAt,
+		ActionType: m.ActionType,
+		Name:       m.Name,
+		Tenant:     m.Tenant,
+		Routers:    m.Routers,
+		Servers:    m.Servers,
+		Tools:      m.Tools,
+		McpServers: m.McpServers,
+		Hash:       m.Hash,
+	}
+}
