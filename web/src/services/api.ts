@@ -510,7 +510,11 @@ export const updateUserTenants = async (userId: number, tenantIds: number[]) => 
 // MCP Config Version APIs
 export const getMCPConfigNames = async (): Promise<string[]> => {
   try {
-    const response = await api.get('/mcp/configs/names');
+    const response = await api.get('/mcp/configs/names', {
+      params: {
+        includeDeleted: true
+      }
+    });
     return response.data.data || [];
   } catch (error) {
     handleApiError(error, 'errors.fetch_config_names');

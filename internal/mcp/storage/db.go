@@ -115,9 +115,13 @@ func (s *DBStore) Get(_ context.Context, name string) (*config.MCPConfig, error)
 }
 
 // List implements Store.List
-func (s *DBStore) List(_ context.Context) ([]*config.MCPConfig, error) {
+func (s *DBStore) List(_ context.Context, includeDeleted ...bool) ([]*config.MCPConfig, error) {
 	var models []MCPConfig
-	err := s.db.Find(&models).Error
+	query := s.db
+	if len(includeDeleted) > 0 && includeDeleted[0] {
+		query = query.Unscoped()
+	}
+	err := query.Find(&models).Error
 	if err != nil {
 		return nil, err
 	}
@@ -222,12 +226,12 @@ func (s *DBStore) Delete(ctx context.Context, name string) error {
 			return err
 		}
 
-		// Delete the active version
+		// Soft delete the active version
 		if err := tx.Where("name = ?", name).Delete(&ActiveVersion{}).Error; err != nil {
 			return err
 		}
 
-		// Delete the main record
+		// Soft delete the main record
 		if err := tx.Where("name = ?", name).Delete(&MCPConfig{}).Error; err != nil {
 			return err
 		}

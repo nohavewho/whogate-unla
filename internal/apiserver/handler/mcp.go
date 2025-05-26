@@ -536,7 +536,7 @@ func (h *MCP) HandleGetConfigVersions(c *gin.Context) {
 
 	if len(configNames) == 0 {
 		// If no names provided, get all configs first
-		configs, err := h.store.List(c.Request.Context())
+		configs, err := h.store.List(c.Request.Context(), true)
 		if err != nil {
 			h.logger.Error("failed to list configs", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list configs"})
@@ -632,7 +632,9 @@ func (h *MCP) HandleSetActiveVersion(c *gin.Context) {
 
 // HandleGetConfigNames handles the request to get all configuration names
 func (h *MCP) HandleGetConfigNames(c *gin.Context) {
-	configs, err := h.store.List(c.Request.Context())
+	includeDeleted := c.Query("includeDeleted") == "true"
+
+	configs, err := h.store.List(c.Request.Context(), includeDeleted)
 	if err != nil {
 		h.logger.Error("failed to list configs", zap.Error(err))
 		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to list configs: "+err.Error()))

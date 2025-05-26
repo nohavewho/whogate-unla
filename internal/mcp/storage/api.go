@@ -65,7 +65,7 @@ func (s *APIStore) Get(_ context.Context, name string) (*config.MCPConfig, error
 }
 
 // List implements Store.List
-func (s *APIStore) List(_ context.Context) ([]*config.MCPConfig, error) {
+func (s *APIStore) List(_ context.Context, _ ...bool) ([]*config.MCPConfig, error) {
 	jsonStr, err := s.request()
 	if err != nil {
 		return nil, err

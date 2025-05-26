@@ -84,7 +84,7 @@ func (s *DiskStore) Get(_ context.Context, name string) (*config.MCPConfig, erro
 	return &server, nil
 }
 
-func (s *DiskStore) List(_ context.Context) ([]*config.MCPConfig, error) {
+func (s *DiskStore) List(_ context.Context, _ ...bool) ([]*config.MCPConfig, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

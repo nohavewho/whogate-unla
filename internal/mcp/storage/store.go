@@ -15,7 +15,8 @@ type Store interface {
 	Get(ctx context.Context, name string) (*config.MCPConfig, error)
 
 	// List lists all MCP configurations
-	List(ctx context.Context) ([]*config.MCPConfig, error)
+	// includeDeleted: if true, includes soft deleted records
+	List(ctx context.Context, includeDeleted ...bool) ([]*config.MCPConfig, error)
 
 	// Update updates an existing MCP configuration
 	Update(ctx context.Context, cfg *config.MCPConfig) error
