@@ -12,22 +12,22 @@ import (
 type (
 	// MCPServer represents the MCP server data structure
 	MCPServer struct {
-		Name      string    `json:"name" yaml:"name" gorm:"primaryKey"`
-		Content   MCPConfig `json:"content" yaml:"content" gorm:"type:json"`
+		Name      string    `json:"name" yaml:"name"`
+		Content   MCPConfig `json:"content" yaml:"content"`
 		CreatedAt time.Time `json:"createdAt" yaml:"createdAt"`
 		UpdatedAt time.Time `json:"updatedAt" yaml:"updatedAt"`
 	}
 
 	MCPConfig struct {
-		Name       string            `json:"name" yaml:"name" gorm:"primaryKey"`
-		Tenant     string            `json:"tenant"  yaml:"tenant" gorm:"index"`
+		Name       string            `json:"name" yaml:"name"`
+		Tenant     string            `json:"tenant" yaml:"tenant"`
 		CreatedAt  time.Time         `json:"createdAt" yaml:"createdAt"`
 		UpdatedAt  time.Time         `json:"updatedAt" yaml:"updatedAt"`
 		DeletedAt  time.Time         `json:"deletedAt,omitempty" yaml:"deletedAt,omitempty"` // non-zero indicates that all information has been deleted
-		Routers    []RouterConfig    `json:"routers,omitempty" yaml:"routers,omitempty" gorm:"type:json"`
-		Servers    []ServerConfig    `json:"servers,omitempty" yaml:"servers,omitempty" gorm:"type:json"`
-		Tools      []ToolConfig      `json:"tools,omitempty" yaml:"tools,omitempty" gorm:"type:json"`
-		McpServers []MCPServerConfig `json:"mcpServers,omitempty" yaml:"mcpServers,omitempty" gorm:"type:json"` // proxy mcp servers
+		Routers    []RouterConfig    `json:"routers,omitempty" yaml:"routers,omitempty"`
+		Servers    []ServerConfig    `json:"servers,omitempty" yaml:"servers,omitempty"`
+		Tools      []ToolConfig      `json:"tools,omitempty" yaml:"tools,omitempty"`
+		McpServers []MCPServerConfig `json:"mcpServers,omitempty" yaml:"mcpServers,omitempty"` // proxy mcp servers
 	}
 
 	RouterConfig struct {

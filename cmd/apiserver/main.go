@@ -172,6 +172,7 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 		protected.POST("/auth/change-password", authH.ChangePassword)
 		protected.GET("/auth/user/info", authH.GetUserInfo)
 		protected.GET("/auth/user", authH.GetUserWithTenants)
+		protected.GET("/auth/tenants", authH.ListTenants)
 
 		// User management routes (admin only)
 		userMgmt := protected.Group("/auth/users")
@@ -187,13 +188,14 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 
 		// Tenant management routes (admin only)
 		tenantMgmt := protected.Group("/auth/tenants")
+		{
+			tenantMgmt.POST("", authH.CreateTenant)
+			tenantMgmt.GET("/:name", authH.GetTenantInfo)
+		}
 		tenantMgmt.Use(apiserverHandler.AdminAuthMiddleware())
 		{
-			tenantMgmt.GET("", authH.ListTenants)
-			tenantMgmt.POST("", authH.CreateTenant)
 			tenantMgmt.PUT("", authH.UpdateTenant)
 			tenantMgmt.DELETE("/:name", authH.DeleteTenant)
-			tenantMgmt.GET("/:name", authH.GetTenantInfo)
 		}
 
 		// MCP config routes

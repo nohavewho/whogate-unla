@@ -492,6 +492,16 @@ func (h *MCP) HandleMCPServerDelete(c *gin.Context) {
 		return
 	}
 
+	// Check tenant permission
+	_, err = h.checkTenantPermission(c, cfg.Tenant, cfg)
+	if err != nil {
+		h.logger.Warn("tenant permission check failed",
+			zap.String("tenant", cfg.Tenant),
+			zap.Error(err))
+		i18n.RespondWithError(c, err)
+		return
+	}
+
 	// Delete server
 	if err := h.store.Delete(c.Request.Context(), name); err != nil {
 		h.logger.Error("failed to delete MCP server",
@@ -515,6 +525,33 @@ func (h *MCP) HandleMCPServerDelete(c *gin.Context) {
 }
 
 func (h *MCP) HandleMCPServerSync(c *gin.Context) {
+	// Get user from claims
+	claims, exists := c.Get("claims")
+	if !exists {
+		h.logger.Warn("missing JWT claims in context")
+		i18n.RespondWithError(c, i18n.ErrUnauthorized)
+		return
+	}
+	jwtClaims := claims.(*jwt.Claims)
+
+	// Get user information
+	user, err := h.db.GetUserByUsername(c.Request.Context(), jwtClaims.Username)
+	if err != nil {
+		h.logger.Error("failed to get user info",
+			zap.String("username", jwtClaims.Username),
+			zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to get user info: "+err.Error()))
+		return
+	}
+
+	// Only admin can sync all servers
+	if user.Role != database.RoleAdmin {
+		h.logger.Warn("non-admin user attempted to sync all servers",
+			zap.String("username", user.Username))
+		i18n.RespondWithError(c, i18n.ErrUnauthorized)
+		return
+	}
+
 	h.logger.Info("handling MCP server sync request")
 
 	// Send reload signal to gateway using notifier
@@ -534,6 +571,25 @@ func (h *MCP) HandleGetConfigVersions(c *gin.Context) {
 	configNames := c.QueryArray("names")
 	var versions []*config.MCPConfigVersion
 
+	// Get user from claims
+	claims, exists := c.Get("claims")
+	if !exists {
+		h.logger.Warn("missing JWT claims in context")
+		i18n.RespondWithError(c, i18n.ErrUnauthorized)
+		return
+	}
+	jwtClaims := claims.(*jwt.Claims)
+
+	// Get user information
+	user, err := h.db.GetUserByUsername(c.Request.Context(), jwtClaims.Username)
+	if err != nil {
+		h.logger.Error("failed to get user info",
+			zap.String("username", jwtClaims.Username),
+			zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to get user info: "+err.Error()))
+		return
+	}
+
 	if len(configNames) == 0 {
 		// If no names provided, get all configs first
 		configs, err := h.store.List(c.Request.Context(), true)
@@ -541,6 +597,33 @@ func (h *MCP) HandleGetConfigVersions(c *gin.Context) {
 			h.logger.Error("failed to list configs", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list configs"})
 			return
+		}
+
+		// Filter configs by tenant if user is not admin
+		if user.Role != database.RoleAdmin {
+			// Get user's tenants
+			tenants, err := h.db.GetUserTenants(c.Request.Context(), user.ID)
+			if err != nil {
+				h.logger.Error("failed to get user tenants",
+					zap.String("username", user.Username),
+					zap.Error(err))
+				i18n.RespondWithError(c, i18n.ErrInternalServer)
+				return
+			}
+
+			// Create a map of tenant names for faster lookup
+			userTenants := make(map[string]bool)
+			for _, t := range tenants {
+				userTenants[t.Name] = true
+			}
+
+			filteredConfigs := make([]*config.MCPConfig, 0)
+			for _, cfg := range configs {
+				if userTenants[cfg.Tenant] {
+					filteredConfigs = append(filteredConfigs, cfg)
+				}
+			}
+			configs = filteredConfigs
 		}
 
 		// Get versions for each config
@@ -555,6 +638,38 @@ func (h *MCP) HandleGetConfigVersions(c *gin.Context) {
 	} else {
 		// Get versions for specified configs
 		for _, name := range configNames {
+			// Check if user has permission to access this config
+			cfg, err := h.store.Get(c.Request.Context(), name)
+			if err != nil {
+				h.logger.Error("failed to get config", zap.String("config", name), zap.Error(err))
+				continue
+			}
+
+			// Check tenant permission
+			if user.Role != database.RoleAdmin {
+				// Get user's tenants
+				tenants, err := h.db.GetUserTenants(c.Request.Context(), user.ID)
+				if err != nil {
+					h.logger.Error("failed to get user tenants",
+						zap.String("username", user.Username),
+						zap.Error(err))
+					i18n.RespondWithError(c, i18n.ErrInternalServer)
+					return
+				}
+
+				// Check if user has access to the tenant
+				hasAccess := false
+				for _, t := range tenants {
+					if t.Name == cfg.Tenant {
+						hasAccess = true
+						break
+					}
+				}
+				if !hasAccess {
+					continue
+				}
+			}
+
 			configVersions, err := h.store.ListVersions(c.Request.Context(), name)
 			if err != nil {
 				h.logger.Error("failed to list versions", zap.String("config", name), zap.Error(err))
@@ -597,6 +712,26 @@ func (h *MCP) HandleSetActiveVersion(c *gin.Context) {
 		zap.String("config_name", name),
 		zap.Int("version", version))
 
+	// Get the config
+	cfg, err := h.store.Get(c.Request.Context(), name)
+	if err != nil {
+		h.logger.Error("failed to get config",
+			zap.String("config_name", name),
+			zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to get config: "+err.Error()))
+		return
+	}
+
+	// Check tenant permission
+	_, err = h.checkTenantPermission(c, cfg.Tenant, cfg)
+	if err != nil {
+		h.logger.Warn("tenant permission check failed",
+			zap.String("tenant", cfg.Tenant),
+			zap.Error(err))
+		i18n.RespondWithError(c, err)
+		return
+	}
+
 	// Set version as active in store
 	if err := h.store.SetActiveVersion(c.Request.Context(), name, version); err != nil {
 		h.logger.Error("failed to set active version",
@@ -604,16 +739,6 @@ func (h *MCP) HandleSetActiveVersion(c *gin.Context) {
 			zap.Int("version", version),
 			zap.Error(err))
 		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to set active version: "+err.Error()))
-		return
-	}
-
-	// Get the config
-	cfg, err := h.store.Get(c.Request.Context(), name)
-	if err != nil {
-		h.logger.Error("failed to get config after setting active version",
-			zap.String("config_name", name),
-			zap.Error(err))
-		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to get config: "+err.Error()))
 		return
 	}
 
@@ -639,6 +764,52 @@ func (h *MCP) HandleGetConfigNames(c *gin.Context) {
 		h.logger.Error("failed to list configs", zap.Error(err))
 		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to list configs: "+err.Error()))
 		return
+	}
+
+	// Get user from claims
+	claims, exists := c.Get("claims")
+	if !exists {
+		h.logger.Warn("missing JWT claims in context")
+		i18n.RespondWithError(c, i18n.ErrUnauthorized)
+		return
+	}
+	jwtClaims := claims.(*jwt.Claims)
+
+	// Get user information
+	user, err := h.db.GetUserByUsername(c.Request.Context(), jwtClaims.Username)
+	if err != nil {
+		h.logger.Error("failed to get user info",
+			zap.String("username", jwtClaims.Username),
+			zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to get user info: "+err.Error()))
+		return
+	}
+
+	// Filter configs by tenant if user is not admin
+	if user.Role != database.RoleAdmin {
+		// Get user's tenants
+		tenants, err := h.db.GetUserTenants(c.Request.Context(), user.ID)
+		if err != nil {
+			h.logger.Error("failed to get user tenants",
+				zap.String("username", user.Username),
+				zap.Error(err))
+			i18n.RespondWithError(c, i18n.ErrInternalServer)
+			return
+		}
+
+		// Create a map of tenant names for faster lookup
+		userTenants := make(map[string]bool)
+		for _, t := range tenants {
+			userTenants[t.Name] = true
+		}
+
+		filteredConfigs := make([]*config.MCPConfig, 0)
+		for _, cfg := range configs {
+			if userTenants[cfg.Tenant] {
+				filteredConfigs = append(filteredConfigs, cfg)
+			}
+		}
+		configs = filteredConfigs
 	}
 
 	// Extract unique config names
