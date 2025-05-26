@@ -480,7 +480,9 @@
     "router_prefix_error": "Router prefix must start with tenant prefix, and cannot be empty",
     "tenant_required": "Tenant field is required",
     "tenant_not_found": "Tenant with the specified prefix does not exist",
-    "validate_router_prefix_failed": "Failed to validate router prefix"
+    "validate_router_prefix_failed": "Failed to validate router prefix",
+    "export_mcp_server": "Failed to export MCP server",
+    "set_active_version": "Failed to set version as active"
   },
   "mcp": {
     "configVersions": {
