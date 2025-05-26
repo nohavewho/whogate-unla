@@ -91,6 +91,7 @@ interface Tenant {
 }
 
 interface YAMLConfig {
+  name?: string;
   mcpServers?: Record<string, unknown>;
   tools?: Record<string, unknown>;
   servers?: Record<string, unknown>;
@@ -259,6 +260,12 @@ export function GatewayManager() {
       // Parse YAML to check format and handle null values
       const parsedConfig = yaml.load(editConfig) as YAMLConfig;
       
+      // Validate name length
+      if (parsedConfig.name && typeof parsedConfig.name === 'string' && parsedConfig.name.length > 50) {
+        toast.error(t('gateway.name_length_error'));
+        return;
+      }
+      
       // Remove null fields from the config
       const fieldsToCheck = ['mcpServers', 'tools', 'servers', 'routers'];
       fieldsToCheck.forEach(field => {
@@ -353,6 +360,12 @@ export function GatewayManager() {
     try {
       // Parse YAML to check format and handle null values
       const parsedConfig = yaml.load(newConfig) as YAMLConfig;
+      
+      // Validate name length
+      if (parsedConfig.name && typeof parsedConfig.name === 'string' && parsedConfig.name.length > 50) {
+        toast.error(t('gateway.name_length_error'));
+        return;
+      }
       
       // Remove null fields from the config
       const fieldsToCheck = ['mcpServers', 'tools', 'servers', 'routers'];

@@ -32,6 +32,16 @@ func (e *ValidationError) Error() string {
 func validateSingleConfig(cfg *MCPConfig) []*ValidationError {
 	var errors []*ValidationError
 
+	// Validate name length
+	if len(cfg.Name) > 50 {
+		errors = append(errors, &ValidationError{
+			Message: "name length exceeds maximum limit of 50 characters",
+			Locations: []Location{{
+				File: cfg.Name,
+			}},
+		})
+	}
+
 	// Check for duplicate server names within this config
 	serverNameMap := make(map[string]bool)
 	for _, server := range cfg.Servers {

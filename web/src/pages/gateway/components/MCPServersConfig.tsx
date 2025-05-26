@@ -207,6 +207,8 @@ export function MCPServersConfig({
                   label={t('gateway.server_name')}
                   value={server.name || ""}
                   onChange={(e) => updateServer(index, 'name', e.target.value)}
+                  maxLength={50}
+                  description={t('gateway.server_name_limit', { count: server.name?.length || 0, max: 50 })}
                 />
                 <Select
                   label={t('gateway.mcp_type')}

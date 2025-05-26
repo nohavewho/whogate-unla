@@ -14,7 +14,7 @@ import (
 
 // MCPConfig represents the database model for MCPConfig
 type MCPConfig struct {
-	Name       string `gorm:"primaryKey; column:name"`
+	Name       string `gorm:"primaryKey; column:name; type:varchar(50)"`
 	Tenant     string `gorm:"column:tenant; default:''"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -112,7 +112,7 @@ func (m *MCPConfig) BeforeUpdate(_ *gorm.DB) error {
 // ActiveVersion represents the currently active version of an MCP configuration
 type ActiveVersion struct {
 	ID        uint      `gorm:"primarykey"`
-	Name      string    `gorm:"type:varchar(255);uniqueIndex;not null"`
+	Name      string    `gorm:"type:varchar(50);uniqueIndex;not null"`
 	Version   int       `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"not null"`
 }
@@ -120,7 +120,7 @@ type ActiveVersion struct {
 // MCPConfigVersion represents the database model for MCPConfigVersion
 type MCPConfigVersion struct {
 	ID         int64           `gorm:"primaryKey;autoIncrement"`
-	Name       string          `gorm:"column:name;index:idx_name_tenant_version,uniqueIndex"`
+	Name       string          `gorm:"column:name;type:varchar(50);index:idx_name_tenant_version,uniqueIndex"`
 	Tenant     string          `gorm:"column:tenant;default:'';index:idx_name_tenant_version,uniqueIndex"`
 	Version    int             `gorm:"column:version;index:idx_name_tenant_version,uniqueIndex"`
 	ActionType cnst.ActionType `gorm:"column:action_type;not null"` // Create, Update, Delete, Revert

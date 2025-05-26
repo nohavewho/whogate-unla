@@ -288,7 +288,9 @@
     "add_method": "Add Method",
     "add_expose_header": "Add Expose Header",
     "url_access_note": "When using AllInOne, you have two options: access through Nginx to MCP Gateway, or directly access MCP Gateway through port 5235 (if port 5235 is wrapped/forwarded or mcp-gateway is configured with a different port, you need to modify the base URL after copying)",
-    "direct_to_mcp_gateway": "Direct to MCP Gateway(5235):"
+    "direct_to_mcp_gateway": "Direct to MCP Gateway(5235):",
+    "server_name_limit": "{{count}}/{{max}} characters",
+    "name_length_error": "Name length cannot exceed 50 characters"
   },
   "chat": {
     "title": "Chat",
