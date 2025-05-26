@@ -487,6 +487,7 @@
     "configVersions": {
       "title": "配置版本",
       "name": "名称",
+      "tenant": "租户",
       "version": "版本",
       "created_by": "创建者",
       "created_at": "创建时间",
@@ -509,7 +510,8 @@
       "no_latest_version": "没有可用的最新版本",
       "show_all": "显示全部",
       "show_diff_only": "仅显示差异",
-      "select_config": "选择配置"
+      "select_config": "选择配置",
+      "select_tenant": "选择租户"
     }
   }
 }

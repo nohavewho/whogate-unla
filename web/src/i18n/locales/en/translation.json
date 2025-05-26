@@ -486,6 +486,7 @@
     "configVersions": {
       "title": "Configuration Versions",
       "name": "Name",
+      "tenant": "Tenant",
       "version": "Version",
       "created_by": "Created By",
       "created_at": "Created At",
@@ -495,6 +496,7 @@
       "actions": "Actions",
       "rollback": "Rollback to this version",
       "select_config": "Select Config",
+      "select_tenant": "Select Tenant",
       "fetch_names_error": "Failed to fetch config names",
       "fetch_error": "Failed to fetch versions",
       "set_active_success": "Version set as active successfully",
