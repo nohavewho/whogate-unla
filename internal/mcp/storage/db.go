@@ -338,9 +338,28 @@ func (s *DBStore) SetActiveVersion(ctx context.Context, name string, version int
 			Servers:    versionModel.Servers,
 			Tools:      versionModel.Tools,
 			McpServers: versionModel.McpServers,
+			Hash:       versionModel.Hash,
 		}
 
 		if err := tx.Create(newVersion).Error; err != nil {
+			return err
+		}
+
+		// Update MCPConfig table with the target version's configuration
+		mcpConfig := &MCPConfig{
+			Name:       versionModel.Name,
+			Tenant:     versionModel.Tenant,
+			UpdatedAt:  time.Now(),
+			Routers:    versionModel.Routers,
+			Servers:    versionModel.Servers,
+			Tools:      versionModel.Tools,
+			McpServers: versionModel.McpServers,
+		}
+
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "name"}},
+			DoUpdates: clause.AssignmentColumns([]string{"tenant", "updated_at", "routers", "servers", "tools", "mcp_servers"}),
+		}).Create(mcpConfig).Error; err != nil {
 			return err
 		}
 

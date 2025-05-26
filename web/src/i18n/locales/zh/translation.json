@@ -67,7 +67,8 @@
     "already": "已",
     "available": "可用",
     "sse_url": "SSE URL",
-    "streamable_http_url": "Streamable HTTP URL"
+    "streamable_http_url": "Streamable HTTP URL",
+    "total_items": "共 {{total}} 条"
   },
   "nav": {
     "dashboard": "仪表盘",
@@ -79,7 +80,8 @@
     "tenants": "租户",
     "tools_config": "工具配置",
     "sse_url": "SSE URL",
-    "streamable_http_url": "Streamable HTTP URL"
+    "streamable_http_url": "Streamable HTTP URL",
+    "config_versions": "配置版本历史"
   },
   "auth": {
     "login": "登录",
@@ -479,5 +481,34 @@
     "tenant_required": "租户字段不能为空",
     "tenant_not_found": "指定前缀的租户不存在",
     "validate_router_prefix_failed": "验证路由前缀失败"
+  },
+  "mcp": {
+    "configVersions": {
+      "title": "配置版本",
+      "name": "名称",
+      "version": "版本",
+      "created_by": "创建者",
+      "created_at": "创建时间",
+      "action_type": "操作类型",
+      "action_types": {
+        "create": "创建",
+        "update": "更新",
+        "delete": "删除",
+        "revert": "回滚"
+      },
+      "active": "状态",
+      "inactive": "未激活",
+      "actions": "操作",
+      "compare": "比较",
+      "compare_versions": "版本比较",
+      "compare_with_previous": "与上一版本比较",
+      "compare_with_latest": "与最新版本比较",
+      "rollback": "回滚到这个版本",
+      "no_previous_version": "没有可用的上一版本",
+      "no_latest_version": "没有可用的最新版本",
+      "show_all": "显示全部",
+      "show_diff_only": "仅显示差异",
+      "select_config": "选择配置"
+    }
   }
 }

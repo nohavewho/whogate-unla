@@ -168,6 +168,20 @@ func (m *MCPConfigVersion) ToMCPConfig() (*config.MCPConfig, error) {
 
 // FromMCPConfigVersion converts MCPConfig to database model
 func FromMCPConfigVersion(cfg *config.MCPConfig, version int, createdBy string, actionType cnst.ActionType) (*MCPConfigVersion, error) {
+	// Initialize empty slices if nil
+	if cfg.Routers == nil {
+		cfg.Routers = []config.RouterConfig{}
+	}
+	if cfg.Servers == nil {
+		cfg.Servers = []config.ServerConfig{}
+	}
+	if cfg.Tools == nil {
+		cfg.Tools = []config.ToolConfig{}
+	}
+	if cfg.McpServers == nil {
+		cfg.McpServers = []config.MCPServerConfig{}
+	}
+
 	routers, err := json.Marshal(cfg.Routers)
 	if err != nil {
 		return nil, err

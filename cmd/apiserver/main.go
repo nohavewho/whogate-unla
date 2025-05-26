@@ -196,12 +196,19 @@ func initRouter(db database.Database, store storage.Store, ntf notifier.Notifier
 			tenantMgmt.GET("/:name", authH.GetTenantInfo)
 		}
 
-		// Configure routes
-		protected.POST("/mcp-servers", mcpHandler.HandleMCPServerCreate)
-		protected.PUT("/mcp-servers/:name", mcpHandler.HandleMCPServerUpdate)
-		protected.GET("/mcp-servers", mcpHandler.HandleListMCPServers)
-		protected.DELETE("/mcp-servers/:name", mcpHandler.HandleMCPServerDelete)
-		protected.POST("/mcp-servers/sync", mcpHandler.HandleMCPServerSync)
+		// MCP config routes
+		mcpGroup := protected.Group("/mcp")
+		{
+			mcpGroup.GET("/configs/names", mcpHandler.HandleGetConfigNames)
+			mcpGroup.GET("/configs/versions", mcpHandler.HandleGetConfigVersions)
+			mcpGroup.POST("/configs/:name/versions/:version/active", mcpHandler.HandleSetActiveVersion)
+
+			mcpGroup.GET("/configs", mcpHandler.HandleListMCPServers)
+			mcpGroup.POST("/configs", mcpHandler.HandleMCPServerCreate)
+			mcpGroup.PUT("/configs/:name", mcpHandler.HandleMCPServerUpdate)
+			mcpGroup.DELETE("/configs/:name", mcpHandler.HandleMCPServerDelete)
+			mcpGroup.POST("/configs/sync", mcpHandler.HandleMCPServerSync)
+		}
 
 		// OpenAPI routes
 		protected.POST("/openapi/import", openapiHandler.HandleImport)

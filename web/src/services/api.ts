@@ -3,6 +3,7 @@ import {t} from 'i18next';
 
 import i18n from '../i18n';
 import type {Gateway} from '../types/gateway';
+import type { MCPConfigVersionListResponse } from '../types/mcp';
 import {handleApiError} from '../utils/error-handler';
 import {toast} from '../utils/toast';
 
@@ -55,8 +56,7 @@ api.interceptors.response.use(
 export const getMCPServers = async (tenantId?: number) => {
   try {
     const params = tenantId ? { tenantId } : {};
-    const response = await api.get('/mcp-servers', { params });
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
+    const response = await api.get('/mcp/configs', { params });
     return response.data.data || response.data;
   } catch (error) {
     handleApiError(error, 'errors.fetch_mcp_servers');
@@ -66,8 +66,7 @@ export const getMCPServers = async (tenantId?: number) => {
 
 export const getMCPServer = async (name: string) => {
   try {
-    const response = await api.get(`/mcp-servers/${name}`);
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
+    const response = await api.get(`/mcp/configs/${name}`);
     return response.data.data || response.data;
   } catch (error) {
     handleApiError(error, 'errors.fetch_mcp_server');
@@ -77,7 +76,7 @@ export const getMCPServer = async (name: string) => {
 
 export const createMCPServer = async (config: string) => {
   try {
-    const response = await api.post('/mcp-servers', config, {
+    const response = await api.post('/mcp/configs', config, {
       headers: {
         'Content-Type': 'application/yaml',
       },
@@ -91,7 +90,7 @@ export const createMCPServer = async (config: string) => {
 
 export const updateMCPServer = async (name: string, config: string) => {
   try {
-    const response = await api.put(`/mcp-servers/${name}`, config, {
+    const response = await api.put(`/mcp/configs/${name}`, config, {
       headers: {
         'Content-Type': 'application/yaml',
       },
@@ -105,7 +104,7 @@ export const updateMCPServer = async (name: string, config: string) => {
 
 export const deleteMCPServer = async (name: string) => {
   try {
-    const response = await api.delete(`/mcp-servers/${name}`);
+    const response = await api.delete(`/mcp/configs/${name}`);
     return response.data;
   } catch (error) {
     handleApiError(error, 'errors.delete_mcp_server');
@@ -135,7 +134,7 @@ export const exportMCPServer = async (server: Gateway) => {
 
 export const syncMCPServers = async () => {
   try {
-    const response = await api.post('/mcp-servers/sync');
+    const response = await api.post('/mcp/configs/sync');
     return response.data;
   } catch (error) {
     handleApiError(error, 'errors.sync_mcp_server');
@@ -151,7 +150,6 @@ export const getChatMessages = async (sessionId: string, page: number = 1, pageS
         pageSize,
       },
     });
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
     return response.data.data || response.data;
   } catch (error) {
     handleApiError(error, 'errors.fetch_chat_messages');
@@ -162,7 +160,6 @@ export const getChatMessages = async (sessionId: string, page: number = 1, pageS
 export const getChatSessions = async () => {
   try {
     const response = await api.get('/chat/sessions');
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
     return response.data.data || response.data;
   } catch (error) {
     handleApiError(error, 'errors.fetch_chat_sessions');
@@ -191,7 +188,6 @@ export const importOpenAPI = async (file: File) => {
 export const getTenants = async () => {
   try {
     const response = await api.get('/auth/tenants');
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
     return response.data.data || response.data;
   } catch (error) {
     handleApiError(error, 'errors.fetch_tenants');
@@ -202,7 +198,6 @@ export const getTenants = async () => {
 export const getTenant = async (name: string) => {
   try {
     const response = await api.get(`/auth/tenants/${name}`);
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
     return response.data.data || response.data;
   } catch (error) {
     handleApiError(error, 'errors.fetch_tenant');
@@ -371,7 +366,6 @@ export const deleteTenant = async (name: string) => {
 export const getUsers = async () => {
   try {
     const response = await api.get('/auth/users');
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
     return response.data.data || response.data;
   } catch (error) {
     toast.error(t('errors.fetch_users'), {
@@ -384,7 +378,6 @@ export const getUsers = async () => {
 export const getUser = async (username: string) => {
   try {
     const response = await api.get(`/auth/users/${username}`);
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
     return response.data.data || response.data;
   } catch (error) {
     toast.error(t('errors.fetch_user'), {
@@ -472,7 +465,6 @@ export const toggleUserStatus = async (username: string, isActive: boolean) => {
 export const getUserWithTenants = async (username: string) => {
   try {
     const response = await api.get(`/auth/users/${username}`);
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
     return response.data.data || response.data;
   } catch (error) {
     toast.error(t('errors.fetch_user'), {
@@ -486,7 +478,6 @@ export const getUserWithTenants = async (username: string) => {
 export const getUserAuthorizedTenants = async () => {
   try {
     const response = await api.get('/auth/user');
-    // 处理数据，兼容直接返回和嵌套在 data 中的情况
     const data = response.data.data || response.data;
     return data.tenants || [];
   } catch (error) {
@@ -514,6 +505,41 @@ export const updateUserTenants = async (userId: number, tenantIds: number[]) => 
     });
     throw error;
   }
+};
+
+// MCP Config Version APIs
+export const getMCPConfigNames = async (): Promise<string[]> => {
+  try {
+    const response = await api.get('/mcp/configs/names');
+    return response.data.data || [];
+  } catch (error) {
+    handleApiError(error, 'errors.fetch_config_names');
+    throw error;
+  }
+};
+
+export const getMCPConfigVersions = async (name?: string): Promise<MCPConfigVersionListResponse> => {
+  try {
+    const params = name ? { names: name } : {};
+    const response = await api.get('/mcp/configs/versions', { params });
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'errors.fetch_config_versions');
+    throw error;
+  }
+};
+
+export const setActiveVersion = async (name: string, version: number): Promise<void> => {
+  try {
+    await api.post(`/mcp/configs/${name}/versions/${version}/active`);
+  } catch (error) {
+    handleApiError(error, 'errors.set_active_version');
+    throw error;
+  }
+};
+
+export const getCurrentUser = async () => {
+  return await api.get('/auth/user/info');
 };
 
 export default api;

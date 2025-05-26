@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -525,4 +526,126 @@ func (h *MCP) HandleMCPServerSync(c *gin.Context) {
 
 	h.logger.Info("MCP servers synced successfully")
 	i18n.Success(i18n.SuccessMCPServerSynced).With("status", "success").Send(c)
+}
+
+// HandleGetConfigVersions handles the request to get configuration versions
+func (h *MCP) HandleGetConfigVersions(c *gin.Context) {
+	// Get config names from query parameters
+	configNames := c.QueryArray("names")
+	var versions []*config.MCPConfigVersion
+
+	if len(configNames) == 0 {
+		// If no names provided, get all configs first
+		configs, err := h.store.List(c.Request.Context())
+		if err != nil {
+			h.logger.Error("failed to list configs", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list configs"})
+			return
+		}
+
+		// Get versions for each config
+		for _, cfg := range configs {
+			configVersions, err := h.store.ListVersions(c.Request.Context(), cfg.Name)
+			if err != nil {
+				h.logger.Error("failed to list versions", zap.String("config", cfg.Name), zap.Error(err))
+				continue
+			}
+			versions = append(versions, configVersions...)
+		}
+	} else {
+		// Get versions for specified configs
+		for _, name := range configNames {
+			configVersions, err := h.store.ListVersions(c.Request.Context(), name)
+			if err != nil {
+				h.logger.Error("failed to list versions", zap.String("config", name), zap.Error(err))
+				continue
+			}
+			versions = append(versions, configVersions...)
+		}
+	}
+
+	// Sort versions by created_at in descending order
+	sort.Slice(versions, func(i, j int) bool {
+		return versions[i].CreatedAt.After(versions[j].CreatedAt)
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": versions,
+	})
+}
+
+// HandleSetActiveVersion handles setting a version as active
+func (h *MCP) HandleSetActiveVersion(c *gin.Context) {
+	name := c.Param("name")
+	versionStr := c.Param("version")
+	if name == "" || versionStr == "" {
+		h.logger.Warn("config name or version required but missing")
+		i18n.RespondWithError(c, i18n.ErrorMCPServerNameRequired)
+		return
+	}
+
+	version, err := strconv.Atoi(versionStr)
+	if err != nil {
+		h.logger.Warn("invalid version number",
+			zap.String("version", versionStr),
+			zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrBadRequest.WithParam("Reason", "Invalid version number"))
+		return
+	}
+
+	h.logger.Info("handling set active version request",
+		zap.String("config_name", name),
+		zap.Int("version", version))
+
+	// Set version as active in store
+	if err := h.store.SetActiveVersion(c.Request.Context(), name, version); err != nil {
+		h.logger.Error("failed to set active version",
+			zap.String("config_name", name),
+			zap.Int("version", version),
+			zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to set active version: "+err.Error()))
+		return
+	}
+
+	// Get the config
+	cfg, err := h.store.Get(c.Request.Context(), name)
+	if err != nil {
+		h.logger.Error("failed to get config after setting active version",
+			zap.String("config_name", name),
+			zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to get config: "+err.Error()))
+		return
+	}
+
+	// Send reload signal to gateway using notifier
+	if err := h.notifier.NotifyUpdate(c.Request.Context(), cfg); err != nil {
+		h.logger.Error("failed to notify gateway", zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to notify gateway: "+err.Error()))
+		return
+	}
+
+	h.logger.Info("active version set successfully",
+		zap.String("config_name", name),
+		zap.Int("version", version))
+	i18n.Success(i18n.SuccessMCPServerUpdated).With("status", "success").Send(c)
+}
+
+// HandleGetConfigNames handles the request to get all configuration names
+func (h *MCP) HandleGetConfigNames(c *gin.Context) {
+	configs, err := h.store.List(c.Request.Context())
+	if err != nil {
+		h.logger.Error("failed to list configs", zap.Error(err))
+		i18n.RespondWithError(c, i18n.ErrInternalServer.WithParam("Reason", "Failed to list configs: "+err.Error()))
+		return
+	}
+
+	// Extract unique config names
+	names := make([]string, 0, len(configs))
+	for _, cfg := range configs {
+		names = append(names, cfg.Name)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": names,
+	})
 }

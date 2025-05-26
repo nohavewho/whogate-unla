@@ -33,6 +33,7 @@ import yaml from 'js-yaml';
 import {configureMonacoYaml} from 'monaco-yaml';
 import React from 'react';
 import {useTranslation} from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 import {
   createMCPServer,
@@ -99,6 +100,7 @@ interface YAMLConfig {
 
 export function GatewayManager() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
   const {isOpen: isCreateOpen, onOpen: onCreateOpen, onOpenChange: onCreateOpenChange} = useDisclosure();
   const {isOpen: isImportOpen, onOpen: onImportOpen, onOpenChange: onImportOpenChange} = useDisclosure();
@@ -1125,7 +1127,17 @@ export function GatewayManager() {
                     </Button>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="light"
+                        size="sm"
+                        startContent={<Icon icon="lucide:history" />}
+                        onPress={() => {
+                          navigate(`/config-versions?name=${server.name}`);
+                        }}
+                      >
+                        {t('mcp.configVersions.title')}
+                      </Button>
                       <Button
                         isIconOnly
                         color="primary"
