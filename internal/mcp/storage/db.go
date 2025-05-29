@@ -17,15 +17,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// DBStore implements the Store interface using a database
-type DBStore struct {
-	logger *zap.Logger
-	db     *gorm.DB
-}
-
-var _ Store = (*DBStore)(nil)
-
-// DatabaseType represents the supported database types
+// DatabaseType represents the type of database
 type DatabaseType string
 
 const (
@@ -34,18 +26,27 @@ const (
 	SQLite     DatabaseType = "sqlite"
 )
 
+// DBStore implements the Store interface using a database
+type DBStore struct {
+	logger *zap.Logger
+	db     *gorm.DB
+	cfg    *config.StorageConfig
+}
+
+var _ Store = (*DBStore)(nil)
+
 // NewDBStore creates a new database-based store
-func NewDBStore(logger *zap.Logger, dbType DatabaseType, dsn string) (*DBStore, error) {
+func NewDBStore(logger *zap.Logger, cfg *config.StorageConfig) (*DBStore, error) {
 	logger = logger.Named("mcp.store.db")
 
 	var dialector gorm.Dialector
-	switch dbType {
+	switch DatabaseType(cfg.Database.Type) {
 	case PostgreSQL:
-		dialector = postgres.Open(dsn)
+		dialector = postgres.Open(cfg.Database.GetDSN())
 	case MySQL:
-		dialector = mysql.Open(dsn)
+		dialector = mysql.Open(cfg.Database.GetDSN())
 	case SQLite:
-		dialector = sqlite.Open(dsn)
+		dialector = sqlite.Open(cfg.Database.GetDSN())
 	default:
 		return nil, gorm.ErrInvalidDB
 	}
@@ -63,6 +64,7 @@ func NewDBStore(logger *zap.Logger, dbType DatabaseType, dsn string) (*DBStore, 
 	return &DBStore{
 		logger: logger,
 		db:     db,
+		cfg:    cfg,
 	}, nil
 }
 
@@ -279,6 +281,23 @@ func (s *DBStore) Update(ctx context.Context, server *config.MCPConfig) error {
 			DoUpdates: clause.AssignmentColumns([]string{"version", "updated_at"}),
 		}).Create(activeVersion).Error; err != nil {
 			return err
+		}
+
+		// Delete old versions if revision history limit is set
+		if s.cfg.RevisionHistoryLimit > 0 {
+			var versionsToDelete []MCPConfigVersion
+			if err := tx.Where("tenant = ? AND name = ?", server.Tenant, server.Name).
+				Order("version DESC").
+				Offset(s.cfg.RevisionHistoryLimit).
+				Find(&versionsToDelete).Error; err != nil {
+				return err
+			}
+
+			for _, v := range versionsToDelete {
+				if err := tx.Delete(&v).Error; err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil

@@ -32,6 +32,7 @@ database:
 # Storage configuration
 storage:
   type: "${GATEWAY_STORAGE_TYPE:db}"  # disk or db
+  revision_history_limit: ${GATEWAY_STORAGE_REVISION_HISTORY_LIMIT:10}  # number of versions to keep
   # Database configuration (only used when type is db)
   database:
     type: "${GATEWAY_DB_TYPE:sqlite}"

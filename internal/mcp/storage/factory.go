@@ -13,13 +13,9 @@ func NewStore(logger *zap.Logger, cfg *config.StorageConfig) (Store, error) {
 	logger.Info("Initializing storage", zap.String("type", cfg.Type))
 	switch cfg.Type {
 	case "disk":
-		return NewDiskStore(logger, cfg.Disk.Path)
+		return NewDiskStore(logger, cfg)
 	case "db":
-		dsn, err := buildDSN(&cfg.Database)
-		if err != nil {
-			return nil, err
-		}
-		return NewDBStore(logger, DatabaseType(cfg.Database.Type), dsn)
+		return NewDBStore(logger, cfg)
 	case "api":
 		return NewAPIStore(logger, cfg.API.Url, cfg.API.ConfigJSONPath, cfg.API.Timeout)
 	default:

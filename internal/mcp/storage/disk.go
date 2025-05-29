@@ -23,24 +23,28 @@ type DiskStore struct {
 	logger  *zap.Logger
 	baseDir string
 	mu      sync.RWMutex
+	cfg     *config.StorageConfig
 }
 
 var _ Store = (*DiskStore)(nil)
 
 // NewDiskStore creates a new disk-based store
-func NewDiskStore(logger *zap.Logger, baseDir string) (*DiskStore, error) {
-	logger = logger.Named("mcp.store")
+func NewDiskStore(logger *zap.Logger, cfg *config.StorageConfig) (*DiskStore, error) {
+	logger = logger.Named("mcp.store.disk")
 
-	baseDir = getConfigPath(baseDir)
-	logger.Info("Using configuration directory", zap.String("path", baseDir))
+	baseDir := cfg.Disk.Path
+	if baseDir == "" {
+		baseDir = "./data"
+	}
 
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, err
 	}
 
 	return &DiskStore{
-		logger:  logger,
 		baseDir: baseDir,
+		logger:  logger,
+		cfg:     cfg,
 	}, nil
 }
 
@@ -216,6 +220,20 @@ func (s *DiskStore) Update(_ context.Context, server *config.MCPConfig) error {
 
 	if err := os.WriteFile(versionPath, versionData, 0644); err != nil {
 		return err
+	}
+
+	// Delete old versions if revision history limit is set
+	if s.cfg.RevisionHistoryLimit > 0 && len(entries) >= s.cfg.RevisionHistoryLimit {
+		for i := s.cfg.RevisionHistoryLimit; i < len(entries); i++ {
+			oldVersionPath := filepath.Join(versionsDir, entries[i].Name())
+			if err := os.Remove(oldVersionPath); err != nil {
+				s.logger.Error("failed to delete old version",
+					zap.String("tenant", server.Tenant),
+					zap.String("name", server.Name),
+					zap.String("version", entries[i].Name()),
+					zap.Error(err))
+			}
+		}
 	}
 
 	return os.WriteFile(path, data, 0644)
