@@ -158,6 +158,16 @@ export const getChatSessions = async () => {
   }
 };
 
+export const deleteChatSession = async (sessionId: string) => {
+  try {
+    const response = await api.delete(`/chat/sessions/${sessionId}`);
+    return response.data.data || response.data;
+  } catch (error) {
+    handleApiError(error, 'errors.delete_chat_session');
+    throw error;
+  }
+};
+
 export const importOpenAPI = async (file: File) => {
   try {
     const formData = new globalThis.FormData();
@@ -542,6 +552,16 @@ export const setActiveVersion = async (tenant: string, name: string, version: nu
 
 export const getCurrentUser = async () => {
   return await api.get('/auth/user/info');
+};
+
+export const updateChatSessionTitle = async (sessionId: string, title: string) => {
+  try {
+    const response = await api.put(`/chat/sessions/${sessionId}/title`, { title });
+    return response.data.data || response.data;
+  } catch (error) {
+    handleApiError(error, 'errors.rename_chat_session');
+    throw error;
+  }
 };
 
 export default api;
