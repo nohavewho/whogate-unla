@@ -61,6 +61,11 @@ export interface RouterConfig {
   server: string;
   prefix: string;
   cors?: CORSConfig;
+  auth?: AuthConfig;
+}
+
+export interface AuthConfig {
+  mode: string;
 }
 
 export interface CORSConfig {

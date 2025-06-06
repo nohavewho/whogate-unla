@@ -34,6 +34,7 @@ type (
 		Server string      `json:"server" yaml:"server"`
 		Prefix string      `json:"prefix" yaml:"prefix"`
 		CORS   *CORSConfig `json:"cors,omitempty" yaml:"cors,omitempty"`
+		Auth   *Auth       `json:"auth,omitempty" yaml:"auth,omitempty"`
 	}
 
 	CORSConfig struct {
@@ -110,6 +111,11 @@ type (
 		McpServers string          `json:"mcp_servers" yaml:"mcp_servers"`
 		IsActive   bool            `json:"is_active" yaml:"is_active"` // indicates if this version is currently active
 		Hash       string          `json:"hash" yaml:"hash"`           // hash of the configuration content
+	}
+
+	// Auth represents authentication configuration
+	Auth struct {
+		Mode cnst.AuthMode `json:"mode" yaml:"mode"`
 	}
 )
 

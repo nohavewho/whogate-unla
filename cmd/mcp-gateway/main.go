@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mcp-ecosystem/mcp-gateway/internal/auth"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
@@ -173,13 +174,19 @@ func run() {
 			zap.Error(err))
 	}
 
-	srv, err := core.NewServer(logger, cfg.Port, store, sessionStore)
+	// Initialize auth service
+	a, err := auth.NewAuth(logger, cfg.Auth)
 	if err != nil {
-		logger.Fatal("failed to create server",
-			zap.Error(err))
+		logger.Fatal("Failed to initialize auth service", zap.Error(err))
 	}
 
-	err = srv.RegisterRoutes(ctx)
+	// Create server instance
+	server, err := core.NewServer(logger, cfg.Port, store, sessionStore, a)
+	if err != nil {
+		logger.Fatal("Failed to create server", zap.Error(err))
+	}
+
+	err = server.RegisterRoutes(ctx)
 	if err != nil {
 		logger.Fatal("failed to register routes",
 			zap.Error(err))
@@ -196,7 +203,7 @@ func run() {
 			zap.Error(err))
 	}
 
-	srv.Start()
+	server.Start()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -214,7 +221,7 @@ func run() {
 			cancel()
 
 			// Shutdown the MCP server to close all SSE connections
-			err = srv.Shutdown(ctx)
+			err = server.Shutdown(ctx)
 			if err != nil {
 				logger.Error("failed to shutdown MCP server",
 					zap.Error(err))
@@ -228,14 +235,14 @@ func run() {
 
 			if updateMCPConfig == nil {
 				logger.Warn("Updated configuration is nil, falling back to full reload")
-				srv.ReloadConfigs(ctx)
+				server.ReloadConfigs(ctx)
 			} else {
-				srv.UpdateConfig(ctx, updateMCPConfig)
+				server.UpdateConfig(ctx, updateMCPConfig)
 			}
 		case <-ticker.C:
 			logger.Info("Received ticker signal", zap.Bool("reload_switch", cfg.ReloadSwitch))
 			if cfg.ReloadSwitch {
-				srv.ReloadConfigs(ctx)
+				server.ReloadConfigs(ctx)
 			}
 		}
 

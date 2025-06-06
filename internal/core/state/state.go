@@ -68,6 +68,7 @@ func BuildStateFromConfig(ctx context.Context, cfgs []*config.MCPConfig, oldStat
 
 		// Build prefix to tools mapping for MCP servers
 		prefixMap := make(map[string]string)
+		// TODO: bug for overwritten when multiple routers have the same server
 		for _, router := range cfg.Routers {
 			prefixMap[router.Server] = router.Prefix
 			newState.setRouter(router.Prefix, &router)

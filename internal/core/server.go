@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mcp-ecosystem/mcp-gateway/internal/auth"
+	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/core/mcpproxy"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/core/state"
@@ -37,11 +39,12 @@ type (
 		// toolRespHandler is a chain of response handlers
 		toolRespHandler ResponseHandler
 		lastUpdateTime  time.Time
+		auth            auth.Auth
 	}
 )
 
 // NewServer creates a new MCP server
-func NewServer(logger *zap.Logger, port int, store storage.Store, sessionStore session.Store) (*Server, error) {
+func NewServer(logger *zap.Logger, port int, store storage.Store, sessionStore session.Store, a auth.Auth) (*Server, error) {
 	s := &Server{
 		logger:          logger,
 		port:            port,
@@ -51,7 +54,14 @@ func NewServer(logger *zap.Logger, port int, store storage.Store, sessionStore s
 		sessions:        sessionStore,
 		shutdownCh:      make(chan struct{}),
 		toolRespHandler: CreateResponseHandlerChain(),
+		auth:            a,
 	}
+
+	// Load HTML templates
+	s.router.LoadHTMLGlob("internal/core/templates/*")
+	// Serve static files
+	s.router.Static("/static", "internal/core/static")
+
 	s.router.Use(s.loggerMiddleware())
 	s.router.Use(s.recoveryMiddleware())
 	return s, nil
@@ -65,6 +75,26 @@ func (s *Server) RegisterRoutes(ctx context.Context) error {
 			"message": "Health check passed.",
 		})
 	})
+
+	// Only register OAuth routes if OAuth2 is configured
+	if s.auth.IsOAuth2Enabled() {
+		// Create OAuth group with optional CORS middleware
+		oauthGroup := s.router.Group("")
+		if cors := s.auth.GetOAuth2CORS(); cors != nil {
+			oauthCorsMiddleware := s.corsMiddleware(cors)
+			s.router.OPTIONS("/*path", oauthCorsMiddleware)
+			oauthGroup.Use(oauthCorsMiddleware)
+		}
+
+		// Register OAuth routes
+		oauthGroup.GET("/.well-known/oauth-authorization-server", s.handleOAuthServerMetadata)
+		// oauthGroup.GET("/.well-known/oauth-protected-resource", s.handleOAuthServerMetadata)
+		oauthGroup.GET("/authorize", s.handleOAuthAuthorize)
+		oauthGroup.POST("/authorize", s.handleOAuthAuthorize)
+		oauthGroup.POST("/token", s.handleOAuthToken)
+		oauthGroup.POST("/register", s.handleOAuthRegister)
+		oauthGroup.POST("/revoke", s.handleOAuthRevoke)
+	}
 
 	newState, err := s.updateConfigs(ctx)
 	if err != nil {
@@ -87,8 +117,9 @@ func (s *Server) RegisterRoutes(ctx context.Context) error {
 	return nil
 }
 
-// handleRoot handles all requests and routes them based on the path
+// handleRoot handles all unmatched routes
 func (s *Server) handleRoot(c *gin.Context) {
+	// Get the path
 	path := c.Request.URL.Path
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 2 {
@@ -106,6 +137,20 @@ func (s *Server) handleRoot(c *gin.Context) {
 		zap.String("prefix", prefix),
 		zap.String("endpoint", endpoint),
 		zap.String("remote_addr", c.Request.RemoteAddr))
+
+	// Check auth configuration
+	auth := s.state.GetAuth(prefix)
+	if auth != nil && auth.Mode == cnst.AuthModeOAuth2 {
+		// Validate access token
+		if !s.isValidAccessToken(c.Request) {
+			c.Header("WWW-Authenticate", `Bearer realm="OAuth", error="invalid_token", error_description="Missing or invalid access token"`)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":             "invalid_token",
+				"error_description": "Missing or invalid access token",
+			})
+			return
+		}
+	}
 
 	// Dynamically set CORS
 	if cors := s.state.GetCORS(prefix); cors != nil {
@@ -221,11 +266,9 @@ func (s *Server) updateConfigs(ctx context.Context) (*state.State, error) {
 		s.logger.Info("getting updated MCP configurations",
 			zap.Int("count", len(updatedCfgs)))
 		cfgs = s.state.GetRawConfigs()
-		fmt.Println(cfgs)
 		for _, cfg := range updatedCfgs {
 			cfgs = config.MergeConfigs(cfgs, cfg)
 		}
-		fmt.Println(cfgs)
 		s.logger.Info("merging updated MCP configurations",
 			zap.Int("total_old", len(s.state.GetRawConfigs())),
 			zap.Int("total_new", len(cfgs)))

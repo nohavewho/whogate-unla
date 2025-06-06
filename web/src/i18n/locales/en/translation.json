@@ -199,6 +199,8 @@
     "type_object": "Object",
     "type_form_data": "Form Data",
     "enable_cors": "Enable CORS",
+    "enable_auth": "Enable Authentication",
+    "auth_mode": "Authentication Mode",
     "allow_origins": "Allowed Origins",
     "allow_methods": "Allowed Methods",
     "allow_headers": "Allowed Headers",
