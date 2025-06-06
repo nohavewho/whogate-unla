@@ -7,7 +7,7 @@ import (
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"

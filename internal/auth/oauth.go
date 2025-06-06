@@ -30,12 +30,9 @@ type oauth struct {
 var _ OAuth2 = (*oauth)(nil)
 
 func newOAuth(logger *zap.Logger, cfg config.OAuth2Config) (OAuth2, error) {
-	var store storage.Store
-	switch cfg.Storage.Type {
-	case "memory":
-		store = storage.NewMemoryStorage()
-	default:
-		return nil, fmt.Errorf("unsupported store type: %s", cfg.Storage.Type)
+	store, err := storage.NewStore(logger, &cfg.Storage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage: %w", err)
 	}
 
 	return &oauth{

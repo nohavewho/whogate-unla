@@ -75,9 +75,13 @@ session:
 # OAuth2 configuration
 auth:
   oauth2:
-    issuer: https://github.com/mcp-ecosystem/mcp-gateway
+    issuer: "${OAUTH2_ISSUER:https://github.com/mcp-ecosystem/mcp-gateway}"
     storage:
-      type: memory
+      type: "${OAUTH2_STORAGE_TYPE:memory}"  # memory or redis
+      redis:
+        addr: "${OAUTH2_REDIS_ADDR:localhost:6379}"
+        password: "${OAUTH2_REDIS_PASSWORD:}"
+        db: ${OAUTH2_REDIS_DB:0}
   cors:
     allowOrigins:
       - "*"
