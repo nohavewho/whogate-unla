@@ -58,9 +58,9 @@ func NewServer(logger *zap.Logger, port int, store storage.Store, sessionStore s
 	}
 
 	// Load HTML templates
-	s.router.LoadHTMLGlob("internal/core/templates/*")
+	s.router.LoadHTMLGlob("assets/templates/*")
 	// Serve static files
-	s.router.Static("/static", "internal/core/static")
+	s.router.Static("/static", "assets/static")
 
 	s.router.Use(s.loggerMiddleware())
 	s.router.Use(s.recoveryMiddleware())
