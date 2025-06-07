@@ -12,11 +12,6 @@ on:
       - 'go.mod'
       - 'go.sum'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag for the image'
-        required: true
-        default: 'dev'
 
 env:
   DOCKER_HUB_USERNAME: ifuryst
