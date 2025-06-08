@@ -59,6 +59,7 @@ COPY configs/i18n /app/configs/i18n/
 COPY --from=builder /app/bin/mcp-gateway /usr/local/bin/
 COPY --from=builder /app/bin/mock-server /usr/local/bin/
 COPY --from=builder /app/bin/apiserver /usr/local/bin/
+COPY --from=builder /app/assets /app/assets
 
 COPY --from=web-builder /app/web/dist /usr/share/nginx/html
 

@@ -65,7 +65,8 @@
     "copy_failed": "Copy failed",
     "add": "Add",
     "already": "Already",
-    "available": "Available"
+    "available": "Available",
+    "total_items": "Total {{total}} items"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -77,7 +78,8 @@
     "tenants": "Tenants",
     "tools_config": "Tools Configuration",
     "sse_url": "SSE URL",
-    "streamable_http_url": "Streamable HTTP URL"
+    "streamable_http_url": "Streamable HTTP URL",
+    "config_versions": "Config Versions"
   },
   "auth": {
     "login": "Login",
@@ -197,6 +199,8 @@
     "type_object": "Object",
     "type_form_data": "Form Data",
     "enable_cors": "Enable CORS",
+    "enable_auth": "Enable Authentication",
+    "auth_mode": "Authentication Mode",
     "allow_origins": "Allowed Origins",
     "allow_methods": "Allowed Methods",
     "allow_headers": "Allowed Headers",
@@ -284,7 +288,11 @@
     "remove_server": "Remove Server",
     "add_origin": "Add Origin",
     "add_method": "Add Method",
-    "add_expose_header": "Add Expose Header"
+    "add_expose_header": "Add Expose Header",
+    "url_access_note": "When using AllInOne, you have two options: access through Nginx to MCP Gateway, or directly access MCP Gateway through port 5235 (if port 5235 is wrapped/forwarded or mcp-gateway is configured with a different port, you need to modify the base URL after copying)",
+    "direct_to_mcp_gateway": "Direct to MCP Gateway(5235):",
+    "server_name_limit": "{{count}}/{{max}} characters",
+    "name_length_error": "Name length cannot exceed 50 characters"
   },
   "chat": {
     "title": "Chat",
@@ -342,7 +350,18 @@
     "new_chat": "New Chat",
     "no_history": "No chat history",
     "untitled": "Untitled Chat",
-    "resize_history": "Resize chat history"
+    "resize_history": "Resize chat history",
+    "rename": "Rename",
+    "delete": "Delete",
+    "rename_title": "Rename Chat Session",
+    "delete_title": "Delete Chat Session",
+    "delete_confirm": "Are you sure you want to delete this chat session?",
+    "rename_success": "Chat session renamed successfully",
+    "rename_failed": "Failed to rename chat session",
+    "delete_success": "Chat session deleted successfully",
+    "delete_failed": "Failed to delete chat session",
+    "rename_session": "Rename Chat Session",
+    "session_title_placeholder": "Enter new session title"
   },
   "users": {
     "title": "User Management",
@@ -474,6 +493,42 @@
     "router_prefix_error": "Router prefix must start with tenant prefix, and cannot be empty",
     "tenant_required": "Tenant field is required",
     "tenant_not_found": "Tenant with the specified prefix does not exist",
-    "validate_router_prefix_failed": "Failed to validate router prefix"
+    "validate_router_prefix_failed": "Failed to validate router prefix",
+    "export_mcp_server": "Failed to export MCP server",
+    "set_active_version": "Failed to set version as active"
+  },
+  "mcp": {
+    "configVersions": {
+      "title": "Configuration Versions",
+      "name": "Name",
+      "tenant": "Tenant",
+      "version": "Version",
+      "created_by": "Created By",
+      "created_at": "Created At",
+      "action_type": "Action Type",
+      "active": "Active",
+      "inactive": "Inactive",
+      "actions": "Actions",
+      "rollback": "Rollback to this version",
+      "select_config": "Select Config",
+      "select_tenant": "Select Tenant",
+      "fetch_names_error": "Failed to fetch config names",
+      "fetch_error": "Failed to fetch versions",
+      "set_active_success": "Version set as active successfully",
+      "set_active_error": "Failed to set version as active",
+      "compare_with_previous": "Compare with Previous",
+      "compare_with_latest": "Compare with Latest",
+      "compare_versions": "Compare Versions",
+      "no_previous_version": "No previous version available for comparison",
+      "no_latest_version": "No latest version available for comparison",
+      "show_all": "Show All",
+      "show_diff_only": "Show Diff Only",
+      "action_types": {
+        "create": "Create",
+        "update": "Update",
+        "delete": "Delete",
+        "revert": "Revert"
+      }
+    }
   }
 }

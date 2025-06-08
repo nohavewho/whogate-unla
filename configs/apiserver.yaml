@@ -32,6 +32,7 @@ database:
 # Storage configuration
 storage:
   type: "${GATEWAY_STORAGE_TYPE:db}"  # disk or db
+  revision_history_limit: ${GATEWAY_STORAGE_REVISION_HISTORY_LIMIT:10}  # number of versions to keep
   # Database configuration (only used when type is db)
   database:
     type: "${GATEWAY_DB_TYPE:sqlite}"
@@ -39,7 +40,7 @@ storage:
     port: ${GATEWAY_DB_PORT:5432}
     user: "${GATEWAY_DB_USER:postgres}"
     password: "${GATEWAY_DB_PASSWORD:example}"
-    dbname: "${GATEWAY_DB_NAME:./data/mcp-gateway.db}"
+    dbname: "${GATEWAY_DB_NAME:./mcp-gateway.db}"
     sslmode: "${GATEWAY_DB_SSL_MODE:disable}"
   # Disk configuration (only used when type is disk)
   disk:

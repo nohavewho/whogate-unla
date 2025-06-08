@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ifuryst/lol"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
 	"github.com/mcp-ecosystem/mcp-gateway/internal/core/mcpproxy"
@@ -67,16 +68,25 @@ func BuildStateFromConfig(ctx context.Context, cfgs []*config.MCPConfig, oldStat
 		}
 
 		// Build prefix to tools mapping for MCP servers
-		prefixMap := make(map[string]string)
+		prefixMap := make(map[string][]string)
+		// Support multiple prefixes for a single server
 		for _, router := range cfg.Routers {
-			prefixMap[router.Server] = router.Prefix
+			prefixMap[router.Server] = append(prefixMap[router.Server], router.Prefix)
 			newState.setRouter(router.Prefix, &router)
+			logger.Info("registered router",
+				zap.String("tenant", cfg.Tenant),
+				zap.String("prefix", router.Prefix),
+				zap.String("server", router.Server))
+		}
+
+		for k, v := range prefixMap {
+			prefixMap[k] = lol.UniqSlice(v)
 		}
 
 		// Process regular HTTP servers
 		for _, server := range cfg.Servers {
 			newState.metrics.httpServers++
-			prefix, ok := prefixMap[server.Name]
+			prefixes, ok := prefixMap[server.Name]
 			if !ok {
 				newState.metrics.idleHTTPServers++
 				logger.Warn("failed to find prefix for server", zap.String("server", server.Name))
@@ -98,82 +108,89 @@ func BuildStateFromConfig(ctx context.Context, cfgs []*config.MCPConfig, oldStat
 						zap.String("tool", ss))
 				}
 			}
-			runtime := newState.getRuntime(prefix)
-			runtime.protoType = cnst.BackendProtoHttp
-			runtime.server = &server
-			runtime.tools = allowedTools
-			runtime.toolSchemas = allowedToolSchemas
-			newState.runtime[uriPrefix(prefix)] = runtime
+
+			// Process each prefix for this server
+			for _, prefix := range prefixes {
+				runtime := newState.getRuntime(prefix)
+				runtime.protoType = cnst.BackendProtoHttp
+				runtime.server = &server
+				runtime.tools = allowedTools
+				runtime.toolSchemas = allowedToolSchemas
+				newState.runtime[uriPrefix(prefix)] = runtime
+			}
 		}
 
 		// Process MCP servers
 		for _, mcpServer := range cfg.McpServers {
 			newState.metrics.mcpServers++
-			prefix, exists := prefixMap[mcpServer.Name]
+			prefixes, exists := prefixMap[mcpServer.Name]
 			if !exists {
 				newState.metrics.idleMCPServers++
 				logger.Warn("failed to find prefix for mcp server", zap.String("server", mcpServer.Name))
 				continue // Skip MCP servers without router prefix
 			}
 
-			runtime := newState.getRuntime(prefix)
-			runtime.mcpServer = &mcpServer
+			// Process each prefix for this MCP server
+			for _, prefix := range prefixes {
+				runtime := newState.getRuntime(prefix)
+				runtime.mcpServer = &mcpServer
 
-			// Check if we already have transport with the same configuration
-			var transport mcpproxy.Transport
-			if oldState != nil {
-				if oldRuntime, exists := oldState.runtime[uriPrefix(prefix)]; exists {
-					// Compare configurations to see if we need to create a new transport
-					oldConfig := oldRuntime.mcpServer
-					if oldConfig != nil && oldConfig.Type == mcpServer.Type &&
-						oldConfig.Command == mcpServer.Command &&
-						oldConfig.URL == mcpServer.URL &&
-						len(oldConfig.Args) == len(mcpServer.Args) {
-						// Compare args
-						argsMatch := true
-						for i, arg := range oldConfig.Args {
-							if arg != mcpServer.Args[i] {
-								argsMatch = false
-								break
+				// Check if we already have transport with the same configuration
+				var transport mcpproxy.Transport
+				if oldState != nil {
+					if oldRuntime, exists := oldState.runtime[uriPrefix(prefix)]; exists {
+						// Compare configurations to see if we need to create a new transport
+						oldConfig := oldRuntime.mcpServer
+						if oldConfig != nil && oldConfig.Type == mcpServer.Type &&
+							oldConfig.Command == mcpServer.Command &&
+							oldConfig.URL == mcpServer.URL &&
+							len(oldConfig.Args) == len(mcpServer.Args) {
+							// Compare args
+							argsMatch := true
+							for i, arg := range oldConfig.Args {
+								if arg != mcpServer.Args[i] {
+									argsMatch = false
+									break
+								}
 							}
-						}
-						if argsMatch {
-							// Reuse existing transport
-							transport = oldRuntime.transport
+							if argsMatch {
+								// Reuse existing transport
+								transport = oldRuntime.transport
+							}
 						}
 					}
 				}
-			}
 
-			// Create new transport if needed
-			if transport == nil {
-				var err error
-				transport, err = mcpproxy.NewTransport(mcpServer)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create transport for server %s: %w", mcpServer.Name, err)
+				// Create new transport if needed
+				if transport == nil {
+					var err error
+					transport, err = mcpproxy.NewTransport(mcpServer)
+					if err != nil {
+						return nil, fmt.Errorf("failed to create transport for server %s: %w", mcpServer.Name, err)
+					}
 				}
-			}
 
-			// Handle server startup based on policy and preinstalled flag
-			if mcpServer.Policy == cnst.PolicyOnStart {
-				// If PolicyOnStart is set, just start the server and keep it running
-				go startMCPServer(ctx, logger, prefix, mcpServer, transport, false)
-			} else if mcpServer.Preinstalled {
-				// If Preinstalled is set but not PolicyOnStart, verify installation by starting and stopping
-				go startMCPServer(ctx, logger, prefix, mcpServer, transport, true)
-			}
-			runtime.transport = transport
+				// Handle server startup based on policy and preinstalled flag
+				if mcpServer.Policy == cnst.PolicyOnStart {
+					// If PolicyOnStart is set, just start the server and keep it running
+					go startMCPServer(ctx, logger, prefix, mcpServer, transport, false)
+				} else if mcpServer.Preinstalled {
+					// If Preinstalled is set but not PolicyOnStart, verify installation by starting and stopping
+					go startMCPServer(ctx, logger, prefix, mcpServer, transport, true)
+				}
+				runtime.transport = transport
 
-			// Map protocol type based on server type
-			switch mcpServer.Type {
-			case cnst.BackendProtoStdio.String():
-				runtime.protoType = cnst.BackendProtoStdio
-			case cnst.BackendProtoSSE.String():
-				runtime.protoType = cnst.BackendProtoSSE
-			case cnst.BackendProtoStreamable.String():
-				runtime.protoType = cnst.BackendProtoStreamable
+				// Map protocol type based on server type
+				switch mcpServer.Type {
+				case cnst.BackendProtoStdio.String():
+					runtime.protoType = cnst.BackendProtoStdio
+				case cnst.BackendProtoSSE.String():
+					runtime.protoType = cnst.BackendProtoSSE
+				case cnst.BackendProtoStreamable.String():
+					runtime.protoType = cnst.BackendProtoStreamable
+				}
+				newState.runtime[uriPrefix(prefix)] = runtime
 			}
-			newState.runtime[uriPrefix(prefix)] = runtime
 		}
 	}
 

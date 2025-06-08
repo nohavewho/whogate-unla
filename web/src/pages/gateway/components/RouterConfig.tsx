@@ -3,11 +3,11 @@ import { Icon } from "@iconify/react";
 import { useState } from "react";
 import { useTranslation } from 'react-i18next';
 
-import { GatewayConfig, CorsConfig, Tenant } from '../types';
+import { Gateway, CORSConfig, Tenant } from '../../../types/gateway';
 
 interface RouterConfigProps {
-  parsedConfig: GatewayConfig;
-  updateConfig: (newData: Partial<GatewayConfig>) => void;
+  parsedConfig: Gateway;
+  updateConfig: (newData: Partial<Gateway>) => void;
   tenants: Tenant[];
 }
 
@@ -34,11 +34,11 @@ export function RouterConfig({
     updateConfig({ routers: updatedRouters });
   };
 
-  const renderCorsConfig = (router: { cors?: Record<string, unknown> }, index: number) => {
-    const corsConfig = router.cors as CorsConfig;
+  const renderCorsConfig = (router: { cors?: CORSConfig }, index: number) => {
+    const corsConfig = router.cors;
     if (!corsConfig) return null;
 
-    const updateCors = (updates: Partial<CorsConfig>) => {
+    const updateCors = (updates: Partial<CORSConfig>) => {
       const updatedCors = { ...corsConfig, ...updates };
       const updatedRouters = routers.map((r, i) =>
         i === index ? { ...r, cors: updatedCors } : r
@@ -46,7 +46,7 @@ export function RouterConfig({
       updateConfig({ routers: updatedRouters });
     };
 
-    const addCorsItem = (field: keyof CorsConfig, value: string) => {
+    const addCorsItem = (field: keyof CORSConfig, value: string) => {
       if (!value?.trim()) return;
       const currentValues = corsConfig[field] as string[] || [];
       if (!currentValues.includes(value.trim())) {
@@ -56,7 +56,7 @@ export function RouterConfig({
       }
     };
 
-    const removeCorsItem = (field: keyof CorsConfig, itemIndex: number) => {
+    const removeCorsItem = (field: keyof CORSConfig, itemIndex: number) => {
       const currentValues = corsConfig[field] as string[] || [];
       updateCors({
         [field]: currentValues.filter((_, i) => i !== itemIndex)
@@ -333,6 +333,44 @@ export function RouterConfig({
                 </div>
 
                 {router.cors && renderCorsConfig(router, index)}
+              </div>
+
+              {/* 认证开关部分 */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    size="sm"
+                    isSelected={Boolean(router.auth)}
+                    onValueChange={(isSelected) => {
+                      const updatedRouters = [...routers];
+                      if (isSelected) {
+                        updatedRouters[index] = {
+                          ...updatedRouters[index],
+                          auth: { mode: 'oauth2' }
+                        };
+                      } else {
+                        const { auth: _auth, ...rest } = updatedRouters[index];
+                        updatedRouters[index] = rest;
+                      }
+                      updateConfig({ routers: updatedRouters });
+                    }}
+                  />
+                  <span className="text-sm font-medium">{t('gateway.enable_auth')}</span>
+                </div>
+
+                {router.auth && (
+                  <div className="pl-6">
+                    <Select
+                      size="sm"
+                      label={t('gateway.auth_mode')}
+                      selectedKeys={['oauth2']}
+                      aria-label={t('gateway.auth_mode')}
+                      isDisabled={true}
+                    >
+                      <SelectItem key="oauth2">OAuth2</SelectItem>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end">

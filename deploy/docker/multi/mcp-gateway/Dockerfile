@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=builder /app/mcp-gateway .
 COPY --from=builder /app/configs/mcp-gateway.yaml /etc/mcp-gateway/
+COPY --from=builder /app/assets /app/assets
 
 # Create data directory
 RUN mkdir -p /app/data

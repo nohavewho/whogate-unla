@@ -16,7 +16,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 
-import { getCurrentUser } from '../api/auth';
+import { getCurrentUser } from '../services/api';
 import { toast } from '../utils/toast';
 
 
@@ -59,7 +59,7 @@ export function Layout({ children }: LayoutProps) {
         const response = await getCurrentUser();
         setUserInfo(response.data);
       } catch (error) {
-        toast.error(t('errors.fetch_user_info', { error: (error as Error).message }), {
+        toast.error(t('errors.fetch_user', { error: (error as Error).message }), {
           duration: 3000,
         });
       }
@@ -80,6 +80,12 @@ export function Layout({ children }: LayoutProps) {
       label: t('nav.gateway'),
       icon: 'lucide:server',
       path: '/gateway',
+    },
+    {
+      key: 'config-versions',
+      label: t('nav.config_versions'),
+      icon: 'lucide:history',
+      path: '/config-versions',
     },
     ...(userInfo?.role === 'admin' ? [
       {

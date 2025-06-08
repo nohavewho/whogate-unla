@@ -32,6 +32,16 @@ func (e *ValidationError) Error() string {
 func validateSingleConfig(cfg *MCPConfig) []*ValidationError {
 	var errors []*ValidationError
 
+	// Validate name length
+	if len(cfg.Name) > 50 {
+		errors = append(errors, &ValidationError{
+			Message: "name length exceeds maximum limit of 50 characters",
+			Locations: []Location{{
+				File: cfg.Name,
+			}},
+		})
+	}
+
 	// Check for duplicate server names within this config
 	serverNameMap := make(map[string]bool)
 	for _, server := range cfg.Servers {
@@ -168,7 +178,7 @@ func MergeConfigs(existingConfigs []*MCPConfig, newConfig *MCPConfig) []*MCPConf
 	// If the new config has DeletedAt set, we need to remove it from the list
 	if !newConfig.DeletedAt.IsZero() {
 		for _, existingCfg := range existingConfigs {
-			if existingCfg.Name != newConfig.Name {
+			if existingCfg.Tenant != newConfig.Tenant || existingCfg.Name != newConfig.Name {
 				configs = append(configs, existingCfg)
 			}
 		}
@@ -178,7 +188,7 @@ func MergeConfigs(existingConfigs []*MCPConfig, newConfig *MCPConfig) []*MCPConf
 	// Otherwise, handle normal update/append case
 	found := false
 	for _, existingCfg := range existingConfigs {
-		if existingCfg.Name == newConfig.Name {
+		if existingCfg.Tenant == newConfig.Tenant && existingCfg.Name == newConfig.Name {
 			configs = append(configs, newConfig)
 			found = true
 		} else {

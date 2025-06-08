@@ -30,6 +30,7 @@ type (
 		Storage        StorageConfig    `yaml:"storage"`
 		Notifier       NotifierConfig   `yaml:"notifier"`
 		Session        SessionConfig    `yaml:"session"`
+		Auth           AuthConfig       `yaml:"auth"`
 	}
 
 	// SessionConfig represents the session storage configuration
@@ -40,12 +41,13 @@ type (
 
 	// SessionRedisConfig represents the Redis configuration for session storage
 	SessionRedisConfig struct {
-		Addr     string `yaml:"addr"`
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-		DB       int    `yaml:"db"`
-		Topic    string `yaml:"topic"`
-		Prefix   string `yaml:"prefix"`
+		Addr     string        `yaml:"addr"`
+		Username string        `yaml:"username"`
+		Password string        `yaml:"password"`
+		DB       int           `yaml:"db"`
+		Topic    string        `yaml:"topic"`
+		Prefix   string        `yaml:"prefix"`
+		TTL      time.Duration `yaml:"ttl"` // TTL for session data in Redis
 	}
 
 	// LoggerConfig represents the logger configuration
@@ -62,6 +64,25 @@ type (
 		Stacktrace bool   `yaml:"stacktrace"`  // whether to include stacktrace in error logs
 		TimeZone   string `yaml:"time_zone"`   // time zone for log timestamps, e.g., "UTC", default is local
 		TimeFormat string `yaml:"time_format"` // time format for log timestamps, default is "2006-01-02 15:04:05"
+	}
+
+	// AuthConfig defines the authentication configuration
+	AuthConfig struct {
+		OAuth2 *OAuth2Config `yaml:"oauth2"`
+		CORS   *CORSConfig   `yaml:"cors,omitempty"`
+	}
+	OAuth2Config struct {
+		Issuer  string              `yaml:"issuer"`
+		Storage OAuth2StorageConfig `yaml:"storage"`
+	}
+	OAuth2StorageConfig struct {
+		Type  string            `yaml:"type"`
+		Redis OAuth2RedisConfig `yaml:"redis"`
+	}
+	OAuth2RedisConfig struct {
+		Addr     string `yaml:"addr"`
+		Password string `yaml:"password"`
+		DB       int    `yaml:"db"`
 	}
 )
 

@@ -23,24 +23,28 @@ type DiskStore struct {
 	logger  *zap.Logger
 	baseDir string
 	mu      sync.RWMutex
+	cfg     *config.StorageConfig
 }
 
 var _ Store = (*DiskStore)(nil)
 
 // NewDiskStore creates a new disk-based store
-func NewDiskStore(logger *zap.Logger, baseDir string) (*DiskStore, error) {
-	logger = logger.Named("mcp.store")
+func NewDiskStore(logger *zap.Logger, cfg *config.StorageConfig) (*DiskStore, error) {
+	logger = logger.Named("mcp.store.disk")
 
-	baseDir = getConfigPath(baseDir)
-	logger.Info("Using configuration directory", zap.String("path", baseDir))
+	baseDir := cfg.Disk.Path
+	if baseDir == "" {
+		baseDir = "./data"
+	}
 
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, err
 	}
 
 	return &DiskStore{
-		logger:  logger,
 		baseDir: baseDir,
+		logger:  logger,
+		cfg:     cfg,
 	}, nil
 }
 
@@ -58,7 +62,7 @@ func (s *DiskStore) Create(_ context.Context, server *config.MCPConfig) error {
 		return err
 	}
 
-	path := filepath.Join(s.baseDir, server.Name+".yaml")
+	path := filepath.Join(s.baseDir, server.Tenant, server.Name+".yaml")
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
@@ -66,11 +70,11 @@ func (s *DiskStore) Create(_ context.Context, server *config.MCPConfig) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func (s *DiskStore) Get(_ context.Context, name string) (*config.MCPConfig, error) {
+func (s *DiskStore) Get(_ context.Context, tenant, name string, includeDeleted ...bool) (*config.MCPConfig, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	path := filepath.Join(s.baseDir, name+".yaml")
+	path := filepath.Join(s.baseDir, tenant, name+".yaml")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -84,7 +88,7 @@ func (s *DiskStore) Get(_ context.Context, name string) (*config.MCPConfig, erro
 	return &server, nil
 }
 
-func (s *DiskStore) List(_ context.Context) ([]*config.MCPConfig, error) {
+func (s *DiskStore) List(_ context.Context, _ ...bool) ([]*config.MCPConfig, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -97,28 +101,45 @@ func (s *DiskStore) List(_ context.Context) ([]*config.MCPConfig, error) {
 	}
 
 	var servers []*config.MCPConfig
-	for _, entry := range entries {
-		if entry.IsDir() {
+	for _, tenantEntry := range entries {
+		if !tenantEntry.IsDir() {
 			continue
 		}
 
-		data, err := os.ReadFile(filepath.Join(s.baseDir, entry.Name()))
+		tenantPath := filepath.Join(s.baseDir, tenantEntry.Name())
+		configEntries, err := os.ReadDir(tenantPath)
 		if err != nil {
-			s.logger.Error("failed to read server file",
-				zap.String("file", entry.Name()),
+			s.logger.Error("failed to read tenant directory",
+				zap.String("tenant", tenantEntry.Name()),
 				zap.Error(err))
 			continue
 		}
 
-		var server config.MCPConfig
-		if err := yaml.Unmarshal(data, &server); err != nil {
-			s.logger.Error("failed to unmarshal server",
-				zap.String("file", entry.Name()),
-				zap.Error(err))
-			continue
-		}
+		for _, entry := range configEntries {
+			if entry.IsDir() {
+				continue
+			}
 
-		servers = append(servers, &server)
+			data, err := os.ReadFile(filepath.Join(tenantPath, entry.Name()))
+			if err != nil {
+				s.logger.Error("failed to read server file",
+					zap.String("tenant", tenantEntry.Name()),
+					zap.String("file", entry.Name()),
+					zap.Error(err))
+				continue
+			}
+
+			var server config.MCPConfig
+			if err := yaml.Unmarshal(data, &server); err != nil {
+				s.logger.Error("failed to unmarshal server",
+					zap.String("tenant", tenantEntry.Name()),
+					zap.String("file", entry.Name()),
+					zap.Error(err))
+				continue
+			}
+
+			servers = append(servers, &server)
+		}
 	}
 
 	return servers, nil
@@ -134,13 +155,13 @@ func (s *DiskStore) Update(_ context.Context, server *config.MCPConfig) error {
 		return err
 	}
 
-	path := filepath.Join(s.baseDir, server.Name+".yaml")
+	path := filepath.Join(s.baseDir, server.Tenant, server.Name+".yaml")
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
 
 	// Get the latest version
-	versionsDir := filepath.Join(s.baseDir, "versions", server.Name)
+	versionsDir := filepath.Join(s.baseDir, "versions", server.Tenant, server.Name)
 	entries, err := os.ReadDir(versionsDir)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -175,6 +196,7 @@ func (s *DiskStore) Update(_ context.Context, server *config.MCPConfig) error {
 		// If hash matches, skip creating new version
 		if latestVersion.Hash == version.Hash {
 			s.logger.Info("Skipping version creation as content hash matches latest version",
+				zap.String("tenant", server.Tenant),
 				zap.String("name", server.Name),
 				zap.Int("version", latestVersion.Version),
 				zap.String("hash", version.Hash))
@@ -200,22 +222,36 @@ func (s *DiskStore) Update(_ context.Context, server *config.MCPConfig) error {
 		return err
 	}
 
+	// Delete old versions if revision history limit is set
+	if s.cfg.RevisionHistoryLimit > 0 && len(entries) >= s.cfg.RevisionHistoryLimit {
+		for i := s.cfg.RevisionHistoryLimit; i < len(entries); i++ {
+			oldVersionPath := filepath.Join(versionsDir, entries[i].Name())
+			if err := os.Remove(oldVersionPath); err != nil {
+				s.logger.Error("failed to delete old version",
+					zap.String("tenant", server.Tenant),
+					zap.String("name", server.Name),
+					zap.String("version", entries[i].Name()),
+					zap.Error(err))
+			}
+		}
+	}
+
 	return os.WriteFile(path, data, 0644)
 }
 
-func (s *DiskStore) Delete(_ context.Context, name string) error {
+func (s *DiskStore) Delete(_ context.Context, tenant, name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	path := filepath.Join(s.baseDir, name+".yaml")
+	path := filepath.Join(s.baseDir, tenant, name+".yaml")
 	return os.Remove(path)
 }
 
-func (s *DiskStore) GetVersion(_ context.Context, name string, version int) (*config.MCPConfigVersion, error) {
+func (s *DiskStore) GetVersion(_ context.Context, tenant, name string, version int) (*config.MCPConfigVersion, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	versionPath := filepath.Join(s.baseDir, "versions", name, fmt.Sprintf("%d.yaml", version))
+	versionPath := filepath.Join(s.baseDir, "versions", tenant, name, fmt.Sprintf("%d.yaml", version))
 	data, err := os.ReadFile(versionPath)
 	if err != nil {
 		return nil, err
@@ -241,11 +277,11 @@ func (s *DiskStore) GetVersion(_ context.Context, name string, version int) (*co
 	}, nil
 }
 
-func (s *DiskStore) ListVersions(_ context.Context, name string) ([]*config.MCPConfigVersion, error) {
+func (s *DiskStore) ListVersions(_ context.Context, tenant, name string) ([]*config.MCPConfigVersion, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	versionsDir := filepath.Join(s.baseDir, "versions", name)
+	versionsDir := filepath.Join(s.baseDir, "versions", tenant, name)
 	entries, err := os.ReadDir(versionsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -263,6 +299,8 @@ func (s *DiskStore) ListVersions(_ context.Context, name string) ([]*config.MCPC
 		data, err := os.ReadFile(filepath.Join(versionsDir, entry.Name()))
 		if err != nil {
 			s.logger.Error("failed to read version file",
+				zap.String("tenant", tenant),
+				zap.String("name", name),
 				zap.String("file", entry.Name()),
 				zap.Error(err))
 			continue
@@ -271,6 +309,8 @@ func (s *DiskStore) ListVersions(_ context.Context, name string) ([]*config.MCPC
 		var model MCPConfigVersion
 		if err := yaml.Unmarshal(data, &model); err != nil {
 			s.logger.Error("failed to unmarshal version",
+				zap.String("tenant", tenant),
+				zap.String("name", name),
 				zap.String("file", entry.Name()),
 				zap.Error(err))
 			continue
@@ -299,19 +339,19 @@ func (s *DiskStore) ListVersions(_ context.Context, name string) ([]*config.MCPC
 	return versions, nil
 }
 
-func (s *DiskStore) DeleteVersion(_ context.Context, name string, version int) error {
+func (s *DiskStore) DeleteVersion(_ context.Context, tenant, name string, version int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	versionPath := filepath.Join(s.baseDir, "versions", name, fmt.Sprintf("%d.yaml", version))
+	versionPath := filepath.Join(s.baseDir, "versions", tenant, name, fmt.Sprintf("%d.yaml", version))
 	return os.Remove(versionPath)
 }
 
-func (s *DiskStore) GetActiveVersion(_ context.Context, name string) (*config.MCPConfig, error) {
+func (s *DiskStore) GetActiveVersion(_ context.Context, tenant, name string) (*config.MCPConfig, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	versionsDir := filepath.Join(s.baseDir, "versions", name)
+	versionsDir := filepath.Join(s.baseDir, "versions", tenant, name)
 	entries, err := os.ReadDir(versionsDir)
 	if err != nil {
 		return nil, err
@@ -339,14 +379,14 @@ func (s *DiskStore) GetActiveVersion(_ context.Context, name string) (*config.MC
 		return model.ToMCPConfig()
 	}
 
-	return nil, fmt.Errorf("no version found for %s", name)
+	return nil, fmt.Errorf("no version found for tenant %s, name %s", tenant, name)
 }
 
-func (s *DiskStore) SetActiveVersion(_ context.Context, name string, version int) error {
+func (s *DiskStore) SetActiveVersion(_ context.Context, tenant, name string, version int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	versionsDir := filepath.Join(s.baseDir, "versions", name)
+	versionsDir := filepath.Join(s.baseDir, "versions", tenant, name)
 	entries, err := os.ReadDir(versionsDir)
 	if err != nil {
 		return err
@@ -434,4 +474,76 @@ func getConfigPath(baseDir string) string {
 		}
 	}
 	return filepath.Join(appData, ".mcp", "gateway")
+}
+
+// ListUpdated implements Store.ListUpdated
+func (s *DiskStore) ListUpdated(_ context.Context, since time.Time) ([]*config.MCPConfig, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Get all config files
+	entries, err := os.ReadDir(s.baseDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var configs []*config.MCPConfig
+	for _, tenantEntry := range entries {
+		if !tenantEntry.IsDir() {
+			continue
+		}
+
+		tenant := tenantEntry.Name()
+		tenantPath := filepath.Join(s.baseDir, tenant)
+		configEntries, err := os.ReadDir(tenantPath)
+		if err != nil {
+			s.logger.Error("failed to read tenant directory",
+				zap.String("tenant", tenant),
+				zap.Error(err))
+			continue
+		}
+
+		for _, configEntry := range configEntries {
+			if configEntry.IsDir() {
+				continue
+			}
+
+			path := filepath.Join(tenantPath, configEntry.Name())
+
+			// Get file info to check modification time
+			info, err := configEntry.Info()
+			if err != nil {
+				s.logger.Error("failed to get file info",
+					zap.String("path", path),
+					zap.Error(err))
+				continue
+			}
+
+			// Skip if file was not modified after since
+			if info.ModTime().Before(since) {
+				continue
+			}
+
+			// Read and parse config
+			data, err := os.ReadFile(path)
+			if err != nil {
+				s.logger.Error("failed to read config file",
+					zap.String("path", path),
+					zap.Error(err))
+				continue
+			}
+
+			var cfg config.MCPConfig
+			if err := yaml.Unmarshal(data, &cfg); err != nil {
+				s.logger.Error("failed to unmarshal config",
+					zap.String("path", path),
+					zap.Error(err))
+				continue
+			}
+
+			configs = append(configs, &cfg)
+		}
+	}
+
+	return configs, nil
 }

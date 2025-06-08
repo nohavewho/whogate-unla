@@ -13,3 +13,9 @@ const (
 	// ActionRevert represents a revert action
 	ActionRevert ActionType = "Revert"
 )
+
+type AuthMode string
+
+const (
+	AuthModeOAuth2 AuthMode = "oauth2"
+)

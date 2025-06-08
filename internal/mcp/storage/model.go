@@ -14,14 +14,16 @@ import (
 
 // MCPConfig represents the database model for MCPConfig
 type MCPConfig struct {
-	Name       string `gorm:"primaryKey; column:name"`
-	Tenant     string `gorm:"column:tenant; default:''"`
+	ID         int64  `gorm:"primaryKey;autoIncrement"`
+	Name       string `gorm:"column:name; type:varchar(50); uniqueIndex:idx_name_tenant,priority:2"`
+	Tenant     string `gorm:"column:tenant; type:varchar(50); default:''; uniqueIndex:idx_name_tenant,priority:1"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
-	Routers    string `gorm:"type:text; column:routers"`
-	Servers    string `gorm:"type:text; column:servers"`
-	Tools      string `gorm:"type:text; column:tools"`
-	McpServers string `gorm:"type:text; column:mcp_servers"`
+	Routers    string         `gorm:"type:text; column:routers"`
+	Servers    string         `gorm:"type:text; column:servers"`
+	Tools      string         `gorm:"type:text; column:tools"`
+	McpServers string         `gorm:"type:text; column:mcp_servers"`
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
 }
 
 // ToMCPConfig converts the database model to MCPConfig
@@ -111,17 +113,19 @@ func (m *MCPConfig) BeforeUpdate(_ *gorm.DB) error {
 
 // ActiveVersion represents the currently active version of an MCP configuration
 type ActiveVersion struct {
-	ID        uint      `gorm:"primarykey"`
-	Name      string    `gorm:"type:varchar(255);uniqueIndex;not null"`
-	Version   int       `gorm:"not null"`
-	UpdatedAt time.Time `gorm:"not null"`
+	ID        uint           `gorm:"primarykey"`
+	Tenant    string         `gorm:"type:varchar(50);not null;uniqueIndex:idx_tenant_name,priority:1"`
+	Name      string         `gorm:"type:varchar(50);not null;uniqueIndex:idx_tenant_name,priority:2"`
+	Version   int            `gorm:"not null"`
+	UpdatedAt time.Time      `gorm:"not null"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 // MCPConfigVersion represents the database model for MCPConfigVersion
 type MCPConfigVersion struct {
 	ID         int64           `gorm:"primaryKey;autoIncrement"`
-	Name       string          `gorm:"column:name;index:idx_name_tenant_version,uniqueIndex"`
-	Tenant     string          `gorm:"column:tenant;default:'';index:idx_name_tenant_version,uniqueIndex"`
+	Name       string          `gorm:"column:name;type:varchar(50);index:idx_name_tenant_version,uniqueIndex"`
+	Tenant     string          `gorm:"column:tenant;type:varchar(50);index:idx_name_tenant_version,uniqueIndex"`
 	Version    int             `gorm:"column:version;index:idx_name_tenant_version,uniqueIndex"`
 	ActionType cnst.ActionType `gorm:"column:action_type;not null"` // Create, Update, Delete, Revert
 	CreatedBy  string          `gorm:"column:created_by"`
@@ -131,6 +135,7 @@ type MCPConfigVersion struct {
 	Tools      string          `gorm:"type:text;column:tools"`
 	McpServers string          `gorm:"type:text;column:mcp_servers"`
 	Hash       string          `gorm:"column:hash;not null"` // hash of the configuration content
+	DeletedAt  gorm.DeletedAt  `gorm:"index"`
 }
 
 // ToMCPConfig converts the database model to MCPConfig
@@ -168,6 +173,20 @@ func (m *MCPConfigVersion) ToMCPConfig() (*config.MCPConfig, error) {
 
 // FromMCPConfigVersion converts MCPConfig to database model
 func FromMCPConfigVersion(cfg *config.MCPConfig, version int, createdBy string, actionType cnst.ActionType) (*MCPConfigVersion, error) {
+	// Initialize empty slices if nil
+	if cfg.Routers == nil {
+		cfg.Routers = []config.RouterConfig{}
+	}
+	if cfg.Servers == nil {
+		cfg.Servers = []config.ServerConfig{}
+	}
+	if cfg.Tools == nil {
+		cfg.Tools = []config.ToolConfig{}
+	}
+	if cfg.McpServers == nil {
+		cfg.McpServers = []config.MCPServerConfig{}
+	}
+
 	routers, err := json.Marshal(cfg.Routers)
 	if err != nil {
 		return nil, err
@@ -205,4 +224,20 @@ func FromMCPConfigVersion(cfg *config.MCPConfig, version int, createdBy string, 
 		McpServers: string(mcpServers),
 		Hash:       hex.EncodeToString(hash[:]),
 	}, nil
+}
+
+func (m *MCPConfigVersion) ToConfigVersion() *config.MCPConfigVersion {
+	return &config.MCPConfigVersion{
+		Version:    m.Version,
+		CreatedBy:  m.CreatedBy,
+		CreatedAt:  m.CreatedAt,
+		ActionType: m.ActionType,
+		Name:       m.Name,
+		Tenant:     m.Tenant,
+		Routers:    m.Routers,
+		Servers:    m.Servers,
+		Tools:      m.Tools,
+		McpServers: m.McpServers,
+		Hash:       m.Hash,
+	}
 }
