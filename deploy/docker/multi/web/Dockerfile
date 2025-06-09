@@ -61,10 +61,6 @@ RUN mkdir -p /app/data && \
     mkdir -p /tmp/mcp-gateway && \
     chmod -R 777 /tmp/mcp-gateway
 
-# Set minimum required environment variables
-ENV APISERVER_I18N_PATH=/app/configs/i18n \
-    GATEWAY_DB_NAME=/app/data/mcp-gateway.db
-
 # Copy web files to nginx html directory
 COPY --from=web-builder /app/web/dist /usr/share/nginx/html
 
