@@ -91,6 +91,10 @@ func (s *Server) handleSSE(c *gin.Context) {
 
 	// Send the initial endpoint event
 	endpointURL := fmt.Sprintf("%s/message?sessionId=%s", strings.TrimSuffix(c.Request.URL.Path, "/sse"), meta.ID)
+	ssePrefix := s.state.GetSSEPrefix(prefix)
+	if ssePrefix != "" {
+		endpointURL = fmt.Sprintf("%s/%s", ssePrefix, endpointURL)
+	}
 	s.logger.Debug("sending initial endpoint event",
 		zap.String("session_id", sessionID),
 		zap.String("endpoint_url", endpointURL),

@@ -121,3 +121,11 @@ func (s *State) GetAuth(prefix string) *config.Auth {
 	}
 	return runtime.router.Auth
 }
+
+func (s *State) GetSSEPrefix(prefix string) string {
+	runtime, ok := s.runtime[uriPrefix(prefix)]
+	if ok && runtime.router != nil {
+		return runtime.router.SSEPrefix
+	}
+	return ""
+}
