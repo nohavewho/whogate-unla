@@ -131,10 +131,10 @@ You can test the service using:
 - [x] Automatic configuration fetching and seamless hot-reloading  
 - [x] Configuration persistence (Disk/SQLite/PostgreSQL/MySQL)  
 - [x] Configuration sync via OS Signals, HTTP, or Redis PubSub  
-- [ ] Version control for configuration  
+- [x] Version control for configuration  
 
 ### 🔐 Security & Authentication
-- [ ] OAuth-based pre-authentication support for MCP Servers  
+- [x] OAuth-based pre-authentication support for MCP Servers  
 
 ### 🖥 User Interface
 - [x] Intuitive and lightweight management UI  
@@ -142,7 +142,7 @@ You can test the service using:
 ### 📦 Deployment & Operations
 - [x] Multi-replica service support  
 - [x] Docker support  
-- [ ] Kubernetes and Helm deployment support  
+- [x] Kubernetes and Helm deployment support  
 
 ---
 

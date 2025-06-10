@@ -297,6 +297,15 @@ export function RouterConfig({
                     ))}
                   </>
                 </Select>
+                <Input
+                  label={t('gateway.sse_prefix')}
+                  value={(router.ssePrefix || "")}
+                  onChange={(e) => {
+                    const pathPart = e.target.value.trim();
+                    updateRouter(index, 'ssePrefix', pathPart);
+                  }}
+                  placeholder={t('gateway.sse_prefix_placeholder')}
+                />
               </div>
 
               {/* CORS配置部分 */}
