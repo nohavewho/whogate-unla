@@ -1,4 +1,4 @@
-module github.com/mcp-ecosystem/mcp-gateway
+module github.com/amoylab/unla
 
 go 1.24.1
 

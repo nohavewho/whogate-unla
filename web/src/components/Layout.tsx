@@ -1,28 +1,28 @@
 import {
+  Avatar,
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Link as HeroLink,
   Navbar,
   NavbarContent,
   NavbarItem,
-  Button,
-  Link as HeroLink,
-  Avatar,
-  Tooltip,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem
+  Tooltip
 } from "@heroui/react";
-import { Icon } from '@iconify/react';
-import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import {Icon} from '@iconify/react';
+import React, {useEffect, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 
-import { getCurrentUser } from '../services/api';
-import { toast } from '../utils/toast';
+import {getCurrentUser} from '../services/api';
+import {toast} from '../utils/toast';
 
 
-import { ChangePasswordDialog } from './ChangePasswordDialog';
-import { LanguageSwitcher } from './LanguageSwitcher';
-import { WechatQRCode } from './WechatQRCode';
+import {ChangePasswordDialog} from './ChangePasswordDialog';
+import {LanguageSwitcher} from './LanguageSwitcher';
+import {WechatQRCode} from './WechatQRCode';
 
 // 导入logo图片
 import logoImg from '/logo.png';
@@ -166,7 +166,7 @@ export function Layout({ children }: LayoutProps) {
             <Tooltip content={t('common.view_github')}>
               <Button
                 as={HeroLink}
-                href="https://github.com/mcp-ecosystem/mcp-gateway"
+                href="https://github.com/amoylab/unla"
                 target="_blank"
                 variant="light"
                 isIconOnly
@@ -218,7 +218,7 @@ export function Layout({ children }: LayoutProps) {
             ) : (
               <div className="flex items-center gap-2">
                 <img src={logoImg} alt="MCP Logo" className="w-6 h-6" />
-                <span className="text-xl font-bold">MCP Gateway</span>
+                <span className="text-xl font-bold">Unla</span>
               </div>
             )}
           </div>

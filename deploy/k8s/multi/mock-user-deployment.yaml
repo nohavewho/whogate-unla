@@ -16,7 +16,7 @@ spec:
       containers:
       - name: mock-user
         imagePullPolicy: IfNotPresent  # 优先使用本地镜像
-        image: ghcr.io/mcp-ecosystem/mcp-gateway/mock-user:latest
+        image: ghcr.io/amoylab/unla/mock-user:latest
         env:
         - name: ENV
           value: production

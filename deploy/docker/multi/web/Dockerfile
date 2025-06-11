@@ -53,7 +53,7 @@ RUN apt-get update && apt-get install -y \
 # Copy apiserver binary and config
 COPY --from=apiserver-builder /app/apiserver /app/
 COPY --from=apiserver-builder /app/configs /app/configs
-COPY --from=apiserver-builder /app/configs/apiserver.yaml /etc/mcp-gateway/
+COPY --from=apiserver-builder /app/configs/apiserver.yaml /etc/unla/
 
 # Create data directory for apiserver with proper permissions
 RUN mkdir -p /app/data && \

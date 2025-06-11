@@ -3,14 +3,14 @@ DOCKER_REGISTRY ?= docker.io
 GHCR_REGISTRY ?= ghcr.io
 ALI_REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
 
-IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/allinone:latest
-APISERVER_IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/apiserver:latest
-MCP_GATEWAY_IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/mcp-gateway:latest
-MOCK_USER_SVC_IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/mock-server:latest
-WEB_IMAGE ?= ghcr.io/mcp-ecosystem/mcp-gateway/web:latest
+IMAGE ?= ghcr.io/amoylab/unla/allinone:latest
+APISERVER_IMAGE ?= ghcr.io/amoylab/unla/apiserver:latest
+MCP_GATEWAY_IMAGE ?= ghcr.io/amoylab/unla/mcp-gateway:latest
+MOCK_USER_SVC_IMAGE ?= ghcr.io/amoylab/unla/mock-server:latest
+WEB_IMAGE ?= ghcr.io/amoylab/unla/web:latest
 
 # Project configurations
-PROJECT_NAME ?= mcp-gateway
+PROJECT_NAME ?= unla
 IMAGE_TAG ?= $(shell cat pkg/version/VERSION)
 
 # Service configurations

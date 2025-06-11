@@ -1,8 +1,9 @@
 name: Publish Helm Chart to Chart Repo
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -19,12 +20,12 @@ jobs:
       - name: Package Helm chart
         run: |
           mkdir -p packaged
-          helm package ./deploy/helm/mcp-gateway -d packaged
+          helm package ./deploy/helm -d packaged
 
-      - name: Checkout chart repo (mcp-gateway-helm-charts)
+      - name: Checkout chart repo (unla-helm-charts)
         uses: actions/checkout@v3
         with:
-          repository: mcp-ecosystem/mcp-gateway-helm-charts
+          repository: amoylab/unla-helm-charts
           ref: main
           token: ${{ secrets.CHART_REPO_TOKEN }}
           path: chart-repo
@@ -33,7 +34,7 @@ jobs:
         run: |
           cd chart-repo
           cp ../packaged/*.tgz ./
-          helm repo index . --url https://mcp-ecosystem.github.io/mcp-gateway-helm-charts --merge index.yaml || true
+          helm repo index . --url https://amoylba.github.io/unla-helm-charts --merge index.yaml || true
 
       - name: Commit and push
         run: |

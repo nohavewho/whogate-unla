@@ -8,7 +8,7 @@ replicaCount: 1
 storage: 1Gi
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: ghcr.io/mcp-ecosystem/mcp-gateway/mcp-gateway
+  repository: ghcr.io/amoylab/unla/mcp-gateway
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
@@ -17,7 +17,7 @@ image:
 dashboard:
   replicaCount: 1   
   image:
-    repository: ghcr.io/mcp-ecosystem/mcp-gateway/web
+    repository: ghcr.io/amoylab/unla/web
     # This sets the pull policy for images.
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
@@ -151,7 +151,7 @@ config:
   APISERVER_LOGGER_LEVEL: "info"
   APISERVER_LOGGER_FORMAT: "json"
   APISERVER_LOGGER_OUTPUT: "stdout"
-  APISERVER_LOGGER_FILE_PATH: "/var/log/mcp-gateway/apiserver.log"
+  APISERVER_LOGGER_FILE_PATH: "/var/log/unla/apiserver.log"
   APISERVER_LOGGER_MAX_SIZE: "100"
   APISERVER_LOGGER_MAX_BACKUPS: "3"
   APISERVER_LOGGER_MAX_AGE: "7"
@@ -163,7 +163,7 @@ config:
   LOGGER_LEVEL: "info"
   LOGGER_FORMAT: "json"
   LOGGER_OUTPUT: "stdout"
-  LOGGER_FILE_PATH: "/var/log/mcp-gateway/mcp-gateway.log"
+  LOGGER_FILE_PATH: "/var/log/unla/mcp-gateway.log"
   LOGGER_MAX_SIZE: "100"
   LOGGER_MAX_BACKUPS: "3"
   LOGGER_MAX_AGE: "7"

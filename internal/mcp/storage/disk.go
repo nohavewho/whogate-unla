@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/internal/common/config"
 	"gopkg.in/yaml.v3"
 
 	"go.uber.org/zap"
