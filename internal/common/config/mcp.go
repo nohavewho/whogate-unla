@@ -5,8 +5,8 @@ import (
 
 	"github.com/ifuryst/lol"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/pkg/mcp"
 )
 
 type (

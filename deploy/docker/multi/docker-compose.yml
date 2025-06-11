@@ -23,7 +23,7 @@ services:
     restart: always
 
   web:
-    image: ghcr.io/mcp-ecosystem/mcp-gateway/web:latest
+    image: ghcr.io/amoylab/unla/web:latest
     ports:
       - "8080:80"
       - "5234:5234"
@@ -40,7 +40,7 @@ services:
     restart: always
 
   mcp-gateway:
-    image: ghcr.io/mcp-ecosystem/mcp-gateway/mcp-gateway:latest
+    image: ghcr.io/amoylab/unla/mcp-gateway:latest
     ports:
       - "5235:5235"
     environment:
@@ -54,7 +54,7 @@ services:
     restart: always
 
   mock-server:
-    image: ghcr.io/mcp-ecosystem/mcp-gateway/mock-server:latest
+    image: ghcr.io/amoylab/unla/mock-server:latest
     ports:
       - "5236:5236"
     environment:

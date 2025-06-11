@@ -3,8 +3,8 @@ package handler
 import (
 	"strconv"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/i18n"
+	"github.com/amoylab/unla/internal/apiserver/database"
+	"github.com/amoylab/unla/internal/i18n"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

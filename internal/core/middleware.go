@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/amoylab/unla/internal/common/config"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

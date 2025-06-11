@@ -1,9 +1,9 @@
 {
-  "name": "mcp-admin-dashboard",
+  "name": "unla-dashboard",
   "private": true,
   "version": "0.6.3",
   "type": "module",
-  "description": "MCP Gateway Admin Dashboard - A modern web interface for managing MCP Gateway services",
+  "description": "Unla Admin Dashboard - A modern web interface for managing MCP Gateway services",
   "keywords": [
     "mcp",
     "gateway",
@@ -12,9 +12,9 @@
     "react",
     "typescript"
   ],
-  "homepage": "https://github.com/mcp-ecosystem/mcp-gateway#readme",
+  "homepage": "https://github.com/amoylab/unla#readme",
   "bugs": {
-    "url": "https://github.com/mcp-ecosystem/mcp-gateway/issues"
+    "url": "https://github.com/amoylab/unla/issues"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mcp-ecosystem/mcp-gateway.git"
+    "url": "https://github.com/amoylab/unla.git"
   },
   "publishConfig": {
     "access": "public"

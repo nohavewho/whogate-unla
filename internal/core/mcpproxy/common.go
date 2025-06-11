@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"github.com/amoylab/unla/pkg/mcp"
 )
 
 // convertMCPGoResult converts mcp-go result to local mcp format

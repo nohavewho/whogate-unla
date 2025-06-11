@@ -5,7 +5,7 @@ on:
 
 env:
   DOCKER_HUB_USERNAME: ifuryst
-  ALIYUN_REGISTRY: registry.ap-southeast-1.aliyuncs.com/mcp-ecosystem
+  ALIYUN_REGISTRY: registry.ap-southeast-1.aliyuncs.com/amoylab
   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
 
 jobs:
@@ -58,6 +58,6 @@ jobs:
             UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/
             npm_config_registry=https://registry.npmmirror.com
           tags: |
-            ${{ env.DOCKER_HUB_USERNAME }}/mcp-gateway-base:latest
+            ${{ env.DOCKER_HUB_USERNAME }}/unla-base:latest
             ghcr.io/${{ github.repository }}/base:latest
-            ${{ env.ALIYUN_REGISTRY }}/mcp-gateway-base:latest 
+            ${{ env.ALIYUN_REGISTRY }}/unla-base:latest

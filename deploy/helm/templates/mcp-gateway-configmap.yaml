@@ -87,7 +87,7 @@ data:
       level: "${LOGGER_LEVEL:info}"                                           # debug, info, warn, error
       format: "${LOGGER_FORMAT:json}"                                         # json, console
       output: "${LOGGER_OUTPUT:stdout}"                                       # stdout, file
-      file_path: "${LOGGER_FILE_PATH:/var/log/mcp-gateway/mcp-gateway.log}"   # path to log file when output is file
+      file_path: "${LOGGER_FILE_PATH:/var/log/unla/mcp-gateway.log}"   # path to log file when output is file
       max_size: ${LOGGER_MAX_SIZE:100}                                        # max size of log file in MB
       max_backups: ${LOGGER_MAX_BACKUPS:3}                                    # max number of backup files
       max_age: ${LOGGER_MAX_AGE:7}                                            # max age of backup files in days
@@ -105,7 +105,7 @@ data:
         port: ${GATEWAY_DB_PORT:5432}
         user: "${GATEWAY_DB_USER:postgres}"
         password: "${GATEWAY_DB_PASSWORD:example}"
-        dbname: "${GATEWAY_DB_NAME:./data/mcp-gateway.db}"
+        dbname: "${GATEWAY_DB_NAME:./data/unla.db}"
         sslmode: "${GATEWAY_DB_SSL_MODE:disable}"
       # Disk configuration (only used when type is disk)
       disk:

@@ -6,8 +6,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/errorx"
+	"github.com/amoylab/unla/internal/common/config"
+	"github.com/amoylab/unla/internal/common/errorx"
 )
 
 // Auth defines the authentication oauth interface

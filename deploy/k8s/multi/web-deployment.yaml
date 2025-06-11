@@ -16,7 +16,7 @@ spec:
       containers:
         - name: web
           imagePullPolicy: IfNotPresent  # 优先使用本地镜像
-          image: ghcr.io/mcp-ecosystem/mcp-gateway/web:latest
+          image: ghcr.io/amoylab/unla/web:latest
           env:
             - name: TZ
               value: UTC

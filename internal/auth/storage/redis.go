@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/errorx"
+	"github.com/amoylab/unla/internal/common/errorx"
 	"github.com/redis/go-redis/v9"
 )
 

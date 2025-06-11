@@ -3,7 +3,7 @@ package openai
 import (
 	"context"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/amoylab/unla/internal/common/config"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
