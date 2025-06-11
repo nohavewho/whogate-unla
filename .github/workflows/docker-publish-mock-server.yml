@@ -36,6 +36,9 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
 
+      - name: Set lowercase repository
+        run: echo "LOWERCASE_REPO=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Login to Docker Hub
         if: env.SHOULD_LOGIN == 'true'
         uses: docker/login-action@v3
@@ -71,7 +74,7 @@ jobs:
           tags: |
             ${{ env.PUSH_LATEST == 'true' && format('{0}/unla-mock-server:latest', env.DOCKER_HUB_USERNAME) || '' }}
             ${{ format('{0}/unla-mock-server:{1}', env.DOCKER_HUB_USERNAME, github.ref_name) }}
-            ${{ env.PUSH_LATEST == 'true' && format('ghcr.io/{0}/mock-server:latest', github.repository) || '' }}
-            ${{ format('ghcr.io/{0}/mock-server:{1}', github.repository, github.ref_name) }}
+            ${{ env.PUSH_LATEST == 'true' && format('ghcr.io/{0}/mock-server:latest', env.LOWERCASE_REPO) || '' }}
+            ${{ format('ghcr.io/{0}/mock-server:{1}', env.LOWERCASE_REPO, github.ref_name) }}
             ${{ env.PUSH_LATEST == 'true' && format('{0}/unla-mock-server:latest', env.ALIYUN_REGISTRY) || '' }}
             ${{ format('{0}/unla-mock-server:{1}', env.ALIYUN_REGISTRY, github.ref_name) }}

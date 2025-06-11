@@ -24,6 +24,9 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
 
+      - name: Set lowercase repository owner
+        run: echo "LOWERCASE_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -59,5 +62,5 @@ jobs:
             npm_config_registry=https://registry.npmmirror.com
           tags: |
             ${{ env.DOCKER_HUB_USERNAME }}/unla-base:latest
-            ghcr.io/${{ github.repository }}/base:latest
+            ghcr.io/${{ env.LOWERCASE_OWNER }}/base:latest
             ${{ env.ALIYUN_REGISTRY }}/unla-base:latest
