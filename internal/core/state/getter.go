@@ -1,10 +1,10 @@
 package state
 
 import (
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/core/mcpproxy"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/internal/common/config"
+	"github.com/amoylab/unla/internal/core/mcpproxy"
+	"github.com/amoylab/unla/pkg/mcp"
 )
 
 func (s *State) getRuntime(prefix string) runtimeUnit {
@@ -120,4 +120,12 @@ func (s *State) GetAuth(prefix string) *config.Auth {
 		return nil
 	}
 	return runtime.router.Auth
+}
+
+func (s *State) GetSSEPrefix(prefix string) string {
+	runtime, ok := s.runtime[uriPrefix(prefix)]
+	if ok && runtime.router != nil {
+		return runtime.router.SSEPrefix
+	}
+	return ""
 }

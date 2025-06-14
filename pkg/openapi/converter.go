@@ -12,8 +12,8 @@ import (
 	"github.com/ifuryst/lol"
 	"gopkg.in/yaml.v3"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
+	"github.com/amoylab/unla/internal/common/config"
+	"github.com/amoylab/unla/pkg/utils"
 )
 
 // Converter handles the conversion from OpenAPI to MCP configuration

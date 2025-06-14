@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/amoylab/unla/internal/common/config"
 )
 
 type MCPServer struct {
@@ -30,10 +30,11 @@ type MCPConfig struct {
 }
 
 type RouterConfig struct {
-	Server string      `json:"server"`
-	Prefix string      `json:"prefix"`
-	CORS   *CORSConfig `json:"cors,omitempty"`
-	Auth   *Auth       `json:"auth,omitempty"`
+	Server    string      `json:"server"`
+	Prefix    string      `json:"prefix"`
+	SSEPrefix string      `json:"ssePrefix,omitempty"`
+	CORS      *CORSConfig `json:"cors,omitempty"`
+	Auth      *Auth       `json:"auth,omitempty"`
 }
 
 type CORSConfig struct {
@@ -122,10 +123,11 @@ func FromRouterConfigs(cfgs []config.RouterConfig) []RouterConfig {
 	result := make([]RouterConfig, len(cfgs))
 	for i, cfg := range cfgs {
 		result[i] = RouterConfig{
-			Server: cfg.Server,
-			Prefix: cfg.Prefix,
-			CORS:   FromCORSConfig(cfg.CORS),
-			Auth:   FromAuthConfig(cfg.Auth),
+			Server:    cfg.Server,
+			Prefix:    cfg.Prefix,
+			SSEPrefix: cfg.SSEPrefix,
+			CORS:      FromCORSConfig(cfg.CORS),
+			Auth:      FromAuthConfig(cfg.Auth),
 		}
 	}
 	return result

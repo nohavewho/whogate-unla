@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/ifuryst/lol"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/core/mcpproxy"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/internal/common/config"
+	"github.com/amoylab/unla/internal/core/mcpproxy"
+	"github.com/amoylab/unla/internal/template"
+	"github.com/amoylab/unla/pkg/mcp"
 	"go.uber.org/zap"
 )
 

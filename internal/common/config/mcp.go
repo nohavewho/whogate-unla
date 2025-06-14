@@ -5,8 +5,8 @@ import (
 
 	"github.com/ifuryst/lol"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/pkg/mcp"
 )
 
 type (
@@ -31,10 +31,11 @@ type (
 	}
 
 	RouterConfig struct {
-		Server string      `json:"server" yaml:"server"`
-		Prefix string      `json:"prefix" yaml:"prefix"`
-		CORS   *CORSConfig `json:"cors,omitempty" yaml:"cors,omitempty"`
-		Auth   *Auth       `json:"auth,omitempty" yaml:"auth,omitempty"`
+		Server    string      `json:"server" yaml:"server"`
+		Prefix    string      `json:"prefix" yaml:"prefix"`
+		SSEPrefix string      `json:"ssePrefix" yaml:"ssePrefix"`
+		CORS      *CORSConfig `json:"cors,omitempty" yaml:"cors,omitempty"`
+		Auth      *Auth       `json:"auth,omitempty" yaml:"auth,omitempty"`
 	}
 
 	CORSConfig struct {

@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/pkg/version"
 
 	"github.com/google/uuid"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"github.com/amoylab/unla/internal/mcp/session"
+	"github.com/amoylab/unla/pkg/mcp"
 	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"

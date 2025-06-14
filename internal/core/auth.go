@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/errorx"
+	"github.com/amoylab/unla/internal/common/errorx"
 )
 
 // handleOAuthServerMetadata handles the OAuth server metadata endpoint

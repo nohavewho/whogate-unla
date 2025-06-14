@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/helper"
+	"github.com/amoylab/unla/pkg/helper"
 
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"

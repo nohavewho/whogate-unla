@@ -7,18 +7,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/database"
-	apiserverHandler "github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/handler"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/apiserver/middleware"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/auth/jwt"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/i18n"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/openai"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
+	"github.com/amoylab/unla/internal/apiserver/database"
+	apiserverHandler "github.com/amoylab/unla/internal/apiserver/handler"
+	"github.com/amoylab/unla/internal/apiserver/middleware"
+	"github.com/amoylab/unla/internal/auth/jwt"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/internal/common/config"
+	"github.com/amoylab/unla/internal/i18n"
+	"github.com/amoylab/unla/internal/mcp/storage"
+	"github.com/amoylab/unla/internal/mcp/storage/notifier"
+	"github.com/amoylab/unla/pkg/logger"
+	"github.com/amoylab/unla/pkg/openai"
+	"github.com/amoylab/unla/pkg/version"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
@@ -48,7 +48,7 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&configPath, "conf", "c", cnst.ApiServerYaml, "path to configuration file, like /etc/mcp-gateway/apiserver.yaml")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "conf", "c", cnst.ApiServerYaml, "path to configuration file, like /etc/unla/apiserver.yaml")
 	rootCmd.AddCommand(versionCmd)
 }
 

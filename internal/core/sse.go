@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
+	"github.com/amoylab/unla/pkg/version"
 
 	"go.uber.org/zap"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/internal/mcp/session"
+	"github.com/amoylab/unla/pkg/mcp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -91,6 +91,10 @@ func (s *Server) handleSSE(c *gin.Context) {
 
 	// Send the initial endpoint event
 	endpointURL := fmt.Sprintf("%s/message?sessionId=%s", strings.TrimSuffix(c.Request.URL.Path, "/sse"), meta.ID)
+	ssePrefix := s.state.GetSSEPrefix(prefix)
+	if ssePrefix != "" {
+		endpointURL = fmt.Sprintf("%s/%s", ssePrefix, endpointURL)
+	}
 	s.logger.Debug("sending initial endpoint event",
 		zap.String("session_id", sessionID),
 		zap.String("endpoint_url", endpointURL),

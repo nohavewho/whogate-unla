@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/errorx"
+	"github.com/amoylab/unla/internal/common/errorx"
 )
 
 // MemoryStorage implements the Store interface using in-memory storage

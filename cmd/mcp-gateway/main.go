@@ -9,17 +9,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/auth"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/cnst"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/core"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/storage/notifier"
-	pidHelper "github.com/mcp-ecosystem/mcp-gateway/pkg/helper"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/logger"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/utils"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/version"
+	"github.com/amoylab/unla/internal/auth"
+	"github.com/amoylab/unla/internal/common/cnst"
+	"github.com/amoylab/unla/internal/common/config"
+	"github.com/amoylab/unla/internal/core"
+	"github.com/amoylab/unla/internal/mcp/session"
+	"github.com/amoylab/unla/internal/mcp/storage"
+	"github.com/amoylab/unla/internal/mcp/storage/notifier"
+	pidHelper "github.com/amoylab/unla/pkg/helper"
+	"github.com/amoylab/unla/pkg/logger"
+	"github.com/amoylab/unla/pkg/utils"
+	"github.com/amoylab/unla/pkg/version"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -117,7 +117,7 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&configPath, "conf", "c", cnst.MCPGatewayYaml, "path to configuration file, like /etc/mcp-gateway/mcp-gateway.yaml")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "conf", "c", cnst.MCPGatewayYaml, "path to configuration file, like /etc/unla/mcp-gateway.yaml")
 	rootCmd.PersistentFlags().StringVar(&pidFile, "pid", "", "path to PID file")
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(reloadCmd)

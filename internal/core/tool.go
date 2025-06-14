@@ -13,12 +13,12 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/mcp/session"
-	"github.com/mcp-ecosystem/mcp-gateway/pkg/mcp"
+	"github.com/amoylab/unla/internal/mcp/session"
+	"github.com/amoylab/unla/pkg/mcp"
 	"golang.org/x/net/proxy"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/template"
+	"github.com/amoylab/unla/internal/common/config"
+	"github.com/amoylab/unla/internal/template"
 	"go.uber.org/zap"
 )
 

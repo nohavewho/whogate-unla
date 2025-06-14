@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mcp-ecosystem/mcp-gateway/internal/auth/storage"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/errorx"
+	"github.com/amoylab/unla/internal/auth/storage"
+	"github.com/amoylab/unla/internal/common/errorx"
 
 	"github.com/google/uuid"
-	"github.com/mcp-ecosystem/mcp-gateway/internal/common/config"
+	"github.com/amoylab/unla/internal/common/config"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/sha3"
 )
