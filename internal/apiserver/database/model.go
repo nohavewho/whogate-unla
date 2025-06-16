@@ -4,7 +4,6 @@ import "time"
 
 // Session represents a chat session
 type Session struct {
-	PK        int64     `json:"pk" gorm:"primaryKey;autoIncrement;column:pk"`
 	ID        string    `json:"id" gorm:"column:id;type:varchar(64);uniqueIndex"`
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at"`
 	Title     string    `json:"title" gorm:"column:title;type:varchar(255)"`
@@ -12,7 +11,6 @@ type Session struct {
 
 // Message represents a chat message
 type Message struct {
-	PK         int64     `json:"pk" gorm:"primaryKey;autoIncrement;column:pk"`
 	ID         string    `json:"id" gorm:"column:id;type:varchar(64);uniqueIndex"`
 	SessionID  string    `json:"session_id" gorm:"column:session_id;type:varchar(64);index"`
 	Content    string    `json:"content" gorm:"column:content;type:text"`
