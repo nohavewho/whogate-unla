@@ -289,6 +289,7 @@ func (s *DBStore) Update(ctx context.Context, server *config.MCPConfig) error {
 			if err := tx.Where("tenant = ? AND name = ?", server.Tenant, server.Name).
 				Order("version DESC").
 				Offset(s.cfg.RevisionHistoryLimit).
+				Limit(1_000).
 				Find(&versionsToDelete).Error; err != nil {
 				return err
 			}
