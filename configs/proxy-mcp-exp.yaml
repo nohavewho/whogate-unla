@@ -65,10 +65,10 @@ mcpServers:
 
   - type: "sse"
     name: "mock-user-sse"
-    url: "http://localhost:3000/mcp/user/sse"
+    url: "http://localhost:5237/sse"
     policy: "onDemand"
 
   - type: "streamable-http"  # unimplemented for now
     name: "mock-user-mcp"
-    url: "http://localhost:3000/mcp/user/mcp"
+    url: "http://localhost:5237/mcp"
     policy: "onDemand"
