@@ -1,6 +1,7 @@
 import { Autocomplete, AutocompleteItem, Button, Chip } from '@heroui/react'
-import { Icon } from '@iconify/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
+import LocalIcon from '../LocalIcon';
 
 export interface MultiSelectAutocompleteProps {
   items: string[]
@@ -110,8 +111,7 @@ export function MultiSelectAutocomplete({
                 variant="flat"
                 className="bg-default-100 dark:bg-default-50 rounded-lg min-w-0"
                 endContent={
-                  <Icon
-                    icon="lucide:x"
+                  <LocalIcon icon="lucide:x"
                     className="rounded-full hover:bg-default/40 p-1 cursor-pointer size-5 mr-1"
                     onClick={() => handleRemoveItem(item)}
                   />
@@ -134,7 +134,7 @@ export function MultiSelectAutocomplete({
                 onSelectionChange?.([])
               }}
             >
-              <Icon icon="lucide:x" className="size-4" />
+              <LocalIcon icon="lucide:x" className="size-4" />
             </Button>
           )
         }
@@ -163,7 +163,7 @@ export function MultiSelectAutocomplete({
             textValue={item.label}
             endContent={
               selectedItems.includes(item.value) && (
-                <Icon icon="lucide:check" className="size-4" />
+                <LocalIcon icon="lucide:check" className="size-4" />
               )
             }
           >

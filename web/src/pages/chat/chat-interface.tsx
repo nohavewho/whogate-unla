@@ -1,11 +1,11 @@
 import {Button, Card, CardBody, Divider, Input, Select, SelectItem, Tab, Tabs} from '@heroui/react';
-import {Icon} from '@iconify/react';
 import yaml from 'js-yaml';
 import React from 'react';
 import {useTranslation} from 'react-i18next';
 import {useNavigate, useParams} from 'react-router-dom';
 import {v4 as uuidv4} from 'uuid';
 
+import LocalIcon from '../../components/LocalIcon';
 import {getChatMessages, getMCPServers} from '../../services/api';
 import {mcpService} from '../../services/mcp';
 import {WebSocketMessage, wsService} from '../../services/websocket';
@@ -362,7 +362,7 @@ export function ChatInterface() {
                   onPress={() => setIsHistoryCollapsed(v => !v)}
                   className="mr-1"
                 >
-                  <Icon icon={isHistoryCollapsed ? "ri:menu-unfold-line" : "ri:menu-unfold-2-line"} className="text-lg" />
+                  <LocalIcon icon={isHistoryCollapsed ? "ri:menu-unfold-line" : "ri:menu-unfold-2-line"} className="text-lg" />
                 </Button>
                 <Button
                   isIconOnly
@@ -371,7 +371,7 @@ export function ChatInterface() {
                   onPress={() => setIsToolsCollapsed(v => !v)}
                   className="mr-2"
                 >
-                  <Icon icon={isToolsCollapsed ? "ic:round-unfold-more" : "ic:round-unfold-less"} className="text-lg" />
+                  <LocalIcon icon={isToolsCollapsed ? "ic:round-unfold-more" : "ic:round-unfold-less"} className="text-lg" />
                 </Button>
                 <Input
                   value={input}
@@ -385,7 +385,7 @@ export function ChatInterface() {
                       variant="light"
                       onPress={handleSend}
                     >
-                      <Icon icon="lucide:send" className="text-lg" />
+                      <LocalIcon icon="lucide:send" className="text-lg" />
                     </Button>
                   }
                 />

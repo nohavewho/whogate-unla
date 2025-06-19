@@ -7,7 +7,7 @@ import importPlugin from 'eslint-plugin-import';
 import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 
 export default [
-  { ignores: ['dist/**', 'node_modules/**', 'build/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'build/**', 'public/**', 'scripts/**'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx,ts,tsx}'],

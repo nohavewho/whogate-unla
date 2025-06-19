@@ -1,10 +1,10 @@
 import { Button, Input, Card, CardBody, CardHeader } from "@heroui/react";
-import { Icon } from '@iconify/react';
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
+import LocalIcon from '../../components/LocalIcon';
 import api from '../../services/api';
 import { toast } from '../../utils/toast';
 
@@ -56,7 +56,7 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="flex flex-col gap-1.5 p-6">
           <div className="flex items-center gap-2">
-            <Icon icon="lucide:server" className="text-primary text-2xl" />
+            <LocalIcon icon="lucide:server" className="text-primary text-2xl" />
             <h1 className="text-2xl font-bold">MCP Dashboard</h1>
           </div>
           <p className="text-default-500">
@@ -70,7 +70,7 @@ export function LoginPage() {
               placeholder={t('auth.username_placeholder')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              startContent={<Icon icon="lucide:user" className="text-default-400" />}
+              startContent={<LocalIcon icon="lucide:user" className="text-default-400" />}
               required
             />
             <Input
@@ -79,7 +79,7 @@ export function LoginPage() {
               placeholder={t('auth.password_placeholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              startContent={<Icon icon="lucide:lock" className="text-default-400" />}
+              startContent={<LocalIcon icon="lucide:lock" className="text-default-400" />}
               required
             />
             <Button

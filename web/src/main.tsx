@@ -1,4 +1,5 @@
 import {HeroUIProvider, ToastProvider} from "@heroui/react";
+import { loader } from '@monaco-editor/react';
 import React from "react";
 import ReactDOM from "react-dom/client";
 
@@ -6,6 +7,27 @@ import App from "./App.tsx";
 import './i18n';
 
 import "./index.css";
+
+// Configure Monaco Editor to use local files
+(globalThis as any).MonacoEnvironment = {
+  getWorkerUrl: function (_moduleId: string, _label: string) {
+    // 项目只使用YAML，所有情况都使用基础worker
+    return '/monaco-editor/vs/base/worker/workerMain.js';
+  }
+};
+
+// Configure @monaco-editor/react to use local monaco-editor
+loader.config({ 
+  paths: { 
+    vs: '/monaco-editor/vs' 
+  } 
+});
+
+// Initialize monaco
+loader.init().then(() => {
+  // Monaco is now loaded and available
+  console.log('Monaco Editor loaded from local files');
+});
 
 // Initialize theme immediately before React renders
 const savedTheme = window.localStorage.getItem('theme');

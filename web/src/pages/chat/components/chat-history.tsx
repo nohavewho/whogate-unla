@@ -1,9 +1,9 @@
 import { Card, CardBody, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Input } from '@heroui/react';
-import { Icon } from '@iconify/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
+import LocalIcon from '../../../components/LocalIcon';
 import { getChatSessions, deleteChatSession, updateChatSessionTitle } from '../../../services/api';
 import { wsService } from '../../../services/websocket';
 import { toast } from '../../../utils/toast';
@@ -126,7 +126,7 @@ export function ChatHistory({ selectedChat, onSelectChat, isCollapsed }: ChatHis
           <Button
             color="primary"
             className="w-full"
-            startContent={<Icon icon="lucide:plus" />}
+            startContent={<LocalIcon icon="lucide:plus" />}
             onPress={handleNewChat}
           >
             {t('chat.new_chat')}
@@ -171,7 +171,7 @@ export function ChatHistory({ selectedChat, onSelectChat, isCollapsed }: ChatHis
                         size="sm"
                         className="ml-2"
                       >
-                        <Icon icon="lucide:more-vertical" />
+                        <LocalIcon icon="lucide:more-vertical" />
                       </Button>
                     </DropdownTrigger>
                     <DropdownMenu
@@ -186,14 +186,14 @@ export function ChatHistory({ selectedChat, onSelectChat, isCollapsed }: ChatHis
                         }
                       }}
                     >
-                      <DropdownItem key="rename" startContent={<Icon icon="lucide:edit" />}>
+                      <DropdownItem key="rename" startContent={<LocalIcon icon="lucide:edit" />}>
                         {t('chat.rename')}
                       </DropdownItem>
                       <DropdownItem
                         key="delete"
                         className="text-danger"
                         color="danger"
-                        startContent={<Icon icon="lucide:trash" />}
+                        startContent={<LocalIcon icon="lucide:trash" />}
                       >
                         {t('chat.delete')}
                       </DropdownItem>

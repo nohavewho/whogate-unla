@@ -1,8 +1,8 @@
 import { Input, Select, SelectItem, Button, Switch, Chip, Accordion, AccordionItem } from "@heroui/react";
-import { Icon } from "@iconify/react";
 import { useState } from "react";
 import { useTranslation } from 'react-i18next';
 
+import LocalIcon from '../../../components/LocalIcon';
 import { Gateway, CORSConfig, Tenant } from '../../../types/gateway';
 
 interface RouterConfigProps {
@@ -73,7 +73,7 @@ export function RouterConfig({
               size="sm"
               color="primary"
               variant="flat"
-              startContent={<Icon icon="lucide:plus" />}
+              startContent={<LocalIcon icon="lucide:plus" />}
               onPress={() => {
                 addCorsItem('allowOrigins', originInput);
                 setOriginInput('');
@@ -143,7 +143,7 @@ export function RouterConfig({
               size="sm"
               color="primary"
               variant="flat"
-              startContent={<Icon icon="lucide:plus" />}
+              startContent={<LocalIcon icon="lucide:plus" />}
               onPress={() => {
                 addCorsItem('allowHeaders', headerInput);
                 setHeaderInput('');
@@ -194,7 +194,7 @@ export function RouterConfig({
               size="sm"
               color="primary"
               variant="flat"
-              startContent={<Icon icon="lucide:plus" />}
+              startContent={<LocalIcon icon="lucide:plus" />}
               onPress={() => {
                 addCorsItem('exposeHeaders', exposeHeaderInput);
                 setExposeHeaderInput('');
@@ -256,8 +256,7 @@ export function RouterConfig({
             title={router.prefix || `Router ${index + 1}`}
             subtitle={router.server}
             startContent={
-              <Icon
-                icon="lucide:route"
+              <LocalIcon icon="lucide:route"
                 className="text-primary-500"
               />
             }
@@ -387,7 +386,7 @@ export function RouterConfig({
                   color="danger"
                   variant="flat"
                   size="sm"
-                  startContent={<Icon icon="lucide:trash-2" />}
+                  startContent={<LocalIcon icon="lucide:trash-2" />}
                   onPress={() => {
                     const updatedRouters = [...routers];
                     updatedRouters.splice(index, 1);
@@ -406,7 +405,7 @@ export function RouterConfig({
         <Button
           color="primary"
           variant="flat"
-          startContent={<Icon icon="lucide:plus" />}
+          startContent={<LocalIcon icon="lucide:plus" />}
           onPress={() => {
             const updatedRouters = [...routers];
             const serverName = parsedConfig?.servers?.[0]?.name || parsedConfig?.mcpServers?.[0]?.name || "";

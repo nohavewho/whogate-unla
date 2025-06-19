@@ -11,7 +11,9 @@ import {
   NavbarItem,
   Tooltip
 } from "@heroui/react";
-import {Icon} from '@iconify/react';
+
+import LocalIcon from './LocalIcon';
+
 import React, {useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link, useLocation, useNavigate} from 'react-router-dom';
@@ -130,7 +132,7 @@ export function Layout({ children }: LayoutProps) {
               onPress={() => setIsCollapsed(!isCollapsed)}
               aria-label={t('common.toggle_sidebar')}
             >
-              <Icon icon={isCollapsed ? "lucide:chevron-right" : "lucide:chevron-left"} />
+              <LocalIcon icon={isCollapsed ? "lucide:chevron-right" : "lucide:chevron-left"} />
             </Button>
           </NavbarItem>
         </NavbarContent>
@@ -145,7 +147,7 @@ export function Layout({ children }: LayoutProps) {
                 isIconOnly
                 onPress={() => setIsWechatQRCodeOpen(true)}
               >
-                <Icon icon="mdi:wechat" className="text-2xl" />
+                <LocalIcon icon="mdi:wechat" className="text-2xl" />
               </Button>
             </Tooltip>
           </NavbarItem>
@@ -158,7 +160,7 @@ export function Layout({ children }: LayoutProps) {
                 variant="light"
                 isIconOnly
               >
-                <Icon icon="ic:baseline-discord" className="text-2xl" />
+                <LocalIcon icon="ic:baseline-discord" className="text-2xl" />
               </Button>
             </Tooltip>
           </NavbarItem>
@@ -171,7 +173,7 @@ export function Layout({ children }: LayoutProps) {
                 variant="light"
                 isIconOnly
               >
-                <Icon icon="mdi:github" className="text-2xl" />
+                <LocalIcon icon="mdi:github" className="text-2xl" />
               </Button>
             </Tooltip>
           </NavbarItem>
@@ -184,7 +186,7 @@ export function Layout({ children }: LayoutProps) {
                 variant="light"
                 isIconOnly
               >
-                <Icon icon="mdi:book-open-page-variant" className="text-2xl" />
+                <LocalIcon icon="mdi:book-open-page-variant" className="text-2xl" />
               </Button>
             </Tooltip>
           </NavbarItem>
@@ -195,8 +197,7 @@ export function Layout({ children }: LayoutProps) {
                 isIconOnly
                 onPress={toggleTheme}
               >
-                <Icon
-                  icon={isDark ? "lucide:sun" : "lucide:moon"}
+                <LocalIcon icon={isDark ? "lucide:sun" : "lucide:moon"}
                   className="text-2xl"
                 />
               </Button>
@@ -241,7 +242,7 @@ export function Layout({ children }: LayoutProps) {
                         : 'hover:bg-accent text-foreground'
                     }`}
                   >
-                    <Icon icon={item.icon} className="text-xl" />
+                    <LocalIcon icon={item.icon} className="text-xl" />
                   </Link>
                 </Tooltip>
               ) : (
@@ -256,7 +257,7 @@ export function Layout({ children }: LayoutProps) {
                       : 'hover:bg-accent text-foreground'
                   }`}
                 >
-                  <Icon icon={item.icon} className="text-xl mr-3" />
+                  <LocalIcon icon={item.icon} className="text-xl mr-3" />
                   <span>{item.label}</span>
                 </Link>
               )
@@ -299,14 +300,14 @@ export function Layout({ children }: LayoutProps) {
               <DropdownMenu aria-label="User menu">
                 <DropdownItem
                   key="change-password"
-                  startContent={<Icon icon="lucide:key" />}
+                  startContent={<LocalIcon icon="lucide:key" />}
                   onPress={() => setIsChangePasswordOpen(true)}
                 >
                   {t('auth.change_password')}
                 </DropdownItem>
                 <DropdownItem
                   key="logout"
-                  startContent={<Icon icon="lucide:log-out" />}
+                  startContent={<LocalIcon icon="lucide:log-out" />}
                   onPress={handleLogout}
                   className="text-danger"
                 >

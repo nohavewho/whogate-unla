@@ -17,10 +17,10 @@ import {
   Switch,
   Modal,
 } from '@heroui/react';
-import { Icon } from '@iconify/react';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import LocalIcon from '../../components/LocalIcon';
 import { MultiSelectAutocomplete } from "../../components/ui/MultiSelectAutocomplete";
 import { getUsers, createUser, updateUser, deleteUser, toggleUserStatus, getTenants, getUserWithTenants } from '../../services/api';
 import {User, Tenant, CreateUserForm, UpdateUserForm} from '../../types/user';
@@ -203,7 +203,7 @@ export function UserManagement() {
         <h1 className="text-2xl font-bold">{t('users.title')}</h1>
         <Button
           color="primary"
-          startContent={<Icon icon="lucide:plus" />}
+          startContent={<LocalIcon icon="lucide:plus" />}
           onPress={onCreateOpen}
         >
           {t('users.add')}

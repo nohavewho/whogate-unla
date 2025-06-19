@@ -1,5 +1,4 @@
 import { Avatar, Button, Accordion, AccordionItem } from "@heroui/react";
-import { Icon } from "@iconify/react";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from 'react-markdown';
@@ -10,6 +9,7 @@ import remarkMath from 'remark-math';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
 
+import LocalIcon from '../../../components/LocalIcon';
 import { mcpService } from "../../../services/mcp";
 import { wsService } from "../../../services/websocket";
 import {Message, ToolCall, ToolResult} from "../../../types/message";
@@ -149,7 +149,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   size="sm"
                   color="primary"
                   className="mt-2"
-                  startContent={<Icon icon="lucide:play" />}
+                  startContent={<LocalIcon icon="lucide:play" />}
                   onPress={() => handleRunTool(tool)}
                 >
                   {t('chat.run_tool')}

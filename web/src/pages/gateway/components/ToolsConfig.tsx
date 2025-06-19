@@ -1,7 +1,7 @@
 import { Input, Select, SelectItem, Button, Checkbox, Accordion, AccordionItem, Textarea } from "@heroui/react";
-import { Icon } from "@iconify/react";
 import { useTranslation } from 'react-i18next';
 
+import LocalIcon from '../../../components/LocalIcon';
 import { Gateway, ToolConfig, ServerConfig } from '../../../types/gateway';
 
 interface ToolsConfigProps {
@@ -147,8 +147,7 @@ export function ToolsConfig({
             title={tool.name || `Tool ${index + 1}`}
             subtitle={tool.description}
             startContent={
-              <Icon 
-                icon="lucide:wrench" 
+              <LocalIcon icon="lucide:wrench" 
                 className="text-primary-500" 
               />
             }
@@ -194,7 +193,7 @@ export function ToolsConfig({
                     size="sm" 
                     color="primary" 
                     variant="flat"
-                    startContent={<Icon icon="lucide:plus" />}
+                    startContent={<LocalIcon icon="lucide:plus" />}
                     onPress={() => addHeader(index)}
                   >
                     {t('gateway.add_header')}
@@ -223,7 +222,7 @@ export function ToolsConfig({
                         className="self-end mb-1"
                         onPress={() => removeHeader(index, headerIndex)}
                       >
-                        <Icon icon="lucide:x" />
+                        <LocalIcon icon="lucide:x" />
                       </Button>
                     </div>
                   ))}
@@ -238,7 +237,7 @@ export function ToolsConfig({
                     color="primary"
                     size="sm"
                     variant="flat"
-                    startContent={<Icon icon="lucide:plus" />}
+                    startContent={<LocalIcon icon="lucide:plus" />}
                     onPress={() => {
                       const updatedArgs = [...(tool.args || [])];
                       updatedArgs.push({
@@ -362,7 +361,7 @@ export function ToolsConfig({
                           color="danger" 
                           variant="flat"
                           size="sm"
-                          startContent={<Icon icon="lucide:trash-2" />}
+                          startContent={<LocalIcon icon="lucide:trash-2" />}
                           onPress={() => {
                             const updatedArgs = [...(tool.args || [])];
                             updatedArgs.splice(argIndex, 1);
@@ -402,7 +401,7 @@ export function ToolsConfig({
                   color="danger" 
                   variant="flat" 
                   size="sm"
-                  startContent={<Icon icon="lucide:trash-2" />}
+                  startContent={<LocalIcon icon="lucide:trash-2" />}
                   onPress={() => {
                     const updatedTools = [...tools];
                     updatedTools.splice(index, 1);
@@ -422,7 +421,7 @@ export function ToolsConfig({
         <Button
           color="primary"
           variant="flat"
-          startContent={<Icon icon="lucide:plus" />}
+          startContent={<LocalIcon icon="lucide:plus" />}
           onPress={() => {
             const updatedTools = [...tools];
             updatedTools.push({ 

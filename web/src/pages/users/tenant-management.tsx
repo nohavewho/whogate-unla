@@ -16,10 +16,10 @@ import {
   Textarea,
   Modal,
 } from '@heroui/react';
-import { Icon } from '@iconify/react';
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import LocalIcon from '../../components/LocalIcon';
 import { getTenants, createTenant, updateTenant, deleteTenant } from '../../services/api';
 import {Tenant, CreateTenantForm, UpdateTenantForm} from '../../types/user';
 
@@ -137,7 +137,7 @@ export function TenantManagement() {
         <h1 className="text-2xl font-bold">{t('tenants.title')}</h1>
         <Button
           color="primary"
-          startContent={<Icon icon="lucide:plus" />}
+          startContent={<LocalIcon icon="lucide:plus" />}
           onPress={onCreateOpen}
         >
           {t('tenants.add')}
