@@ -9,7 +9,13 @@ import './i18n';
 import "./index.css";
 
 // Configure Monaco Editor to use local files
-(globalThis as any).MonacoEnvironment = {
+interface MonacoGlobal {
+  MonacoEnvironment: {
+    getWorkerUrl: (moduleId: string, label: string) => string;
+  };
+}
+
+(globalThis as unknown as MonacoGlobal).MonacoEnvironment = {
   getWorkerUrl: function (_moduleId: string, _label: string) {
     // 项目只使用YAML，所有情况都使用基础worker
     return '/monaco-editor/vs/base/worker/workerMain.js';
