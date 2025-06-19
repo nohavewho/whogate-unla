@@ -1,4 +1,4 @@
-import { Button, Input, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/react";
+import { Button, Input, ModalContent, ModalHeader, ModalBody, ModalFooter, Modal } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import axios from 'axios';
 import { useState } from 'react';
@@ -6,8 +6,6 @@ import { useTranslation } from 'react-i18next';
 
 import api from '../services/api';
 import { toast } from '../utils/toast';
-
-import { AccessibleModal } from "./AccessibleModal";
 
 interface ChangePasswordDialogProps {
   isOpen: boolean;
@@ -51,7 +49,7 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
   };
 
   return (
-    <AccessibleModal isOpen={isOpen} onOpenChange={onOpenChange}>
+    <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
       <ModalContent>
         <ModalHeader>{t('auth.change_password')}</ModalHeader>
         <ModalBody>
@@ -91,6 +89,6 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: ChangePasswordDia
           </Button>
         </ModalFooter>
       </ModalContent>
-    </AccessibleModal>
+    </Modal>
   );
 }

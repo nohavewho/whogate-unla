@@ -14,12 +14,12 @@ import {
   Input,
   Switch,
   Textarea,
+  Modal,
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AccessibleModal } from "../../components/AccessibleModal";
 import { getTenants, createTenant, updateTenant, deleteTenant } from '../../services/api';
 import {Tenant, CreateTenantForm, UpdateTenantForm} from '../../types/user';
 
@@ -217,7 +217,7 @@ export function TenantManagement() {
       </Table>
 
       {/* Create Tenant Modal */}
-      <AccessibleModal isOpen={isCreateOpen} onClose={onCreateClose}>
+      <Modal isOpen={isCreateOpen} onClose={onCreateClose}>
         <ModalContent>
           <ModalHeader>{t('tenants.add')}</ModalHeader>
           <ModalBody>
@@ -264,10 +264,10 @@ export function TenantManagement() {
             </Button>
           </ModalFooter>
         </ModalContent>
-      </AccessibleModal>
+      </Modal>
 
       {/* Update Tenant Modal */}
-      <AccessibleModal isOpen={isUpdateOpen} onClose={onUpdateClose}>
+      <Modal isOpen={isUpdateOpen} onClose={onUpdateClose}>
         <ModalContent>
           <ModalHeader>{t('tenants.edit')}</ModalHeader>
           <ModalBody>
@@ -322,10 +322,10 @@ export function TenantManagement() {
             </Button>
           </ModalFooter>
         </ModalContent>
-      </AccessibleModal>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
-      <AccessibleModal isOpen={isDeleteOpen} onClose={onDeleteClose}>
+      <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">{t('tenants.delete_title')}</ModalHeader>
           <ModalBody>
@@ -341,7 +341,7 @@ export function TenantManagement() {
             </Button>
           </ModalFooter>
         </ModalContent>
-      </AccessibleModal>
+      </Modal>
     </div>
   );
 } 

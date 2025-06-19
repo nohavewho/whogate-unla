@@ -8,7 +8,6 @@ export interface MultiSelectAutocompleteProps {
   selectedItems?: string[]
   onSelectionChange?: (items: string[]) => void
   allowCustomValues?: boolean
-  placeholder?: string
   className?: string
 }
 
@@ -25,7 +24,6 @@ export function MultiSelectAutocomplete({
   label,
   selectedItems: externalSelectedItems,
   onSelectionChange,
-  placeholder,
   className,
 }: MultiSelectAutocompleteProps) {
   const [items] = useState<string[]>(defaultItems)
@@ -94,12 +92,11 @@ export function MultiSelectAutocomplete({
   }, [changeFilledWithin])
 
   return (
-    <div onClick={(e) => e.stopPropagation()} role="presentation" tabIndex={-1}>
+    <div role="presentation" tabIndex={-1}>
       <Autocomplete
         ref={inputRef}
         items={filteredItems}
         label={label}
-        placeholder={placeholder}
         className={className}
         classNames={{
           base: 'overflow-hidden',
@@ -111,7 +108,7 @@ export function MultiSelectAutocomplete({
               <Chip
                 key={item}
                 variant="flat"
-                className="bg-white rounded-lg min-w-0"
+                className="bg-default-100 dark:bg-default-50 rounded-lg min-w-0"
                 endContent={
                   <Icon
                     icon="lucide:x"

@@ -395,12 +395,18 @@ export const createUser = async (data: {
   tenantIds?: number[];
 }) => {
   try {
+    console.log('API: Creating user with payload:', JSON.stringify(data, null, 2));
     const response = await api.post('/auth/users', data);
     toast.success(t('users.add_success'), {
       duration: 3000,
     });
     return response.data;
   } catch (error) {
+    console.error('API: User creation error:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('API: Error response:', error.response?.data);
+      console.error('API: Error status:', error.response?.status);
+    }
     toast.error(t('users.add_failed'), {
       duration: 3000,
     });
