@@ -16,6 +16,14 @@ export function LoginPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Initialize theme on login page
+    const savedTheme = window.localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
     // Check if already logged in
     const token = window.localStorage.getItem('token');
     if (token) {
@@ -49,7 +57,7 @@ export function LoginPage() {
         <CardHeader className="flex flex-col gap-1.5 p-6">
           <div className="flex items-center gap-2">
             <Icon icon="lucide:server" className="text-primary text-2xl" />
-            <h1 className="text-2xl font-bold">MCP Admin</h1>
+            <h1 className="text-2xl font-bold">MCP Dashboard</h1>
           </div>
           <p className="text-default-500">
             {t('auth.login_to_continue')}

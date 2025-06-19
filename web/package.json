@@ -3,11 +3,10 @@
   "private": true,
   "version": "0.7.1",
   "type": "module",
-  "description": "Unla Admin Dashboard - A modern web interface for managing MCP Gateway services",
+  "description": "Unla Dashboard - A modern web interface for managing MCP Gateway services",
   "keywords": [
     "mcp",
     "gateway",
-    "admin",
     "dashboard",
     "react",
     "typescript"

@@ -9,6 +9,20 @@ import { GatewayManager } from './pages/gateway/gateway-manager';
 import { TenantManagement } from './pages/users/tenant-management';
 import { UserManagement } from './pages/users/user-management';
 
+// Initialize theme on app startup
+function ThemeInitializer() {
+  React.useEffect(() => {
+    const savedTheme = window.localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  return null;
+}
+
 // Route guard component
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -46,6 +60,7 @@ export default function App() {
       basename={import.meta.env.VITE_BASE_URL}
       future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
     >
+      <ThemeInitializer />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route

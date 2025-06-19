@@ -22,6 +22,8 @@ export function LanguageSwitcher() {
    */
   const handleLanguageChange = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
+    // Explicitly save to localStorage to ensure persistence
+    window.localStorage.setItem('i18nextLng', languageCode);
   };
 
   const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
