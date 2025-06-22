@@ -89,7 +89,7 @@ export function ChatMessage({ message, messages, onToolCall }: ChatMessageProps)
     <div className={`flex gap-3 mb-4 ${isBot ? 'flex-row' : 'flex-row-reverse'}`}>
       <Avatar
         size="sm"
-        src={isBot ? "https://img.heroui.chat/image/avatar?w=32&h=32&u=1" : undefined}
+        src={isBot ? "/logo.png" : undefined}
         name={isBot ? "MCP" : t('chat.you')}
       />
       <div

@@ -7,10 +7,10 @@ import {useTranslation} from 'react-i18next';
 import {defaultConfig} from '../constants/defaultConfig';
 
 import {MCPServersConfig} from './MCPServersConfig';
+import {PromptsConfig} from './PromptsConfig';
 import {RouterConfig} from './RouterConfig';
 import {ServersConfig} from './ServersConfig';
 import {ToolsConfig} from './ToolsConfig';
-import {PromptsConfig} from './PromptsConfig';
 
 import {getTenants} from '@/services/api';
 import {ConfigEditorProps, Gateway, Tenant} from '@/types/gateway';

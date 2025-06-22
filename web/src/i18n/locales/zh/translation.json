@@ -327,7 +327,9 @@
     "add_property": "添加属性",
     "property_name": "属性名称",
     "property_type": "属性类型",
-    "property_description": "属性描述"
+    "property_description": "属性描述",
+    "header_name_placeholder": "请输入头部名称",
+    "header_value_placeholder": "请输入头部值"
   },
   "chat": {
     "title": "聊天",

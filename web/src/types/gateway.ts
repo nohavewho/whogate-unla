@@ -96,10 +96,18 @@ export interface ArgConfig {
   items?: ItemsConfig;
 }
 
+export interface PropertyConfig {
+  type: string;
+  description?: string;
+  enum?: string[];
+  items?: ItemsConfig;
+  required?: string[];
+}
+
 export interface ItemsConfig {
   type: string;
   enum?: string[];
-  properties?: Record<string, unknown>;
+  properties?: Record<string, PropertyConfig>;
   items?: ItemsConfig;
   required?: string[];
 }

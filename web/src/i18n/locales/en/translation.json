@@ -325,7 +325,9 @@
     "add_property": "Add Property",
     "property_name": "Property Name",
     "property_type": "Property Type",
-    "property_description": "Property Description"
+    "property_description": "Property Description",
+    "header_name_placeholder": "Enter header name",
+    "header_value_placeholder": "Enter header value"
   },
   "chat": {
     "title": "Chat",

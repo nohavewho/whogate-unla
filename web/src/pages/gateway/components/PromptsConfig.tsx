@@ -23,7 +23,7 @@ export function PromptsConfig({
   const prompts = parsedConfig?.prompts || [];
 
   // Update a prompt at a given index
-  const updatePrompt = (index: number, field: string, value: any) => {
+  const updatePrompt = (index: number, field: string, value: unknown) => {
     const updatedPrompts = [...prompts];
     updatedPrompts[index] = {
       ...updatedPrompts[index],

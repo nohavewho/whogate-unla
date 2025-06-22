@@ -2,7 +2,7 @@ import { Input, Select, SelectItem, Button, Checkbox, Accordion, AccordionItem, 
 import { useTranslation } from 'react-i18next';
 
 import LocalIcon from '@/components/LocalIcon';
-import { Gateway, ToolConfig, ServerConfig } from '@/types/gateway';
+import { Gateway, ToolConfig, ServerConfig, ArgConfig, PropertyConfig } from '@/types/gateway';
 
 interface ToolsConfigProps {
   parsedConfig: Gateway;
@@ -370,7 +370,7 @@ export function ToolsConfig({
                                       size="sm"
                                       color="primary"
                                       variant="flat"
-                                      startContent={<Icon icon="lucide:plus" />}
+                                      startContent={<LocalIcon icon="lucide:plus" />}
                                       onPress={() => {
                                         const updatedArgs = [...(tool.args || [])];
                                         const currentItems = updatedArgs[argIndex].items || { type: 'object', properties: {} };
@@ -395,7 +395,7 @@ export function ToolsConfig({
                                     </Button>
                                   </div>
 
-                                  {arg.items?.properties && Object.entries(arg.items.properties).map(([propName, propConfig]: [string, any], propIndex: number) => (
+                                  {arg.items?.properties && Object.entries(arg.items.properties).map(([propName, propConfig]: [string, PropertyConfig], propIndex: number) => (
                                     <div key={propIndex} className="grid grid-cols-1 lg:grid-cols-12 gap-2 p-3 border border-content3 rounded-md bg-content1">
                                       <div className="lg:col-span-6">
                                         <Input
@@ -424,7 +424,7 @@ export function ToolsConfig({
                                       <div className="lg:col-span-6">
                                         <Select
                                           label={t('gateway.property_type')}
-                                          selectedKeys={[propConfig.type || "string"]}
+                                          selectedKeys={[(propConfig as PropertyConfig).type || "string"]}
                                           onChange={(e) => {
                                             const updatedArgs = [...(tool.args || [])];
                                             const currentItems = updatedArgs[argIndex].items || { type: 'object', properties: {} };
@@ -435,7 +435,7 @@ export function ToolsConfig({
                                                 properties: {
                                                   ...currentItems.properties,
                                                   [propName]: {
-                                                    ...propConfig,
+                                                    ...(propConfig as PropertyConfig),
                                                     type: e.target.value
                                                   }
                                                 }
@@ -452,7 +452,7 @@ export function ToolsConfig({
                                       <div className="lg:col-span-11">
                                         <Input
                                           label={t('gateway.property_description')}
-                                          value={propConfig.description || ""}
+                                          value={(propConfig as PropertyConfig).description || ""}
                                           onChange={(e) => {
                                             const updatedArgs = [...(tool.args || [])];
                                             const currentItems = updatedArgs[argIndex].items || { type: 'object', properties: {} };
@@ -463,7 +463,7 @@ export function ToolsConfig({
                                                 properties: {
                                                   ...currentItems.properties,
                                                   [propName]: {
-                                                    ...propConfig,
+                                                    ...(propConfig as PropertyConfig),
                                                     description: e.target.value
                                                   }
                                                 }
@@ -494,7 +494,7 @@ export function ToolsConfig({
                                             updateTool(index, 'args', updatedArgs);
                                           }}
                                         >
-                                          <Icon icon="lucide:x" />
+                                          <LocalIcon icon="lucide:x" />
                                         </Button>
                                       </div>
                                     </div>
@@ -512,7 +512,7 @@ export function ToolsConfig({
                                   size="sm"
                                   color="primary"
                                   variant="flat"
-                                  startContent={<Icon icon="lucide:plus" />}
+                                  startContent={<LocalIcon icon="lucide:plus" />}
                                   onPress={() => {
                                     const updatedArgs = [...(tool.args || [])];
                                     const currentItems = updatedArgs[argIndex].items || { type: 'object', properties: {} };
@@ -537,7 +537,7 @@ export function ToolsConfig({
                                 </Button>
                               </div>
 
-                              {arg.items?.properties && Object.entries(arg.items.properties).map(([propName, propConfig]: [string, any], propIndex: number) => (
+                              {arg.items?.properties && Object.entries(arg.items.properties).map(([propName, propConfig]: [string, PropertyConfig], propIndex: number) => (
                                 <div key={propIndex} className="grid grid-cols-1 lg:grid-cols-12 gap-2 p-3 border border-content3 rounded-md bg-content1">
                                   <div className="lg:col-span-6">
                                     <Input
@@ -550,7 +550,7 @@ export function ToolsConfig({
 
                                         // 删除旧的属性名，添加新的属性名
                                         delete newProperties[propName];
-                                        newProperties[e.target.value] = propConfig;
+                                        newProperties[e.target.value] = propConfig as PropertyConfig;
 
                                         updatedArgs[argIndex] = {
                                           ...updatedArgs[argIndex],
@@ -566,7 +566,7 @@ export function ToolsConfig({
                                   <div className="lg:col-span-6">
                                     <Select
                                       label={t('gateway.property_type')}
-                                      selectedKeys={[propConfig.type || "string"]}
+                                      selectedKeys={[(propConfig as PropertyConfig).type || "string"]}
                                       onChange={(e) => {
                                         const updatedArgs = [...(tool.args || [])];
                                         const currentItems = updatedArgs[argIndex].items || { type: 'object', properties: {} };
@@ -577,7 +577,7 @@ export function ToolsConfig({
                                             properties: {
                                               ...currentItems.properties,
                                               [propName]: {
-                                                ...propConfig,
+                                                ...(propConfig as PropertyConfig),
                                                 type: e.target.value
                                               }
                                             }
@@ -594,7 +594,7 @@ export function ToolsConfig({
                                   <div className="lg:col-span-11">
                                     <Input
                                       label={t('gateway.property_description')}
-                                      value={propConfig.description || ""}
+                                      value={(propConfig as PropertyConfig).description || ""}
                                       onChange={(e) => {
                                         const updatedArgs = [...(tool.args || [])];
                                         const currentItems = updatedArgs[argIndex].items || { type: 'object', properties: {} };
@@ -605,7 +605,7 @@ export function ToolsConfig({
                                             properties: {
                                               ...currentItems.properties,
                                               [propName]: {
-                                                ...propConfig,
+                                                ...(propConfig as PropertyConfig),
                                                 description: e.target.value
                                               }
                                             }
@@ -636,7 +636,7 @@ export function ToolsConfig({
                                         updateTool(index, 'args', updatedArgs);
                                       }}
                                     >
-                                      <Icon icon="lucide:x" />
+                                      <LocalIcon icon="lucide:x" />
                                     </Button>
                                   </div>
                                 </div>
