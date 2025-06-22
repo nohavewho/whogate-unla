@@ -1,8 +1,8 @@
 import { Input, Select, SelectItem, Button, Checkbox, Accordion, AccordionItem, Textarea } from "@heroui/react";
 import { useTranslation } from 'react-i18next';
 
-import LocalIcon from '../../../components/LocalIcon';
-import { Gateway, ToolConfig, ServerConfig } from '../../../types/gateway';
+import LocalIcon from '@/components/LocalIcon';
+import { Gateway, ToolConfig, ServerConfig } from '@/types/gateway';
 
 interface ToolsConfigProps {
   parsedConfig: Gateway;
@@ -207,13 +207,13 @@ export function ToolsConfig({
                         className="flex-1"
                         value={key}
                         onChange={(e) => updateHeader(index, headerIndex, 'key', e.target.value)}
-                        placeholder="Header名称"
+                        placeholder={t('gateway.header_name_placeholder')}
                       />
                       <Input
                         className="flex-1"
                         value={tool.headers?.[key] || ""}
                         onChange={(e) => updateHeader(index, headerIndex, 'value', e.target.value)}
-                        placeholder="Header值"
+                        placeholder={t('gateway.header_value_placeholder')}
                       />
                       <Button 
                         isIconOnly 
