@@ -69,7 +69,8 @@
     "expand": "Expand",
     "already": "Already",
     "available": "Available",
-    "total_items": "Total {{total}} items"
+    "total_items": "Total {{total}} items",
+    "experimental": "Experimental"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -371,6 +372,14 @@
     "untitled": "Untitled Chat",
     "resize_history": "Resize chat history",
     "rename": "Rename",
+    "experimentalWarning": {
+      "title": "Experimental Feature",
+      "description": "This LLM chat feature is experimental and may not be fully compatible with all providers.",
+      "reportIssue": "Report Issue",
+      "or": " or ",
+      "submitPR": "Submit PR",
+      "helpImprove": " to help improve compatibility."
+    },
     "delete": "Delete",
     "delete_session": "Delete Chat Session",
     "delete_session_confirm": "Are you sure you want to delete this chat session? This action cannot be undone.",

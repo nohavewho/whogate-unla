@@ -660,6 +660,37 @@ export function LLMChatInterface() {
               </div>
             </div>
 
+            {/* Experimental warning */}
+            <div className="px-4 py-3 bg-warning-50 border-b border-warning-200">
+              <div className="flex items-start gap-2 text-sm text-warning-700">
+                <LocalIcon icon="lucide:alert-triangle" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">{t('chat.experimentalWarning.title')}</p>
+                  <p className="text-xs mt-1">
+                    {t('chat.experimentalWarning.description')}
+                    <a 
+                      href="https://github.com/amoylab/unla/issues" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline ml-1 hover:text-warning-800"
+                    >
+                      {t('chat.experimentalWarning.reportIssue')}
+                    </a>
+                    {t('chat.experimentalWarning.or')}
+                    <a 
+                      href="https://github.com/amoylab/unla/pulls" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline ml-1 hover:text-warning-800"
+                    >
+                      {t('chat.experimentalWarning.submitPR')}
+                    </a>
+                    {t('chat.experimentalWarning.helpImprove')}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div
               ref={messagesContainerRef}
               className="flex-1 overflow-auto p-4 space-y-4"

@@ -71,7 +71,8 @@
     "available": "可用",
     "sse_url": "SSE URL",
     "streamable_http_url": "Streamable HTTP URL",
-    "total_items": "共 {{total}} 条"
+    "total_items": "共 {{total}} 条",
+    "experimental": "实验性"
   },
   "nav": {
     "dashboard": "仪表盘",
@@ -372,6 +373,14 @@
     "untitled": "未命名聊天",
     "resize_history": "调整聊天历史宽度",
     "rename": "重命名",
+    "experimentalWarning": {
+      "title": "实验性功能",
+      "description": "此 LLM 聊天功能为实验性质，可能无法完全兼容所有提供商。",
+      "reportIssue": "提交问题",
+      "or": "或",
+      "submitPR": "提交 PR",
+      "helpImprove": " 帮助我们改进兼容性。"
+    },
     "delete": "删除",
     "delete_session": "删除聊天会话",
     "delete_session_confirm": "确定要删除这个聊天会话吗？此操作无法撤销。",
