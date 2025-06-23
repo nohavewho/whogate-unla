@@ -1,6 +1,7 @@
 import { Avatar } from '@heroui/react';
-import { ProviderIcon as LobeProviderIcon } from '@lobehub/icons';
 import React from 'react';
+
+import LocalProviderIcon from './ProviderIcon/index';
 
 interface ProviderIconProps {
   providerId: string;
@@ -18,14 +19,13 @@ const ProviderIcon: React.FC<ProviderIconProps> = ({
   fallbackUrl 
 }) => {
   try {
-    // Use LobeHub's ProviderIcon directly, following their pattern
+    // Use our local provider icon implementation
     return (
-      <div className={`inline-flex items-center justify-center ${className}`}>
-        <LobeProviderIcon
+      <div className={`inline-flex items-center justify-center ${className}`} style={{ borderRadius: 6 }}>
+        <LocalProviderIcon
           provider={providerId}
           size={size}
-          style={{ borderRadius: 6 }}
-          type={'avatar'}
+          type="avatar"
         />
       </div>
     );
