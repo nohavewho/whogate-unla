@@ -1,0 +1,19 @@
+Unla
+
+Copyright (c) 2025 AmoyLab
+
+This product includes software developed by AmoyLab (https://github.com/amoylab/unla).
+
+---
+
+Portions of this software are derived from the following open-source project:
+
+Lobe Chat
+https://github.com/lobehub/lobe-chat
+
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+
+Copyright © the Lobe Chat contributors.
+
+Modifications have been made in the Unla project for the implementation of the LLM management interface.
