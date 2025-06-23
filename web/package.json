@@ -1,7 +1,7 @@
 {
   "name": "unla-dashboard",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.8.0",
   "type": "module",
   "description": "Unla Dashboard - A modern web interface for managing MCP Gateway services",
   "keywords": [
