@@ -59,7 +59,7 @@ function MainLayout() {
 export default function App() {
   return (
     <Router 
-      basename={window.RUNTIME_CONFIG?.VITE_BASE_URL || '/'}
+      basename={(window.RUNTIME_CONFIG?.VITE_BASE_URL as string) || '/'}
       future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
     >
       <ThemeInitializer />

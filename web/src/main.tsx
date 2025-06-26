@@ -1,8 +1,9 @@
 import { HeroUIProvider, ToastProvider } from "@heroui/react";
 import { loader } from '@monaco-editor/react';
+import axios from "axios";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import axios from "axios";
+
 import App from "./App.tsx";
 import { LoadingScreen } from "./components/LoadingScreen";
 import './i18n';
@@ -65,7 +66,7 @@ export interface RuntimeConfig {
     enableExperimental: boolean;
     [key: string]: boolean;
   };
-  [key: string]: any; // For any additional properties
+  [key: string]: unknown; // For any additional properties
 }
 
 // Provide defaults for runtime config
@@ -90,9 +91,13 @@ const fetchRuntimeConfig = async () => {
   const isDev = import.meta.env.DEV;
   
   try {
-    isDev && console.log("[RUNTIME_CONFIG] Fetching /api/runtime-config...");
+    if (isDev) {
+      console.log("[RUNTIME_CONFIG] Fetching /api/runtime-config...");
+    }
     const response = await axios.get<RuntimeConfig>("/api/runtime-config");
-    isDev && console.log("[RUNTIME_CONFIG] Fetched config:", response.data);
+    if (isDev) {
+      console.log("[RUNTIME_CONFIG] Fetched config:", response.data);
+    }
     
     // Merge with defaults to ensure all properties exist
     window.RUNTIME_CONFIG = {
@@ -115,7 +120,9 @@ const fetchRuntimeConfig = async () => {
     window.RUNTIME_CONFIG = { ...defaultRuntimeConfig };
   }
   // Render the main application
-  isDev && console.log("[RUNTIME_CONFIG] Rendering React app...");
+  if (isDev) {
+    console.log("[RUNTIME_CONFIG] Rendering React app...");
+  }
   
   const rootElement = document.getElementById("root");
   if (rootElement) {
