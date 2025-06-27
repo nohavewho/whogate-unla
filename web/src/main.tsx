@@ -25,10 +25,10 @@ interface MonacoGlobal {
 };
 
 // Configure @monaco-editor/react to use local monaco-editor
-loader.config({ 
-  paths: { 
-    vs: '/monaco-editor/vs' 
-  } 
+loader.config({
+  paths: {
+    vs: '/monaco-editor/vs'
+  }
 });
 
 // Initialize monaco
@@ -89,7 +89,7 @@ declare global {
 const fetchRuntimeConfig = async () => {
   // Only log in development mode
   const isDev = import.meta.env.DEV;
-  
+
   try {
     if (isDev) {
       console.log("[RUNTIME_CONFIG] Fetching /api/runtime-config...");
@@ -98,7 +98,7 @@ const fetchRuntimeConfig = async () => {
     if (isDev) {
       console.log("[RUNTIME_CONFIG] Fetched config:", response.data);
     }
-    
+
     // Merge with defaults to ensure all properties exist
     window.RUNTIME_CONFIG = {
       ...defaultRuntimeConfig,
@@ -112,10 +112,10 @@ const fetchRuntimeConfig = async () => {
   } catch (error) {
     // Always log errors, but with conditional detail level
     console.error(
-      "[RUNTIME_CONFIG] Failed to load runtime config", 
+      "[RUNTIME_CONFIG] Failed to load runtime config",
       isDev ? error : ''
     );
-    
+
     // Use defaults on error
     window.RUNTIME_CONFIG = { ...defaultRuntimeConfig };
   }
@@ -123,7 +123,7 @@ const fetchRuntimeConfig = async () => {
   if (isDev) {
     console.log("[RUNTIME_CONFIG] Rendering React app...");
   }
-  
+
   const rootElement = document.getElementById("root");
   if (rootElement) {
     ReactDOM.createRoot(rootElement).render(
