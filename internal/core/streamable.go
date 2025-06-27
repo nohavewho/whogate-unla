@@ -154,7 +154,8 @@ func (s *Server) handlePost(c *gin.Context) {
 	} else {
 		conn, err = s.sessions.Get(c.Request.Context(), sessionID)
 		if err != nil {
-			s.sendProtocolError(c, req.Id, "Invalid Request: Session not found", http.StatusBadRequest, mcp.ErrorCodeInvalidRequest)
+			s.sendProtocolError(c, req.Id, "Session not found",
+				http.StatusNotFound, mcp.ErrorCodeRequestTimeout)
 			return
 		}
 	}
