@@ -552,7 +552,7 @@ export function LLMChatInterface() {
       try {
         const response = await getCurrentUser();
         setUserInfo(response.data);
-      } catch (error) {
+      } catch {
         // Optionally handle error
       }
     };

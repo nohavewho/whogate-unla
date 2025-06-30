@@ -1,8 +1,9 @@
 // Adapter functions to bridge old LLM provider system with new lobe-chat structure
 
+import i18next from 'i18next';
+
 import { AIChatModelCard } from '../types/ai-model';
 import { BuiltinProviderTemplate, LLMModel, convertToLLMModel } from '../types/llm-legacy';
-import i18next from 'i18next';
 
 import { getModelsByProvider } from './ai-models';
 import { DEFAULT_MODEL_PROVIDER_LIST } from './llm-providers/index';
