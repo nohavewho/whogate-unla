@@ -74,3 +74,6 @@ dist
 bin
 
 .history/*
+build.log
+nohup.out
+unla.db

@@ -4,7 +4,7 @@ import { initReactI18next } from 'react-i18next';
 
 // Import translations
 import translationEN from './locales/en/translation.json';
-import translationZH from './locales/zh/translation.json';
+import translationRU from './locales/ru/translation.json';
 
 declare const process: {
   env: {
@@ -16,8 +16,8 @@ const resources = {
   en: {
     translation: translationEN,
   },
-  zh: {
-    translation: translationZH,
+  ru: {
+    translation: translationRU,
   },
 };
 
@@ -26,7 +26,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: 'zh',
+    fallbackLng: 'en',
     debug: process.env.NODE_ENV === 'development',
     interpolation: {
       escapeValue: false,

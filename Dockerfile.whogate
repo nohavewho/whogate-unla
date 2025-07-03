@@ -1,0 +1,94 @@
+# Stage 1: Build Go binaries
+FROM golang:1.24.1 AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN GOOS=linux go build -o /app/bin/apiserver ./cmd/apiserver
+RUN GOOS=linux go build -o /app/bin/mcp-gateway ./cmd/mcp-gateway
+RUN GOOS=linux go build -o /app/bin/mock-server ./cmd/mock-server
+
+# Stage 2: Build web frontend
+FROM node:20.18.0 AS web-builder
+
+WORKDIR /app/web
+
+COPY web/package*.json ./
+RUN npm install
+
+COPY web/ .
+RUN npm run build
+
+# Stage 3: Runtime
+FROM ubuntu:22.04 AS runtime
+
+ENV TZ=UTC
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+# Install base packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    supervisor \
+    nginx \
+    tzdata \
+    vim \
+    python3 \
+    python3-pip \
+    python3-venv \
+    locales && \
+    locale-gen en_US.UTF-8 && \
+    ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime && \
+    echo ${TZ} > /etc/timezone && \
+    dpkg-reconfigure -f noninteractive tzdata
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get update && apt-get install -y nodejs && \
+    npm install -g npm@latest
+
+# Install Python uv
+RUN python3 -m pip install --no-cache-dir uv
+
+# Clean up
+RUN apt-get clean && rm -rf \
+    /var/lib/apt/lists/* \
+    /tmp/* /var/tmp/* \
+    /usr/share/doc /usr/share/man /usr/share/info /usr/share/lintian
+
+WORKDIR /app
+
+# Copy configurations
+COPY deploy/docker/allinone/supervisord.conf /etc/supervisor/conf.d/
+COPY deploy/docker/allinone/nginx.conf /etc/nginx/nginx.conf
+RUN mkdir -p /app/data
+COPY configs/apiserver.yaml /etc/unla/
+COPY configs/mcp-gateway.yaml /etc/unla/
+COPY configs/i18n /etc/unla/i18n
+
+# Copy binaries from builder
+COPY --from=builder /app/bin/mcp-gateway /usr/local/bin/
+COPY --from=builder /app/bin/mock-server /usr/local/bin/
+COPY --from=builder /app/bin/apiserver /usr/local/bin/
+COPY --from=builder /app/assets /app/assets
+
+# Copy web assets
+COPY --from=web-builder /app/web/dist /usr/share/nginx/html
+
+# Set environment variables for English
+ENV DEFAULT_LANGUAGE=en
+ENV UI_LANGUAGE=en
+ENV APP_NAME=WhoGate
+ENV SITE_TITLE=WhoGate
+
+EXPOSE 80
+
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

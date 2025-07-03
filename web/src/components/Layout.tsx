@@ -5,7 +5,6 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-  Link as HeroLink,
   Navbar,
   NavbarContent,
   NavbarItem,
@@ -165,56 +164,6 @@ export function Layout({ children }: LayoutProps) {
             <LanguageSwitcher />
           </NavbarItem>
           <NavbarItem>
-            <Tooltip content={t('common.join_wechat')}>
-              <Button
-                variant="light"
-                isIconOnly
-                onPress={() => setIsWechatQRCodeOpen(true)}
-              >
-                <LocalIcon icon="mdi:wechat" className="text-2xl" />
-              </Button>
-            </Tooltip>
-          </NavbarItem>
-          <NavbarItem>
-            <Tooltip content={t('common.join_discord')}>
-              <Button
-                as={HeroLink}
-                href="https://discord.gg/udf69cT9TY"
-                target="_blank"
-                variant="light"
-                isIconOnly
-              >
-                <LocalIcon icon="ic:baseline-discord" className="text-2xl" />
-              </Button>
-            </Tooltip>
-          </NavbarItem>
-          <NavbarItem>
-            <Tooltip content={t('common.view_github')}>
-              <Button
-                as={HeroLink}
-                href="https://github.com/amoylab/unla"
-                target="_blank"
-                variant="light"
-                isIconOnly
-              >
-                <LocalIcon icon="mdi:github" className="text-2xl" />
-              </Button>
-            </Tooltip>
-          </NavbarItem>
-          <NavbarItem>
-            <Tooltip content={t('common.view_docs')}>
-              <Button
-                as={HeroLink}
-                href="https://mcp.ifuryst.com/"
-                target="_blank"
-                variant="light"
-                isIconOnly
-              >
-                <LocalIcon icon="mdi:book-open-page-variant" className="text-2xl" />
-              </Button>
-            </Tooltip>
-          </NavbarItem>
-          <NavbarItem>
             <Tooltip content={t('common.switch_theme', { theme: isDark ? t('common.light') : t('common.dark') })}>
               <Button
                 variant="light"
@@ -242,11 +191,8 @@ export function Layout({ children }: LayoutProps) {
               <img src={logoImg} alt="MCP Logo" className="w-8 h-8" />
             ) : (
               <div className="flex items-center gap-2">
-                <img src={logoImg} alt="MCP Logo" className="w-6 h-6" />
-                <span className="text-xl font-bold">Unla</span>
-                <span className="text-xs text-muted-foreground ml-1">
-                  {window.RUNTIME_CONFIG?.version || 'dev'}
-                </span>
+                <img src={logoImg} alt="MCP Logo" className="w-10 h-10" />
+                <span className="text-xl font-bold">WhoGate</span>
               </div>
             )}
           </div>

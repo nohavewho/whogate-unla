@@ -30,7 +30,7 @@ func SetDefaultLanguage(lang string) {
 func InitTranslator(translationsPath string) error {
 	var initErr error
 	translatorOnce.Do(func() {
-		translator = NewI18n(language.Chinese)
+		translator = NewI18n(language.English)
 		initErr = translator.LoadTranslations(translationsPath)
 	})
 	return initErr
@@ -108,7 +108,7 @@ func (i *I18n) Translate(msgID string, lang string, templateData map[string]inte
 
 // TranslateContext returns a localized string using the Gin context's language preference
 func (i *I18n) TranslateContext(c *gin.Context, msgID string, templateData map[string]interface{}) string {
-	defaultLanguage := "zh"
+	defaultLanguage := "en"
 
 	lang, exists := c.Get(cnst.XLang)
 	if !exists || lang == "" {
@@ -149,7 +149,7 @@ func normalizeLang(lang string) string {
 	langCode := strings.Split(lang, "-")[0]
 	langCode = strings.ToLower(langCode)
 
-	supportedLangs := []string{"en", "zh"}
+	supportedLangs := []string{"en", "ru"}
 	for _, supported := range supportedLangs {
 		if langCode == supported {
 			return langCode

@@ -5,7 +5,7 @@ import LocalIcon from './LocalIcon';
 
 const languages = [
   { code: 'en', name: 'English' },
-  { code: 'zh', name: '中文' }
+  { code: 'ru', name: 'Русский' }
 ];
 
 /**
